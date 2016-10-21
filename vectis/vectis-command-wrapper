@@ -1,0 +1,28 @@
+#!/usr/bin/python3
+# Copyright © 2016 Simon McVittie
+# SPDX-License-Identifier: MIT
+# (see vectis/__init__.py)
+
+import argparse
+import os
+import pty
+import sys
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--chdir', default=None)
+    parser.add_argument('argv', nargs='+')
+    args = parser.parse_args()
+
+    # Avoid anything ever waiting for stdin.
+    fd = os.open(os.devnull, os.O_RDONLY)
+    os.dup2(fd, 0)
+    os.close(fd)
+
+    # Optionally chdir to / or to vm.scratch.
+    if args.chdir is not None:
+        os.chdir(args.chdir)
+
+    # vmdebootstrap unconditionally writes to /dev/tty. Fool it by using
+    # a pty.
+    sys.exit(pty.spawn(args.argv))

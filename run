@@ -1,0 +1,7 @@
+#!/usr/bin/python3
+import runpy
+
+try:
+    runpy.run_module('vectis')
+except KeyboardInterrupt:
+    raise SystemExit(130)
