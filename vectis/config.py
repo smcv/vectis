@@ -36,7 +36,7 @@ output_builds = ..
 [Platform debian]
 stable_suite = jessie
 unstable_suite = sid
-build_suite = ${stable_suite}
+build_suite = ${unstable_suite}
 extra_components = contrib non-free
 
 [Platform ubuntu]
