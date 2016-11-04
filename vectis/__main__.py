@@ -123,9 +123,11 @@ p.add_argument('--architecture', '--arch', '-a', action='append', dest='_archs',
         help='Build architecture-dependent packages for this architecture '
              '(default: architectures installed on host machine, or '
              'host machine architecture if not installed)')
-p.add_argument('--together', dest='sbuild_together',
+p.add_argument('--together', dest='sbuild_together', action='store_true',
         help='Build architecture-independent packages along with first '
-             'architecture (default: use a separate sbuild)')
+             'architecture')
+p.add_argument('--apart', dest='sbuild_together', action='store_false',
+        help='Build architecture-independent packages separately')
 
 parser.parse_args(namespace=args)
 
