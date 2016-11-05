@@ -19,6 +19,7 @@ mirror = http://192.168.122.1:3142/${archive}
 qemu_image = vectis-${platform}-${suite}-${architecture}.qcow2
 debootstrap_script = ${suite}
 default_suite = ${unstable_suite}
+aliases =
 
 build_platform = debian
 build_suite = ${build_platform__unstable_suite}
@@ -38,6 +39,7 @@ stable_suite = jessie
 unstable_suite = sid
 build_suite = ${unstable_suite}
 extra_components = contrib non-free
+aliases = unstable:sid testing:stretch stable:jessie rc-buggy:experimental
 
 [Platform ubuntu]
 build_platform = ubuntu
@@ -161,10 +163,21 @@ class Config(_ConfigLike):
         except ImportError:
             pass
         else:
-            self._cp['debian']['stable_suite'] = distro_info.DebianDistroInfo().stable()
-            self._cp['ubuntu']['stable_suite'] = distro_info.UbuntuDistroInfo().lts()
-            self._cp['debian']['unstable_suite'] = distro_info.DebianDistroInfo().devel()
-            self._cp['ubuntu']['unstable_suite'] = distro_info.UbuntuDistroInfo().devel()
+            debian = distro_info.DebianDistroInfo()
+            ubuntu = distro_info.UbuntuDistroInfo()
+            self._cp['debian']['stable_suite'] = debian.stable()
+            self._cp['ubuntu']['stable_suite'] = ubuntu.lts()
+            self._cp['debian']['unstable_suite'] = debian.devel()
+            self._cp['ubuntu']['unstable_suite'] = ubuntu.devel()
+            self._cp['debian']['aliases'] = (
+                    'unstable:{unstable} stable:{stable} testing:{testing} '
+                    'oldstable:{oldstable} rc-buggy:experimental'.format(
+                        unstable=debian.devel(),
+                        stable=debian.stable(),
+                        testing=debian.testing(),
+                        oldstable=debian.old(),
+                        )
+                    )
 
         self._cp.read([os.path.join(p, 'vectis', 'vectis.conf') for p in
             list(reversed(self._cp['Defaults']['XDG_CONFIG_DIRS'].split(':'))) +

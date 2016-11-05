@@ -191,11 +191,17 @@ def _run(args, machine, tmp):
 
         base = suite
 
-        if base == 'UNRELEASED':
-            base = args.platform.unstable_suite
-
         base = base.replace('-backports', '')
         base = base.replace('-security', '')
+
+        for pair in args.platform.aliases.split():
+            alias, result = pair.split(':')
+            if base == alias:
+                base = result
+                break
+        else:
+            if base in ('unstable', 'UNRELEASED'):
+                base = args.platform.unstable_suite
 
         for arch in archs:
             logger.info('Building architecture: %s', arch)
