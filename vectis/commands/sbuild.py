@@ -10,9 +10,16 @@ import textwrap
 from collections import OrderedDict
 from tempfile import TemporaryDirectory
 
+from debian.changelog import (
+        Changelog,
+        )
 from debian.deb822 import (
         Changes,
+        Deb822,
         Dsc,
+        )
+from debian.debian_support import (
+        Version,
         )
 
 from vectis.virt import Machine
@@ -60,10 +67,32 @@ def _run(args, machine, tmp):
         source_only = False # FIXME
         dsc_name = None
         dsc = None
+        nominal_suite = None
+        sourceful_changes = None
+        sourceful_changes_name = None
+        source_package = None
+        version = None
+        arch_wildcards = set()
+        binary_packages = []
 
         if os.path.isdir(buildable):
-            raise AssertionError('Building from a source directory '
-                    'not implemented yet')
+            changelog = os.path.join(buildable, 'debian', 'changelog')
+            changelog = Changelog(open(changelog))
+            source_package = changelog.get_package()
+            nominal_suite = changelog.distributions
+            version = Version(changelog.version)
+            control = os.path.join(buildable, 'debian', 'control')
+
+            if len(changelog.distributions.split()) != 1:
+                raise SystemExit('Cannot build for multiple distributions at '
+                        'once')
+
+            for paragraph in Deb822.iter_paragraphs(open(control)):
+                arch_wildcards |= set(paragraph.get('architecture', '').split())
+                binary = paragraph.get('package')
+
+                if binary is not None:
+                    binary_packages.append(binary)
 
         elif buildable.endswith('.changes'):
             d = os.path.dirname(buildable)
@@ -83,12 +112,6 @@ def _run(args, machine, tmp):
         elif buildable.endswith('.dsc'):
             dsc_name = buildable
             dsc = Dsc(open(dsc_name))
-            d = os.path.dirname(dsc_name)
-
-            nominal_suite = None
-
-            sourceful_changes = None
-            sourceful_changes_name = None
 
         else:
             raise SystemExit('buildable must be .changes, .dsc or '
@@ -96,7 +119,7 @@ def _run(args, machine, tmp):
 
         if dsc is not None:
             source_package = dsc['source']
-            version_no_epoch = dsc['version'].split(':', 1)[-1]
+            version = Version(dsc['version'])
             arch_wildcards = set(dsc['architecture'].split())
             binary_packages = [p.strip() for p in dsc['binary'].split(',')]
 
@@ -108,6 +131,8 @@ def _run(args, machine, tmp):
                 machine.copy_to_guest(os.path.join(d, f['name']),
                         '{}/{}'.format(machine.scratch, f['name']))
 
+        version_no_epoch = Version(version)
+        version_no_epoch.epoch = None
         product_prefix = '{}_{}'.format(source_package,
                 version_no_epoch)
 
@@ -300,8 +325,19 @@ def _run(args, machine, tmp):
                 argv.append('--arch')
                 argv.append(arch)
 
-            argv.append('{}/{}'.format(machine.scratch,
-                os.path.basename(dsc_name)))
+            if dsc is None:
+                # build a source package as a side-effect of the first build
+                machine.copy_to_guest(os.path.join(buildable, ''),
+                        '{}/{}_source/'.format(machine.scratch,
+                            product_prefix))
+                argv.append('--no-clean-source')
+                argv.append('--source-only-changes')
+                argv.append('--source')
+                argv.append('{}/{}_source'.format(machine.scratch,
+                    product_prefix))
+            else:
+                argv.append('{}/{}'.format(machine.scratch,
+                    os.path.basename(dsc_name)))
 
             logger.info('Running %r', argv)
             machine.check_call(argv)
@@ -340,6 +376,32 @@ def _run(args, machine, tmp):
                 product = '{}/{}'.format(machine.scratch, f['name'])
                 copied_back = os.path.join(args.output_builds, f['name'])
                 machine.copy_to_host(product, copied_back)
+
+            if dsc is None:
+                # we built a source package as a side-effect of the first build
+                product = '{}/{}_source.changes'.format(machine.scratch,
+                    product_prefix)
+                logger.info('Copying %s back to host...', product)
+                copied_back = os.path.join(args.output_builds,
+                        '{}_source.changes'.format(product_prefix))
+                machine.copy_to_host(product, copied_back)
+                sourceful_changes_name = copied_back
+
+                changes_out = Changes(open(copied_back))
+
+                for f in changes_out['files']:
+                    assert '/' not in f['name']
+                    assert not f['name'].startswith('.')
+                    assert os.path.exists(os.path.join(args.output_builds,
+                            f['name'])), f['name']
+
+                    if f['name'].endswith('.dsc'):
+                        # expect to find exactly one .dsc file
+                        assert dsc is None
+                        dsc_name = os.path.join(args.output_builds, f['name'])
+                        dsc = Dsc(open(dsc_name))
+
+                assert dsc is not None
 
         if indep and together_with is None and sourceful_changes_name:
             c = os.path.join(args.output_builds,

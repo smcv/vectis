@@ -100,8 +100,9 @@ p = subparsers.add_parser('sbuild',
 p.add_argument('--builder',
         help='Virtual machine image to use '
         '[default: {}]'.format(args.builder))
-p.add_argument('_buildables', metavar='CHANGES_OR_DSC',
-        help='sourceful .changes or .dsc', nargs='+')
+p.add_argument('_buildables', metavar='CHANGES_OR_DSC_OR_DIR',
+        help='sourceful .changes or .dsc or source directory', nargs='*',
+        default=[])
 p.add_argument('--suite', '--distribution', '-d',
         help='Distribution release suite [default: auto-detect from input]')
 p.add_argument('--output-builds', '--build-area', default='..',
