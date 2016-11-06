@@ -129,6 +129,11 @@ p.add_argument('--together', dest='sbuild_together', action='store_true',
              'architecture')
 p.add_argument('--apart', dest='sbuild_together', action='store_false',
         help='Build architecture-independent packages separately')
+p.add_argument('--reprepro-dir', dest='_reprepro_dir', default=None,
+        help='Inject built packages into this reprepro repository')
+p.add_argument('--reprepro-suite', dest='_reprepro_suite', default=None,
+        help='Inject built packages into this reprepro suite (default: same '
+            'as package)')
 
 parser.parse_args(namespace=args)
 

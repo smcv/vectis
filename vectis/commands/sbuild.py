@@ -489,6 +489,20 @@ def _run(args, machine, tmp):
             if x in buildable.merged_changes:
                 subprocess.call(['lintian', '-I', '-i',
                     buildable.merged_changes[x]])
+
+                reprepro_suite = args._reprepro_suite
+
+                if reprepro_suite is None:
+                    reprepro_suite = buildable.suite
+
+                if args._reprepro_dir:
+                    subprocess.call(['reprepro', '-b', args._reprepro_dir,
+                        'removesrc', reprepro_suite, buildable.source_package])
+                    subprocess.call(['reprepro', '--ignore=wrongdistribution',
+                        '--ignore=missingfile',
+                        '-b', args._reprepro_dir, 'include', reprepro_suite,
+                        os.path.join(args.output_builds, x)])
+
                 break
 
     # We print these separately, right at the end, so that if you built more

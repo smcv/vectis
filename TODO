@@ -6,7 +6,6 @@ Things to port from gbp-buildall
 
 * Build an unpacked source directory with debuild -S (on the host system?)
 * Optionally use gbp and/or svn-buildpackage (on the host system?)
-* Optionally inject packages into a reprepro on the host system
 * Source-only builds
 * Run mergechanges a lot
 * Silence tracebacks for CalledProcessError
