@@ -27,119 +27,103 @@ from vectis.util import AtomicWriter
 
 logger = logging.getLogger(__name__)
 
-def _run(args, machine, tmp):
-    machine_arch = machine.check_output(['dpkg', '--print-architecture'],
-            universal_newlines=True).strip()
+class Buildable:
+    def __init__(self, path):
+        self.path = path
 
-    tarballs_copied = set()
+        self.arch_wildcards = set()
+        self.archs = []
+        self.binary_packages = []
+        self.changes_produced = {}
+        self.dirname = None
+        self.dsc = None
+        self.dsc_name = None
+        self.indep = False
+        self.logs = {}
+        self.merged_changes = OrderedDict()
+        self.nominal_suite = None
+        self.product_prefix = None
+        self.source_package = None
+        self.sourceful_changes_name = None
+        self.suite = None
+        self.together_with = None
+        self.version = None
 
-    if not args._buildables:
-        args._buildables = ['.']
-
-    logger.info('Installing sbuild')
-    machine.check_call(['apt-get', '-y', 'update'])
-    machine.check_call([
-        'apt-get',
-        '-y',
-        '--no-install-recommends',
-        'install',
-
-        'python3',
-        'sbuild',
-        ])
-
-    # { 'foo_1.2.dsc': { 'amd64': '../build-area/foo_1.2_amd64.changes' } }
-    changes_produced = {}
-    logs = {}
-    merged_changes = {}
-
-    for buildable in args._buildables:
-        logger.info('Processing: %s', buildable)
-
-        changes_produced[buildable] = {}
-        logs[buildable] = {}
-        merged_changes[buildable] = OrderedDict()
-
-        suite = args.default_suite
-
-        archs = args._archs
-        indep = args._indep
-        source_only = False # FIXME
-        dsc_name = None
-        dsc = None
-        nominal_suite = None
-        sourceful_changes = None
-        sourceful_changes_name = None
-        source_package = None
-        version = None
-        arch_wildcards = set()
-        binary_packages = []
-
-        if os.path.isdir(buildable):
-            changelog = os.path.join(buildable, 'debian', 'changelog')
+        if os.path.isdir(self.path):
+            changelog = os.path.join(self.path, 'debian', 'changelog')
             changelog = Changelog(open(changelog))
-            source_package = changelog.get_package()
-            nominal_suite = changelog.distributions
-            version = Version(changelog.version)
-            control = os.path.join(buildable, 'debian', 'control')
+            self.source_package = changelog.get_package()
+            self.nominal_suite = changelog.distributions
+            self.version = Version(changelog.version)
+            control = os.path.join(self.path, 'debian', 'control')
 
             if len(changelog.distributions.split()) != 1:
                 raise SystemExit('Cannot build for multiple distributions at '
                         'once')
 
             for paragraph in Deb822.iter_paragraphs(open(control)):
-                arch_wildcards |= set(paragraph.get('architecture', '').split())
+                self.arch_wildcards |= set(
+                        paragraph.get('architecture', '').split())
                 binary = paragraph.get('package')
 
                 if binary is not None:
-                    binary_packages.append(binary)
+                    self.binary_packages.append(binary)
 
-        elif buildable.endswith('.changes'):
-            d = os.path.dirname(buildable)
-            sourceful_changes_name = buildable
-            sourceful_changes = Changes(open(buildable))
+        elif self.path.endswith('.changes'):
+            self.dirname = os.path.dirname(self.path)
+            self.sourceful_changes_name = self.path
+            sourceful_changes = Changes(open(self.path))
             assert 'source' in sourceful_changes['architecture']
 
-            nominal_suite = sourceful_changes['distribution']
+            self.nominal_suite = sourceful_changes['distribution']
 
             for f in sourceful_changes['files']:
                 if f['name'].endswith('.dsc'):
-                    dsc_name = os.path.join(d, f['name'])
+                    self.dsc_name = os.path.join(self.dirname, f['name'])
 
-            assert dsc_name is not None
-            dsc = Dsc(open(dsc_name))
+            assert self.dsc_name is not None
+            self.dsc = Dsc(open(self.dsc_name))
 
-        elif buildable.endswith('.dsc'):
-            dsc_name = buildable
-            dsc = Dsc(open(dsc_name))
+        elif self.path.endswith('.dsc'):
+            self.dirname = os.path.dirname(self.path)
+            self.dsc_name = self.path
+            self.dsc = Dsc(open(self.dsc_name))
 
         else:
-            raise SystemExit('buildable must be .changes, .dsc or '
-                    'directory')
+            raise ValueError('buildable must be .changes, .dsc or '
+                    'directory, not {!r}'.format(self.path))
 
-        if dsc is not None:
-            source_package = dsc['source']
-            version = Version(dsc['version'])
-            arch_wildcards = set(dsc['architecture'].split())
-            binary_packages = [p.strip() for p in dsc['binary'].split(',')]
+        if self.dsc is not None:
+            self.source_package = dsc['source']
+            self.version = Version(dsc['version'])
+            self.arch_wildcards = set(dsc['architecture'].split())
+            self.binary_packages = [p.strip() for p in dsc['binary'].split(',')]
 
-            machine.copy_to_guest(dsc_name,
-                    '{}/{}'.format(machine.scratch,
-                        os.path.basename(dsc_name)))
-
-            for f in dsc['files']:
-                machine.copy_to_guest(os.path.join(d, f['name']),
-                        '{}/{}'.format(machine.scratch, f['name']))
-
-        version_no_epoch = Version(version)
+        version_no_epoch = Version(self.version)
         version_no_epoch.epoch = None
-        product_prefix = '{}_{}'.format(source_package,
+        self.product_prefix = '{}_{}'.format(self.source_package,
                 version_no_epoch)
 
+    def copy_source_to(self, machine):
+        if self.dsc is not None:
+            machine.copy_to_guest(self.dsc_name,
+                    '{}/{}'.format(machine.scratch,
+                        os.path.basename(self.dsc_name)))
+
+            for f in self.dsc['files']:
+                machine.copy_to_guest(os.path.join(self.dirname, f['name']),
+                        '{}/{}'.format(machine.scratch, f['name']))
+        else:
+            machine.copy_to_guest(os.path.join(self.path, ''),
+                    '{}/{}_source/'.format(machine.scratch,
+                        self.product_prefix))
+            # FIXME: find and upload orig.tar.* for non-native packages
+
+    def select_archs(self, machine_arch, archs, indep, source_only, together):
         builds_i386 = False
         builds_natively = False
 
-        for wildcard in arch_wildcards:
+        for wildcard in self.arch_wildcards:
             if subprocess.call(['dpkg-architecture',
                     '-a' + machine_arch, '--is', wildcard]) == 0:
                 logger.info('Package builds natively on %s', machine_arch)
@@ -155,66 +139,99 @@ def _run(args, machine, tmp):
         elif archs or indep:
             # the user is always right
             logger.info('Using architectures from command-line')
+            self.archs = archs[:]
         else:
             logger.info('Choosing architectures to build')
-            indep = ('all' in arch_wildcards)
-            archs = []
+            indep = ('all' in self.arch_wildcards)
+            self.archs = []
 
             if builds_natively:
-                archs.append(machine_arch)
+                self.archs.append(machine_arch)
 
             for line in subprocess.check_output([
                     'sh', '-c', '"$@" || :',
                     'sh', # argv[0]
                     'dpkg-query', '-W', r'--showformat=${binary:Package}\n',
-                    ] + [p.strip() for p in binary_packages],
+                    ] + [p.strip() for p in self.binary_packages],
                     universal_newlines=True).splitlines():
                 if ':' in line:
                     arch = line.split(':')[-1]
-                    if arch not in archs:
+                    if arch not in self.archs:
                         logger.info('Building on %s because %s is installed',
                                 arch, line)
-                        archs.append(arch)
+                        self.archs.append(arch)
 
             if (machine_arch == 'amd64' and builds_i386 and
-                    not builds_natively and 'i386' not in archs):
-                archs.append('i386')
+                    not builds_natively and 'i386' not in self.archs):
+                self.archs.append('i386')
 
-        if 'all' not in arch_wildcards:
+        if 'all' not in self.arch_wildcards:
             indep = False
 
-        together_with = None
-
         if indep:
-            if args.sbuild_together and archs:
-                if machine_arch in archs:
-                    together_with = machine_arch
+            if together and self.archs:
+                if machine_arch in self.archs:
+                    self.together_with = machine_arch
                 else:
-                    together_with = archs[0]
+                    self.together_with = self.archs[0]
             else:
-                archs.insert(0, 'all')
+                self.archs.insert(0, 'all')
 
-        if not source_only:
-            logger.info('Selected architectures: %r', archs)
-            logger.info('Selected architecture-independent: %r', indep)
+        logger.info('Selected architectures: %r', self.archs)
 
-        if indep and together_with is not None:
+        if indep and self.together_with is not None:
             logger.info('Architecture-independent packages will be built '
-                        'alongside %s', together_with)
+                        'alongside %s', self.together_with)
 
-        suite = nominal_suite
+    def select_suite(self, suite):
+        self.suite = self.nominal_suite
 
-        if args.suite is not None:
-            suite = args.suite
+        if suite is not None:
+            self.suite = suite
 
-            if nominal_suite is None:
-                nominal_suite = args.suite
+            if self.nominal_suite is None:
+                self.nominal_suite = suite
 
-        if suite is None:
-            raise AssertionError('Must specify --suite when building '
-                    'from a .dsc file')
+        if self.suite is None:
+            raise ValueError('Must specify --suite when building from '
+                    '{!r}'.format(self.path))
 
-        base = suite
+    def __str__(self):
+        return self.path
+
+def _run(args, machine, tmp):
+    machine_arch = machine.check_output(['dpkg', '--print-architecture'],
+            universal_newlines=True).strip()
+    tarballs_copied = set()
+    buildables = []
+
+    for a in (args._buildables or ['.']):
+        buildables.append(Buildable(a))
+
+    logger.info('Installing sbuild')
+    machine.check_call(['apt-get', '-y', 'update'])
+    machine.check_call([
+        'apt-get',
+        '-y',
+        '--no-install-recommends',
+        'install',
+
+        'python3',
+        'sbuild',
+        ])
+
+    for buildable in buildables:
+        logger.info('Processing: %s', buildable)
+
+        buildable.copy_source_to(machine)
+
+        source_only = False # FIXME
+        buildable.select_archs(machine_arch, args._archs, args._indep,
+                source_only, args.sbuild_together)
+
+        buildable.select_suite(args.suite)
+
+        base = buildable.suite
 
         base = base.replace('-backports', '')
         base = base.replace('-security', '')
@@ -228,7 +245,7 @@ def _run(args, machine, tmp):
             if base in ('unstable', 'UNRELEASED'):
                 base = args.platform.unstable_suite
 
-        for arch in archs:
+        for arch in buildable.archs:
             logger.info('Building architecture: %s', arch)
 
             if arch == 'all':
@@ -277,15 +294,15 @@ def _run(args, machine, tmp):
                     '--',
                     'sbuild',
                     '-c', 'vectis',
-                    '-d', nominal_suite,
+                    '-d', buildable.nominal_suite,
                     '--no-run-lintian',
             ]
 
-            if suite.endswith('-backports'):
+            if buildable.suite.endswith('-backports'):
                 argv.append('--extra-repository')
                 argv.append('deb {} {} {}'.format(
                     argv.mirror,
-                    suite,
+                    buildable.suite,
                     ' '.join(argv.components)))
                 argv.append('--build-dep-resolver=aptitude')
 
@@ -293,14 +310,14 @@ def _run(args, machine, tmp):
                 argv.append('--extra-repository')
                 argv.append(x)
 
-            if suite == 'experimental':
+            if buildable.suite == 'experimental':
                 argv.append('--build-dep-resolver=aspcud')
                 argv.append('--aspcud-criteria=-removed,-changed,'
                         '-new,'
                         '-count(solution,APT-Release:=/experimental/)')
 
             if (args.sbuild_parallel != 1 and
-                    not suite.startswith(('jessie', 'wheezy'))):
+                    not buildable.suite.startswith(('jessie', 'wheezy'))):
                 if args.sbuild_parallel:
                     argv.append('--debbuildopt=-J{}'.format(
                         args.sbuild_parallel))
@@ -315,7 +332,7 @@ def _run(args, machine, tmp):
                 logger.info('Architecture: all')
                 argv.append('-A')
                 argv.append('--no-arch-any')
-            elif arch == together_with:
+            elif arch == buildable.together_with:
                 logger.info('Architecture: %s + all', arch)
                 argv.append('-A')
                 argv.append('--arch')
@@ -325,47 +342,44 @@ def _run(args, machine, tmp):
                 argv.append('--arch')
                 argv.append(arch)
 
-            if dsc is None:
+            if buildable.dsc_name is None:
                 # build a source package as a side-effect of the first build
-                machine.copy_to_guest(os.path.join(buildable, ''),
-                        '{}/{}_source/'.format(machine.scratch,
-                            product_prefix))
                 argv.append('--no-clean-source')
                 argv.append('--source-only-changes')
                 argv.append('--source')
                 argv.append('{}/{}_source'.format(machine.scratch,
-                    product_prefix))
+                    buildable.product_prefix))
             else:
                 argv.append('{}/{}'.format(machine.scratch,
-                    os.path.basename(dsc_name)))
+                    os.path.basename(buildable.dsc_name)))
 
             logger.info('Running %r', argv)
             machine.check_call(argv)
 
             product = '{}/{}_{}.changes'.format(machine.scratch,
-                product_prefix,
+                buildable.product_prefix,
                 arch)
             logger.info('Copying %s back to host...', product)
             copied_back = os.path.join(args.output_builds,
-                    '{}_{}.changes'.format(product_prefix, arch))
+                    '{}_{}.changes'.format(buildable.product_prefix, arch))
             machine.copy_to_host(product, copied_back)
-            changes_produced[buildable][arch] = copied_back
+            buildable.changes_produced[arch] = copied_back
 
             changes_out = Changes(open(copied_back))
 
             # Note that we mix use_arch and arch here: an Architecture: all
             # build produces foo_1.2_amd64.build, which we rename
             product = '{}/{}_{}.build'.format(machine.scratch,
-                product_prefix,
+                buildable.product_prefix,
                 use_arch)
             product = machine.check_output(['readlink', '-f', product],
                     universal_newlines=True).rstrip('\n')
             logger.info('Copying %s back to host as %s_%s.build...',
-                    product, product_prefix, arch)
+                    product, buildable.product_prefix, arch)
             copied_back = os.path.join(args.output_builds,
-                    '{}_{}.build'.format(product_prefix, arch))
+                    '{}_{}.build'.format(buildable.product_prefix, arch))
             machine.copy_to_host(product, copied_back)
-            logs[buildable][arch] = copied_back
+            buildable.logs[arch] = copied_back
 
             for f in changes_out['files']:
                 assert '/' not in f['name']
@@ -377,15 +391,15 @@ def _run(args, machine, tmp):
                 copied_back = os.path.join(args.output_builds, f['name'])
                 machine.copy_to_host(product, copied_back)
 
-            if dsc is None:
+            if buildable.dsc_name is None:
                 # we built a source package as a side-effect of the first build
                 product = '{}/{}_source.changes'.format(machine.scratch,
-                    product_prefix)
+                    buildable.product_prefix)
                 logger.info('Copying %s back to host...', product)
                 copied_back = os.path.join(args.output_builds,
-                        '{}_source.changes'.format(product_prefix))
+                        '{}_source.changes'.format(buildable.product_prefix))
                 machine.copy_to_host(product, copied_back)
-                sourceful_changes_name = copied_back
+                buildable.sourceful_changes_name = copied_back
 
                 changes_out = Changes(open(copied_back))
 
@@ -397,89 +411,93 @@ def _run(args, machine, tmp):
 
                     if f['name'].endswith('.dsc'):
                         # expect to find exactly one .dsc file
-                        assert dsc is None
-                        dsc_name = os.path.join(args.output_builds, f['name'])
-                        dsc = Dsc(open(dsc_name))
+                        assert buildable.dsc_name is None
+                        buildable.dsc_name = os.path.join(args.output_builds,
+                                f['name'])
 
-                assert dsc is not None
+                assert buildable.dsc_name is not None
 
-        if indep and together_with is None and sourceful_changes_name:
+        if ('all' in buildable.changes_produced and
+                buildable.sourceful_changes_name):
             c = os.path.join(args.output_builds,
-                    '{}_source+all.changes'.format(product_prefix))
-            merged_changes[buildable]['source+all'] = c
+                    '{}_source+all.changes'.format(buildable.product_prefix))
+            buildable.merged_changes['source+all'] = c
             with AtomicWriter(c) as writer:
                 subprocess.check_call([
                     'mergechanges',
-                    changes_produced[buildable]['all'],
-                    sourceful_changes_name,
+                    buildable.changes_produced['all'],
+                    buildable.sourceful_changes_name,
                     ], stdout=writer)
 
-        if changes_produced[buildable]:
+        if buildable.changes_produced:
             c = os.path.join(args.output_builds,
-                    '{}_multi.changes'.format(product_prefix))
-            merged_changes[buildable]['multi'] = c
-            if len(changes_produced[buildable]) > 1:
+                    '{}_multi.changes'.format(buildable.product_prefix))
+            buildable.merged_changes['multi'] = c
+            if len(buildable.changes_produced) > 1:
                 with AtomicWriter(c) as writer:
                     subprocess.check_call(['mergechanges'] +
-                        list(changes_produced[buildable].values()),
+                        list(buildable.changes_produced.values()),
                         stdout=writer)
             else:
-                shutil.copy(next(iter(changes_produced[buildable].values())),
+                shutil.copy(next(iter(buildable.changes_produced.values())),
                         c)
 
-        if not source_only and sourceful_changes_name is not None:
+        if (not source_only and
+                buildable.sourceful_changes_name is not None and
+                buildable.changes_produced):
             c = os.path.join(args.output_builds,
-                    '{}_source+multi.changes'.format(product_prefix))
-            merged_changes[buildable]['source+multi'] = c
+                    '{}_source+multi.changes'.format(buildable.product_prefix))
+            buildable.merged_changes['source+multi'] = c
 
             with AtomicWriter(c) as writer:
                 subprocess.check_call([
                         'mergechanges',
                         os.path.join(args.output_builds,
-                                '{}_multi.changes'.format(product_prefix)),
-                        sourceful_changes_name,
+                                '{}_multi.changes'.format(
+                                    buildable.product_prefix)),
+                        buildable.sourceful_changes_name,
                     ],
                     stdout=writer)
 
-        if sourceful_changes_name:
+        if buildable.sourceful_changes_name:
             c = os.path.join(args.output_builds,
-                    '{}_source.changes'.format(product_prefix))
+                    '{}_source.changes'.format(buildable.product_prefix))
             with AtomicWriter(c) as writer:
                 subprocess.check_call([
                         'mergechanges',
                         '--source',
-                        sourceful_changes_name,
-                        sourceful_changes_name,
+                        buildable.sourceful_changes_name,
+                        buildable.sourceful_changes_name,
                     ],
                     stdout=writer)
 
-            merged_changes[buildable]['source'] = c
+            buildable.merged_changes['source'] = c
 
-    for buildable in args._buildables:
+    for buildable in buildables:
         logger.info('Built changes files from %s:\n\t%s',
                 buildable,
-                '\n\t'.join(sorted(changes_produced[buildable].values())),
+                '\n\t'.join(sorted(buildable.changes_produced.values())),
                 )
 
         logger.info('Build logs from %s:\n\t%s',
                 buildable,
-                '\n\t'.join(sorted(logs[buildable].values())),
+                '\n\t'.join(sorted(buildable.logs.values())),
                 )
 
         # Run lintian near the end for better visibility
         for x in 'source+multi', 'multi', 'source':
-            if x in merged_changes[buildable]:
+            if x in buildable.merged_changes:
                 subprocess.call(['lintian', '-I', '-i',
-                    merged_changes[buildable][x]])
+                    buildable.merged_changes[x]])
                 break
 
     # We print these separately, right at the end, so that if you built more
     # than one thing, the last screenful of information is the really
     # important bit for testing/signing/upload
-    for buildable in args._buildables:
+    for buildable in buildables:
         logger.info('Merged changes files from %s:\n\t%s',
                 buildable,
-                '\n\t'.join(merged_changes[buildable].values()),
+                '\n\t'.join(buildable.merged_changes.values()),
                 )
 
 def run(args):
