@@ -1,5 +1,5 @@
-Things vectis-build should do
-=============================
+Things vectis should do
+=======================
 
 * Optionally build using obs-build (debootstrap + build)
 * Optionally run autopkgtest, again in VMs

@@ -1,11 +1,11 @@
-# vectis-build
+# vectis - do useful things in a virtual machine
 # Copyright © 2015-2016 Simon McVittie
 # SPDX-License-Identifier: MIT
 # (see vectis/__init__.py)
 
 AC_PREREQ([2.69])
 
-AC_INIT([vectis-build],
+AC_INIT([vectis],
     m4_esyscmd([build-aux/git-version-gen .tarball-version]),
     [smcv@debian.org])
 

@@ -1,5 +1,5 @@
 __license__ = """\
-vectis-build
+vectis - do useful things in a virtual machine
 
 Copyright © 2015-2016 Simon McVittie
 

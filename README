@@ -1,8 +1,8 @@
-==========================================
-vectis-build - build packages on an island
-==========================================
+====================================
+vectis - build software on an island
+====================================
 
-vectis-build compiles software in a temporary environment, using an
+vectis compiles software in a temporary environment, using an
 implementation of the autopkgtest virtualisation service interface
 (currently only autopkgtest-virt-qemu is supported).
 
@@ -59,55 +59,56 @@ vectis sbuild
 Design principles
 =================
 
-Vectis was the Roman name for the Isle of Wight, an island off the
-south coast of England. vectis-build uses virtualization to compile your
-software on an island.
+Vectis was the Roman name for the Isle of Wight, an island off the south
+coast of England. vectis uses virtualization to compile your software
+on an island.
 
 * Build systems are sometimes horrible. Their side-effects on the host system
-  should be minimized. vectis-build runs them inside a virtual machine.
+  should be minimized. vectis runs them inside a virtual machine.
 
-* Packages are not always as high-quality as you might hope. vectis-build does
+* Packages are not always as high-quality as you might hope. vectis does
   not run package-supplied code on the real system, only in a VM. There
   is one exception to this principle to avoid a bootstrapping problem:
   the bootstrap subcommand runs vmdebootstrap to make a "blank" virtual
   machine, by default running Debian stable.
 
-In keeping with the Isle of Wight's agricultural history, vectis-build
+In keeping with the Isle of Wight's agricultural history, vectis
 treats build environments like "cattle, not pets".
 
 * Some build virtual machines were set up by hand, meaning you need to back
-  up a potentially multi-gigabyte virtual machine image. vectis-build
+  up a potentially multi-gigabyte virtual machine image. vectis
   automates virtual machine setup, with the goal that the only thing you
   ever alter "by hand" (and hence the only thing you need to back up)
-  is vectis-build's (source code and) configuration, which is a reasonable
+  is vectis's (source code and) configuration, which is a reasonable
   size to keep in a VCS.
 
-* Some buildd chroots were set up by hand. vectis-build automates this too,
+* Some buildd chroots were set up by hand. vectis automates this too,
   for the same reason.
 
 One of the towns on Isle of Wight is Ventnor, whose crest depicts Hygeia,
 Greek goddess of health and cleanliness (and origin of the word "hygiene").
-vectis-build aims to do all builds in a pedantically correct Debian
-environment, such that anything that builds successfully in vectis-build
-will build correctly on real Debian infrastructure.
+vectis aims to do all builds in a pedantically correct Debian environment,
+such that anything that builds successfully in vectis will build correctly
+on real Debian infrastructure.
 
 * Every build is done in a clean environment, avoiding influences from
-  the host system other than the vectis-build configuration and command-line
+  the host system other than the vectis configuration and command-line
   options.
 
-* vectis-build uses sbuild to get a minimal build environment, rather than
+* vectis uses sbuild to get a minimal build environment, rather than
   simply building in a virtual machine running the target distribution,
   or using an alternative "minimal" build environment like pbuilder.
   This is because sbuild is what runs on the official Debian buildds,
-  so any package that doesn't build like that is de facto unreleasable, even
-  it works fine in its maintainer's pbuilder or in a virtual machine.
+  so any package that doesn't build like that is de facto unreleasable,
+  even it works fine in its maintainer's pbuilder or in a virtual machine.
 
-* By default, vectis-build does the Architecture: all and Architecture: any
-  builds separately (even though this typically takes longer than doing them
-  together). This is because that's how Debian's infrastructure works,
-  so any package that fails to build in that way can't have source-only
-  uploads (and is arguably release-critically buggy). Things that aren't
-  routinely tested usually don't work, so vectis-build tests this code path.
+* By default, vectis does the Architecture: all and Architecture: any
+  builds separately (even though this typically takes longer than doing
+  them together). This is because that's how Debian's infrastructure
+  works, so any package that fails to build in that way can't have
+  source-only uploads (and is arguably release-critically buggy). Things
+  that aren't routinely tested usually don't work, so vectis tests this
+  code path.
 
 Future design principles are not required to have a tenuous analogy
 involving the Isle of Wight.
