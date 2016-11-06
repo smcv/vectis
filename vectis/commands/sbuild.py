@@ -344,6 +344,8 @@ def _run(args, machine, tmp):
 
             if buildable.dsc_name is None:
                 # build a source package as a side-effect of the first build
+                argv.append('--dpkg-source-opt=-i')
+                argv.append('--dpkg-source-opt=-I')
                 argv.append('--no-clean-source')
                 argv.append('--source-only-changes')
                 argv.append('--source')
