@@ -140,6 +140,7 @@ class Config(_ConfigLike):
                 # we can have multiple levels of precedence.
                 default_section='there is no default section')
         self._cp['Defaults'] = {}
+        self._cp['Defaults']['HOME'] = os.path.expanduser('~')
         self._cp['Defaults']['XDG_CACHE_HOME'] = os.getenv('XDG_CACHE_HOME',
                 os.path.expanduser('~/.cache'))
         self._cp['Defaults']['XDG_CONFIG_HOME'] = os.getenv('XDG_CONFIG_HOME',
