@@ -439,6 +439,9 @@ def _run(args, machine, tmp):
                                 f['name'])
 
                 assert buildable.dsc_name is not None
+                machine.check_call(['rm', '-fr',
+                        '{}/{}_source/'.format(machine.scratch,
+                            buildable.product_prefix)])
 
         if ('all' in buildable.changes_produced and
                 buildable.sourceful_changes_name):
