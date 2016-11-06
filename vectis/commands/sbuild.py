@@ -94,10 +94,11 @@ class Buildable:
                     'directory, not {!r}'.format(self.path))
 
         if self.dsc is not None:
-            self.source_package = dsc['source']
-            self.version = Version(dsc['version'])
-            self.arch_wildcards = set(dsc['architecture'].split())
-            self.binary_packages = [p.strip() for p in dsc['binary'].split(',')]
+            self.source_package = self.dsc['source']
+            self.version = Version(self.dsc['version'])
+            self.arch_wildcards = set(self.dsc['architecture'].split())
+            self.binary_packages = [p.strip()
+                    for p in self.dsc['binary'].split(',')]
 
         version_no_epoch = Version(self.version)
         version_no_epoch.epoch = None
@@ -119,7 +120,8 @@ class Buildable:
                         self.product_prefix))
             # FIXME: find and upload orig.tar.* for non-native packages
 
-    def select_archs(self, machine_arch, archs, indep, source_only, together):
+    def select_archs(self, machine_arch, archs, indep, source_only, together,
+            rebuild_source):
         builds_i386 = False
         builds_natively = False
 
@@ -136,6 +138,9 @@ class Buildable:
 
         if source_only:
             logger.info('Selected source-only build')
+            if rebuild_source or self.dsc is None:
+                self.archs.append('source')
+            return
         elif archs or indep:
             # the user is always right
             logger.info('Using architectures from command-line')
@@ -225,9 +230,8 @@ def _run(args, machine, tmp):
 
         buildable.copy_source_to(machine)
 
-        source_only = False # FIXME
         buildable.select_archs(machine_arch, args._archs, args._indep,
-                source_only, args.sbuild_together)
+                args._source_only, args.sbuild_together, args._rebuild_source)
 
         buildable.select_suite(args.suite)
 
@@ -248,7 +252,7 @@ def _run(args, machine, tmp):
         for arch in buildable.archs:
             logger.info('Building architecture: %s', arch)
 
-            if arch == 'all':
+            if arch in ('all', 'source'):
                 logger.info('(on %s)', machine_arch)
                 use_arch = machine_arch
             else:
@@ -337,6 +341,10 @@ def _run(args, machine, tmp):
                 argv.append('-A')
                 argv.append('--arch')
                 argv.append(arch)
+            elif arch == 'source':
+                logger.info('Source-only')
+                argv.append('--no-arch-any')
+                argv.append('--source')
             else:
                 logger.info('Architecture: %s only', arch)
                 argv.append('--arch')
@@ -444,8 +452,7 @@ def _run(args, machine, tmp):
                 shutil.copy(next(iter(buildable.changes_produced.values())),
                         c)
 
-        if (not source_only and
-                buildable.sourceful_changes_name is not None and
+        if (buildable.sourceful_changes_name is not None and
                 buildable.changes_produced):
             c = os.path.join(args.output_builds,
                     '{}_source+multi.changes'.format(buildable.product_prefix))

@@ -119,6 +119,10 @@ p.add_argument('--extra-repository', action='append', default=[],
 p.add_argument('--indep', '-i', action='store_true', dest='_indep',
         default=False,
         help='Build architecture-independent packages (default: build all)')
+p.add_argument('--source-only', action='store_true', dest='_source_only',
+        default=False, help='Only build a source package')
+p.add_argument('--rebuild-source', action='store_true', dest='_rebuild_source',
+        default=False, help='Rebuild a supplied .dsc file')
 p.add_argument('--architecture', '--arch', '-a', action='append', dest='_archs',
         default=[],
         help='Build architecture-dependent packages for this architecture '
