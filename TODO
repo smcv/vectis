@@ -1,14 +1,6 @@
 Things vectis-build should do
 =============================
 
-Things to port from gbp-buildall
---------------------------------
-
-* Optionally use gbp and/or svn-buildpackage (on the host system?)
-
-New things
-----------
-
 * Optionally build using obs-build (debootstrap + build)
 * Optionally run autopkgtest, again in VMs
 * A subcommand for running arbitrary commands in the guest?
