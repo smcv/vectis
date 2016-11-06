@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 # (see vectis/__init__.py)
 
+import glob
 import logging
 import os
 import shutil
@@ -118,7 +119,19 @@ class Buildable:
             machine.copy_to_guest(os.path.join(self.path, ''),
                     '{}/{}_source/'.format(machine.scratch,
                         self.product_prefix))
-            # FIXME: find and upload orig.tar.* for non-native packages
+            machine.check_call(['chown', '-R', 'sbuild:sbuild',
+                    '{}/{}_source/'.format(machine.scratch,
+                        self.product_prefix)])
+            if self.version.debian_revision is not None:
+                orig_pattern = glob.escape(os.path.join(self.path, '..',
+                        '{}_{}.orig.tar.'.format(self.source_package,
+                            self.version.upstream_version))) + '*'
+                logger.info('Looking for original tarballs: {}'.format(
+                        orig_pattern))
+                for orig in glob.glob(orig_pattern):
+                    logger.info('Copying original tarball: {}'.format(orig))
+                    machine.copy_to_guest(orig,
+                            '{}/{}'.format(machine.scratch, os.path.basename(orig)))
 
     def select_archs(self, machine_arch, archs, indep, source_only, together,
             rebuild_source):
