@@ -105,7 +105,7 @@ p.add_argument('_buildables', metavar='CHANGES_OR_DSC_OR_DIR',
         default=[])
 p.add_argument('--suite', '--distribution', '-d',
         help='Distribution release suite [default: auto-detect from input]')
-p.add_argument('--output-builds', '--build-area', default='..',
+p.add_argument('--output-builds', '--build-area',
         help='Leave output here [default: parent directory]')
 p.add_argument('--versions-since', dest='_versions_since', default=None,
         help='Populate .changes file with versions since this')
