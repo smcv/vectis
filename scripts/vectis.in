@@ -6,6 +6,7 @@
 # (see vectis/__init__.py)
 
 import runpy
+import subprocess
 import sys
 
 sys.path.insert(0, '@pkgdatadir@')
@@ -14,3 +15,5 @@ try:
     runpy.run_module('vectis')
 except KeyboardInterrupt:
     raise SystemExit(130)
+except subprocess.CalledProcessError as e:
+    print(e, file=sys.stderr)
