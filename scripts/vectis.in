@@ -1,10 +1,14 @@
 #!/usr/bin/python3
+# vim:set ft=python:
 
 # Copyright © 2015-2016 Simon McVittie
 # SPDX-License-Identifier: MIT
 # (see vectis/__init__.py)
 
 import runpy
+import sys
+
+sys.path.insert(0, '@pkgdatadir@')
 
 try:
     runpy.run_module('vectis')
