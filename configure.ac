@@ -1,6 +1,6 @@
 # vectis - do useful things in a virtual machine
 # Copyright © 2015-2016 Simon McVittie
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: GPL-2.0+
 # (see vectis/__init__.py)
 
 AC_PREREQ([2.69])
