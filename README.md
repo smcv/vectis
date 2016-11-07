@@ -36,23 +36,23 @@ Requirements
 Usage
 -----
 
-vectis bootstrap
+- `vectis bootstrap`
     Create a Debian virtual machine image in which to do builds.
 
     This command requires root access (via sudo), but you only have to run
     it once. You can run it in a virtual machine by hand if you want.
 
-vectis new
+- `vectis new`
     Create a Debian-derived virtual machine image in which to do builds.
 
     After you have run "vectis bootstrap" once, you can use the resulting
     virtual machine for "vectis new" to create all your other build
     environments.
 
-vectis tarball
+- `vectis sbuild-tarball`
     Create a base tarball for sbuild/schroot.
 
-vectis sbuild
+- `vectis sbuild`
     Build Debian packages from source.
 
 Design principles
