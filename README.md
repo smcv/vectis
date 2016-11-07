@@ -1,4 +1,3 @@
-====================================
 vectis - build software on an island
 ====================================
 
@@ -7,7 +6,7 @@ implementation of the autopkgtest virtualisation service interface
 (currently only autopkgtest-virt-qemu is supported).
 
 Requirements
-============
+------------
 
 * In the host system:
   - autopkgtest (for autopkgtest-virt-qemu)
@@ -35,7 +34,7 @@ Requirements
   - sbuild
 
 Usage
-=====
+-----
 
 vectis bootstrap
     Create a Debian virtual machine image in which to do builds.
@@ -57,7 +56,7 @@ vectis sbuild
     Build Debian packages from source.
 
 Design principles
-=================
+-----------------
 
 Vectis was the Roman name for the Isle of Wight, an island off the south
 coast of England. vectis uses virtualization to compile your software
