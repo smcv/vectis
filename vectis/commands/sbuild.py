@@ -318,9 +318,9 @@ def _run(args, machine, tmp):
             if buildable.suite.endswith('-backports'):
                 argv.append('--extra-repository')
                 argv.append('deb {} {} {}'.format(
-                    argv.mirror,
+                    args.mirror,
                     buildable.suite,
-                    ' '.join(argv.components)))
+                    ' '.join(args.components)))
                 argv.append('--build-dep-resolver=aptitude')
 
             for x in args._extra_repository:
