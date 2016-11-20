@@ -30,7 +30,7 @@ builder_qemu_image = vectis-${build_platform}-${build_suite}-${build_architectur
 bootstrap_mirror = ${mirror}
 
 sbuild_force_parallel = 0
-sbuild_parallel = 0
+parallel = 0
 sbuild_together = false
 output_builds = ..
 
@@ -82,8 +82,8 @@ class _ConfigLike:
         return int(self['sbuild_force_parallel'])
 
     @property
-    def sbuild_parallel(self):
-        return int(self['sbuild_parallel'])
+    def parallel(self):
+        return int(self['parallel'])
 
     @property
     def sbuild_together(self):

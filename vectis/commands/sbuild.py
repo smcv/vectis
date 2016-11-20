@@ -333,11 +333,11 @@ def _run(args, machine, tmp):
                         '-new,'
                         '-count(solution,APT-Release:=/experimental/)')
 
-            if (args.sbuild_parallel != 1 and
+            if (args.parallel != 1 and
                     not buildable.suite.startswith(('jessie', 'wheezy'))):
-                if args.sbuild_parallel:
+                if args.parallel:
                     argv.append('--debbuildopt=-J{}'.format(
-                        args.sbuild_parallel))
+                        args.parallel))
                 else:
                     argv.append('--debbuildopt=-Jauto')
 

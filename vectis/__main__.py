@@ -109,7 +109,7 @@ p.add_argument('--output-builds', '--build-area',
         help='Leave output here [default: parent directory]')
 p.add_argument('--versions-since', dest='_versions_since', default=None,
         help='Populate .changes file with versions since this')
-p.add_argument('--parallel', '-J', type=int, dest='sbuild_parallel',
+p.add_argument('--parallel', '-J', type=int, dest='parallel',
         help='Suggest a parallel build')
 p.add_argument('--force-parallel', '-j', type=int, dest='sbuild_force_parallel',
         help='Force a parallel build')
