@@ -315,6 +315,10 @@ def _run(args, machine, tmp):
                     '--no-run-lintian',
             ]
 
+            if args._versions_since:
+                argv.append('--debbuildopt=-v{}'.format(
+                    args._versions_since))
+
             if buildable.suite.endswith('-backports'):
                 argv.append('--extra-repository')
                 argv.append('deb {} {} {}'.format(
