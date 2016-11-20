@@ -201,8 +201,8 @@ class Config(_ConfigLike):
             here = parent
 
     def expand(self, value):
-        if value is None:
-            return None
+        if not isinstance(value, str):
+            return value
 
         return Template(value).substitute(self)
 
