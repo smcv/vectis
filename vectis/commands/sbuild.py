@@ -368,7 +368,6 @@ def _run(args, machine, tmp):
                 argv.append('--dpkg-source-opt=-i')
                 argv.append('--dpkg-source-opt=-I')
                 argv.append('--no-clean-source')
-                argv.append('--source-only-changes')
                 argv.append('--source')
                 argv.append('{}/{}_source'.format(machine.scratch,
                     buildable.product_prefix))
@@ -389,6 +388,24 @@ def _run(args, machine, tmp):
             buildable.changes_produced[arch] = copied_back
 
             changes_out = Changes(open(copied_back))
+
+            if buildable.dsc_name is None:
+                # We built a source package as a side-effect of the first
+                # build, but we couldn't use --source-only-changes with a
+                # jessie chroot.
+                buildable.sourceful_changes_name = copied_back
+
+                for f in changes_out['files']:
+                    if f['name'].endswith('.dsc'):
+                        # expect to find exactly one .dsc file
+                        assert buildable.dsc_name is None
+                        buildable.dsc_name = os.path.join(args.output_builds,
+                                f['name'])
+
+                assert buildable.dsc_name is not None
+                machine.check_call(['rm', '-fr',
+                        '{}/{}_source/'.format(machine.scratch,
+                            buildable.product_prefix)])
 
             # Note that we mix use_arch and arch here: an Architecture: all
             # build produces foo_1.2_amd64.build, which we rename
@@ -413,35 +430,6 @@ def _run(args, machine, tmp):
                 product = '{}/{}'.format(machine.scratch, f['name'])
                 copied_back = os.path.join(args.output_builds, f['name'])
                 machine.copy_to_host(product, copied_back)
-
-            if buildable.dsc_name is None:
-                # we built a source package as a side-effect of the first build
-                product = '{}/{}_source.changes'.format(machine.scratch,
-                    buildable.product_prefix)
-                logger.info('Copying %s back to host...', product)
-                copied_back = os.path.join(args.output_builds,
-                        '{}_source.changes'.format(buildable.product_prefix))
-                machine.copy_to_host(product, copied_back)
-                buildable.sourceful_changes_name = copied_back
-
-                changes_out = Changes(open(copied_back))
-
-                for f in changes_out['files']:
-                    assert '/' not in f['name']
-                    assert not f['name'].startswith('.')
-                    assert os.path.exists(os.path.join(args.output_builds,
-                            f['name'])), f['name']
-
-                    if f['name'].endswith('.dsc'):
-                        # expect to find exactly one .dsc file
-                        assert buildable.dsc_name is None
-                        buildable.dsc_name = os.path.join(args.output_builds,
-                                f['name'])
-
-                assert buildable.dsc_name is not None
-                machine.check_call(['rm', '-fr',
-                        '{}/{}_source/'.format(machine.scratch,
-                            buildable.product_prefix)])
 
         if ('all' in buildable.changes_produced and
                 buildable.sourceful_changes_name):
