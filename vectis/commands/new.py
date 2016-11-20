@@ -69,8 +69,8 @@ def run(args):
                 '{}/output.raw'.format(machine.scratch),
                 '{}/output.qcow2'.format(machine.scratch),
             ])
-        out = os.path.join(args.storage, args.machine)
+        out = os.path.join(args.storage, args.qemu_image)
         machine.copy_to_host('{}/output.qcow2'.format(machine.scratch),
                 out + '.new')
         # FIXME: smoke-test the new image before renaming
-        #os.rename(out + '.new', out)
+        os.rename(out + '.new', out)
