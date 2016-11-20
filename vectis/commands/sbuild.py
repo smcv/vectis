@@ -518,7 +518,8 @@ def _run(args, machine, tmp):
                     subprocess.call(['reprepro', '--ignore=wrongdistribution',
                         '--ignore=missingfile',
                         '-b', args._reprepro_dir, 'include', reprepro_suite,
-                        os.path.join(args.output_builds, x)])
+                        os.path.join(args.output_builds,
+                            buildable.merged_changes[x])])
 
                 break
 
