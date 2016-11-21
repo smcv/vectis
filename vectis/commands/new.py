@@ -62,7 +62,7 @@ def run(args):
                 machine.command_wrapper,
                 '--',
                 ] + vmdebootstrap_argv(args,
-                    '{}/setup-testbed'.format(machine.scratch)) + [
+                    '/usr/share/autopkgtest/setup-commands/setup-testbed') + [
                 '--image={}/output.raw'.format(machine.scratch)])
         machine.check_call(['qemu-img', 'convert', '-f', 'raw', '-O',
                 'qcow2', '-c', '-p',
