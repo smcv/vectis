@@ -4,113 +4,149 @@
 
 import os
 import subprocess
-from configparser import ConfigParser
 from string import Template
 
+import yaml
+
 DEFAULTS = '''
-[Defaults]
-storage = ${XDG_CACHE_HOME}/vectis
-platform = debian
-size = 42G
-components = main
-extra_components =
-archive = ${platform}
-mirror = http://192.168.122.1:3142/${archive}
-qemu_image = vectis-${platform}-${suite}-${architecture}.qcow2
-debootstrap_script = ${suite}
-default_suite = ${unstable_suite}
-aliases =
+---
+defaults:
+    storage: "${XDG_CACHE_HOME}/vectis"
+    platform: debian
+    size: 42G
+    components: main
+    extra_components: []
+    archive: "${platform}"
+    mirror: "http://192.168.122.1:3142/${archive}"
+    # FIXME: qemu_image doesn't actually work as intended because the value
+    # of ${suite} is still None when we evaluate this. Fixing this would
+    # need some sort of late-evaluation that takes into account config keys
+    # with "magic" values, like guessing suite from debian/changelog
+    qemu_image: "vectis-${platform}-${suite}-${architecture}.qcow2"
+    debootstrap_script: "${suite}"
+    default_suite: "${unstable_suite}"
+    aliases: {}
+    architecture: null
+    stable_suite: null
+    suite: null
+    unstable_suite: null
 
-build_platform = debian
-build_suite = ${build_platform__unstable_suite}
-build_architecture = ${architecture}
-builder = autopkgtest-virt-qemu ${storage}/${builder_qemu_image}
-builder_qemu_image = vectis-${build_platform}-${build_suite}-${build_architecture}.qcow2
+    build_platform: debian
+    build_suite: ${build_platform__unstable_suite}
+    build_architecture: "${architecture}"
+    builder: "autopkgtest-virt-qemu ${storage}/${builder_qemu_image}"
+    builder_qemu_image: "vectis-${build_platform}-${build_suite}-${build_architecture}.qcow2"
 
-bootstrap_mirror = ${mirror}
+    bootstrap_mirror: "${mirror}"
 
-sbuild_force_parallel = 0
-parallel = 0
-sbuild_together = false
-output_builds = ..
+    sbuild_force_parallel: 0
+    parallel: null
+    sbuild_together: false
+    output_builds: ".."
 
-[Platform debian]
-stable_suite = jessie
-unstable_suite = sid
-build_suite = ${unstable_suite}
-extra_components = contrib non-free
-aliases = unstable:sid testing:stretch stable:jessie rc-buggy:experimental
+    sbuild_buildables: null
 
-[Platform ubuntu]
-build_platform = ubuntu
-stable_suite = xenial
-unstable_suite = yakkety
-extra_components = universe restricted multiverse
+platforms:
+    debian:
+        extra_components: contrib non-free
+        aliases:
+            unstable: sid
+            rc-buggy: experimental
 
-[Directory /]
-# directory-specific configuration has highest priority, do not put anything
-# in here by default
+    ubuntu:
+        build_suite: "${stable_suite}"
+        build_platform: ubuntu
+        extra_components: universe restricted multiverse
+
+directories:
+    /:
+        # Directory-specific configuration has highest priority, do not put
+        # anything in here by default. We configure '/' so that path search
+        # always terminates.
+        null: null
 '''
-
-_NO_DEFAULT = set((
-    'architecture',
-    'sbuild_buildables',
-    'sbuild_together',
-    'stable_suite',
-    'suite',
-    'unstable_suite',
-    ))
 
 class _ConfigLike:
     def __init__(self):
-        self._cp = None
+        self._raw = None
+
+    def _get_string_set(self, name):
+        value = self[name]
+
+        if value is None:
+            return set()
+        elif isinstance(value, str):
+            return set(value.split())
+        else:
+            return set(value)
+
+    def _get_int(self, name):
+        return int(self[name])
 
     @property
     def all_components(self):
-        return set(self['extra_components'].split()) | set(self['components'].split())
+        return self.components | self.extra_components
 
     @property
     def components(self):
-        return set(self['components'].split())
+        return self._get_string_set('components')
 
     @property
     def extra_components(self):
-        return set(self['extra_components'].split())
+        return self._get_string_set('extra_components')
 
     @property
     def sbuild_force_parallel(self):
-        return int(self['sbuild_force_parallel'])
+        return self._get_int('sbuild_force_parallel')
 
     @property
     def parallel(self):
-        return int(self['parallel'])
+        return self._get_int('parallel')
 
     @property
     def sbuild_together(self):
-        return self._bool('sbuild_together')
+        return self._get_bool('sbuild_together')
 
-    def _bool(self, name):
-        v = self[name].lower()
+    def _get_bool(self, name):
+        value = self[name]
 
-        if v in ('yes', 'true', 'on', '1'):
-            return True
+        if isinstance(value, bool):
+            return value
 
-        if v in ('no', 'false', 'off', '0'):
-            return False
+        raise ValueError('Invalid value for {!r}: {!r} is not a boolean '
+                'value'.format(name, value))
 
-        raise ValueError('{!r} is not a boolean value'.format(v))
+    def _get_mandatory_string(self, name):
+        value = self[name]
+
+        if isinstance(value, str):
+            return value
+
+        raise ValueError('{!r} key {!r} has no default and must be '
+                'configured'.format(self, name))
+
+    # FIXME: architecture and suite can't be mandatory like this because
+    # we have to be able to say they're None as a way to mean "please guess"
+
+    @property
+    def unstable_suite(self):
+        return self._get_mandatory_string('unstable_suite')
+
+    @property
+    def stable_suite(self):
+        return self._get_mandatory_string('stable_suite')
 
     def __getattr__(self, name):
         try:
             return self[name]
         except KeyError as e:
-            raise AttributeError(str(e))
+            raise AttributeError('No configuration item {!r}'.format(name))
 
 class Platform(_ConfigLike):
-    def __init__(self, name, parser):
+    def __init__(self, name, raw):
         super(Platform, self).__init__()
         self._name = name
-        self._cp = parser
+        self._raw = raw
 
     def __str__(self):
         return self._name
@@ -119,12 +155,57 @@ class Platform(_ConfigLike):
         return '<Platform {!r}>'.format(self._name)
 
     def __getitem__(self, name):
-        if name in _NO_DEFAULT or name in self._cp['Defaults']:
-            return self._cp.setdefault('Platform ' + self._name, {}).get(name,
-                    self._cp['Defaults'].get(name))
+        if name not in self._raw[-1]['defaults']:
+            raise KeyError('{!r} does not configure {!r}'.format(self, name))
 
-        raise KeyError('{!r} does not configure "{}"'.format(
-            self, name))
+        for r in self._raw:
+            p = r.get('platforms', {}).get(self._name, {})
+
+            if name in p:
+                return p[name]
+
+        for r in self._raw:
+            d = r.get('defaults', {})
+
+            if name in d:
+                return d[name]
+
+        # We already checked that it was in _raw[-1], which is the set of
+        # hard-coded defaults from this file, as augmented with environment
+        # variables etc.
+        raise AssertionError('Not reached')
+
+class Directory(_ConfigLike):
+    def __init__(self, path, raw):
+        super(Directory, self).__init__()
+        self._path = path
+        self._raw = raw
+
+    def __str__(self):
+        return self._path
+
+    def __repr__(self):
+        return '<Directory {!r}>'.format(self._path)
+
+    def __getitem__(self, name):
+        if name not in self._raw[-1]['defaults']:
+            raise KeyError('{!r} does not configure {!r}'.format(self, name))
+
+        for r in self._raw:
+            d = r.get('directories', {}).get(self._path, {})
+
+            if name in d:
+                return d[name]
+
+        raise KeyError(name)
+
+    def __contains__(self, name):
+        try:
+            self.__getitem__(name)
+        except KeyError:
+            return False
+        else:
+            return True
 
 class Config(_ConfigLike):
     def __init__(self):
@@ -132,32 +213,32 @@ class Config(_ConfigLike):
 
         self._platforms = {}
         self._overrides = {}
-        self._path_based = {}
+        self._relevant_directory = None
 
-        self._cp = ConfigParser(interpolation=None, delimiters=('=',),
-                comment_prefixes=('#',),
-                # We reimplement the "default section" behaviour so that
-                # we can have multiple levels of precedence.
-                default_section='there is no default section')
-        self._cp['Defaults'] = {}
-        self._cp['Defaults']['HOME'] = os.path.expanduser('~')
-        self._cp['Defaults']['XDG_CACHE_HOME'] = os.getenv('XDG_CACHE_HOME',
+        d = yaml.safe_load(DEFAULTS)
+
+        # Let these be used for expansion, unconditionally
+        d['defaults']['HOME'] = os.path.expanduser('~')
+        d['defaults']['XDG_CACHE_HOME'] = os.getenv('XDG_CACHE_HOME',
                 os.path.expanduser('~/.cache'))
-        self._cp['Defaults']['XDG_CONFIG_HOME'] = os.getenv('XDG_CONFIG_HOME',
+        d['defaults']['XDG_CONFIG_HOME'] = os.getenv('XDG_CONFIG_HOME',
                 os.path.expanduser('~/.config'))
-        self._cp['Defaults']['XDG_CONFIG_DIRS'] = os.getenv('XDG_CONFIG_DIRS',
+        d['defaults']['XDG_CONFIG_DIRS'] = os.getenv('XDG_CONFIG_DIRS',
                 '/etc/xdg')
-        self._cp['Defaults']['XDG_DATA_HOME'] = os.getenv('XDG_DATA_HOME',
+        d['defaults']['XDG_DATA_HOME'] = os.getenv('XDG_DATA_HOME',
                 os.path.expanduser('~/.local/share'))
-        self._cp['Defaults']['XDG_DATA_DIRS'] = os.getenv('XDG_DATA_DIRS',
+        d['defaults']['XDG_DATA_DIRS'] = os.getenv('XDG_DATA_DIRS',
                 os.path.expanduser('~/.local/share'))
-        self._cp['Defaults']['parallel'] = str(os.cpu_count())
 
-        self._cp.read_string(DEFAULTS)
+        # Some things can have better defaults that can't be hard-coded
+        d['defaults']['parallel'] = str(os.cpu_count())
 
-        self._cp['Defaults']['architecture'] = subprocess.check_output(
-                ['dpkg', '--print-architecture'],
-                universal_newlines=True).strip()
+        try:
+            d['defaults']['architecture'] = subprocess.check_output(
+                    ['dpkg', '--print-architecture'],
+                    universal_newlines=True).strip()
+        except subprocess.CalledProcessError:
+            pass
 
         try:
             import distro_info
@@ -166,39 +247,57 @@ class Config(_ConfigLike):
         else:
             debian = distro_info.DebianDistroInfo()
             ubuntu = distro_info.UbuntuDistroInfo()
-            self._cp['debian']['stable_suite'] = debian.stable()
-            self._cp['ubuntu']['stable_suite'] = ubuntu.lts()
-            self._cp['debian']['unstable_suite'] = debian.devel()
-            self._cp['ubuntu']['unstable_suite'] = ubuntu.devel()
-            self._cp['debian']['aliases'] = (
-                    'unstable:{unstable} stable:{stable} testing:{testing} '
-                    'oldstable:{oldstable} rc-buggy:experimental'.format(
-                        unstable=debian.devel(),
-                        stable=debian.stable(),
-                        testing=debian.testing(),
-                        oldstable=debian.old(),
-                        )
-                    )
+            d['platforms']['debian']['stable_suite'] = debian.stable()
+            d['platforms']['ubuntu']['stable_suite'] = ubuntu.lts()
+            d['platforms']['debian']['unstable_suite'] = debian.devel()
+            d['platforms']['ubuntu']['unstable_suite'] = ubuntu.devel()
+            d['platforms']['debian']['aliases']['unstable'] = debian.devel()
+            d['platforms']['debian']['aliases']['stable'] = debian.stable()
+            d['platforms']['debian']['aliases']['testing'] = debian.testing()
+            d['platforms']['debian']['aliases']['oldstable'] = debian.old()
+            d['platforms']['debian']['aliases']['rc-buggy'] = 'experimental'
 
-        self._cp.read([os.path.join(p, 'vectis', 'vectis.conf') for p in
-            list(reversed(self._cp['Defaults']['XDG_CONFIG_DIRS'].split(':'))) +
-            [self._cp['Defaults']['XDG_CONFIG_HOME']]])
+        self._raw = []
+        self._raw.append(d)
 
-        self._path_based = self._cp['Directory /']
+        for p in (list(reversed(d['defaults']['XDG_CONFIG_DIRS'].split(':'))) +
+                [d['defaults']['XDG_CONFIG_HOME']]):
+            conffile = os.path.join(p, 'vectis', 'vectis.yaml')
+
+            try:
+                reader = open(conffile)
+            except FileNotFoundError:
+                continue
+
+            with reader:
+                raw = yaml.safe_load(reader)
+
+                if not isinstance(raw, dict):
+                    raise ValueError('Reading {!r} did not yield a '
+                            'dict'.format(conffile))
+
+                self._raw.insert(0, raw)
 
         here = os.getcwd()
 
-        while True:
-            section = 'Directory ' + here
-            if section in self._cp:
-                self._path_based = self._cp[section]
-                break
+        self._relevant_directory = None
 
-            parent, _ = os.path.split(here)
-            # Guard against infinite recursion. If here == '/' we would
-            # already have found 'Directory /' and broken out of the loop
-            assert len(parent) < len(here)
-            here = parent
+        while self._relevant_directory is None:
+            for r in self._raw:
+                if here in r.get('directories', {}):
+                    self._relevant_directory = here
+                    break
+            else:
+                parent, _ = os.path.split(here)
+                # Guard against infinite recursion. If here == '/' we would
+                # already have found directories./ in the hard-coded defaults,
+                # and broken out of the loop
+                assert len(parent) < len(here)
+                here = parent
+                continue
+
+        assert self._relevant_directory is not None
+        self._path_based = Directory(self._relevant_directory, self._raw)
 
     def expand(self, value):
         if not isinstance(value, str):
@@ -208,10 +307,13 @@ class Config(_ConfigLike):
 
     def _get_platform(self, name):
         if name not in self._platforms:
-            self._platforms[name] = Platform(name, self._cp)
+            self._platforms[name] = Platform(name, self._raw)
         return self._platforms[name]
 
     def __getitem__(self, name):
+        # FIXME: this hack is only here because we need to evaluate
+        # builder_qemu_image, which uses the build platform's suite,
+        # not the host platform's
         if '__' in name:
             which, name = name.split('__')
             return self._get_platform(self[which])[name]
@@ -222,14 +324,18 @@ class Config(_ConfigLike):
         if name in self._path_based:
             return self.expand(self._path_based[name])
 
-        return self.expand(self.platform[name])
+        if name != 'platform':
+            return self.expand(self.platform[name])
+
+        for r in self._raw:
+            if 'platform' in r.get('defaults', {}):
+                return r['defaults']['platform']
+
+        raise AssertionError('I know the defaults do specify a platform')
 
     @property
     def platform(self):
-        return self._get_platform(
-                self._overrides.get('platform',
-                    self._path_based.get('platform',
-                        self._cp['Defaults']['platform'])))
+        return self._get_platform(self['platform'])
 
     @property
     def build_platform(self):
@@ -264,7 +370,9 @@ if __name__ == '__main__':
         for k, v in args.items():
             setattr(c, k, v)
 
-        for x in sorted(set(c._cp['Defaults'].keys()) |
-                _NO_DEFAULT |
+        for x in sorted(set(c._raw[-1]['defaults'].keys()) |
                 set('all_components'.split())):
-            print('\t{}={!r}'.format(x, getattr(c, x)))
+            try:
+                print('\t{}={!r}'.format(x, getattr(c, x)))
+            except ValueError:
+                print('\t{}=<no default>'.format(x))

@@ -253,14 +253,10 @@ def _run(args, machine, tmp):
         base = base.replace('-backports', '')
         base = base.replace('-security', '')
 
-        for pair in args.platform.aliases.split():
-            alias, result = pair.split(':')
-            if base == alias:
-                base = result
-                break
-        else:
-            if base in ('unstable', 'UNRELEASED'):
-                base = args.platform.unstable_suite
+        if base in args.platform.aliases:
+            base = args.platform.aliases[base]
+        elif base in ('unstable', 'UNRELEASED'):
+            base = args.platform.unstable_suite
 
         for arch in buildable.archs:
             logger.info('Building architecture: %s', arch)
