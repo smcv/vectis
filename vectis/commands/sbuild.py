@@ -337,17 +337,16 @@ def _run(args, machine, tmp):
                         '-new,'
                         '-count(solution,APT-Release:=/experimental/)')
 
-            if (args.parallel != 1 and
+            if args.sbuild_force_parallel > 1:
+                argv.append('--debbuildopt=-j{}'.format(
+                    args.sbuild_force_parallel))
+            elif (args.parallel != 1 and
                     not buildable.suite.startswith(('jessie', 'wheezy'))):
                 if args.parallel:
                     argv.append('--debbuildopt=-J{}'.format(
                         args.parallel))
                 else:
                     argv.append('--debbuildopt=-Jauto')
-
-            if args.sbuild_force_parallel > 1:
-                argv.append('--debbuildopt=-j{}'.format(
-                    args.sbuild_force_parallel))
 
             if arch == 'all':
                 logger.info('Architecture: all')
