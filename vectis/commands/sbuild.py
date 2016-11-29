@@ -255,7 +255,7 @@ def _run(args, machine, tmp):
 
         if base in args.platform.aliases:
             base = args.platform.aliases[base]
-        elif base in ('unstable', 'UNRELEASED'):
+        elif base in ('unstable', 'experimental', 'UNRELEASED'):
             base = args.platform.unstable_suite
 
         for arch in buildable.archs:
