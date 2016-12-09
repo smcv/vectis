@@ -208,7 +208,7 @@ class Directory(_ConfigLike):
             return True
 
 class Config(_ConfigLike):
-    def __init__(self):
+    def __init__(self, config_layers=(), current_directory=None):
         super(Config, self).__init__()
 
         self._platforms = {}
@@ -260,40 +260,46 @@ class Config(_ConfigLike):
         self._raw = []
         self._raw.append(d)
 
-        for p in (list(reversed(d['defaults']['XDG_CONFIG_DIRS'].split(':'))) +
-                [d['defaults']['XDG_CONFIG_HOME']]):
-            conffile = os.path.join(p, 'vectis', 'vectis.yaml')
+        if config_layers:
+            self._raw[:0] = list(config_layers)
+        else:
+            config_dirs = d['defaults']['XDG_CONFIG_DIRS'].split(':')
+            config_dirs = list(reversed(config_dirs))
+            config_dirs.append(d['defaults']['XDG_CONFIG_HOME'])
+            for p in config_dirs:
+                conffile = os.path.join(p, 'vectis', 'vectis.yaml')
 
-            try:
-                reader = open(conffile)
-            except FileNotFoundError:
-                continue
+                try:
+                    reader = open(conffile)
+                except FileNotFoundError:
+                    continue
 
-            with reader:
-                raw = yaml.safe_load(reader)
+                with reader:
+                    raw = yaml.safe_load(reader)
 
-                if not isinstance(raw, dict):
-                    raise ValueError('Reading {!r} did not yield a '
-                            'dict'.format(conffile))
+                    if not isinstance(raw, dict):
+                        raise ValueError('Reading {!r} did not yield a '
+                                'dict'.format(conffile))
 
-                self._raw.insert(0, raw)
+                    self._raw.insert(0, raw)
 
-        here = os.getcwd()
+        if current_directory is None:
+            current_directory = os.getcwd()
 
         self._relevant_directory = None
 
         while self._relevant_directory is None:
             for r in self._raw:
-                if here in r.get('directories', {}):
-                    self._relevant_directory = here
+                if current_directory in r.get('directories', {}):
+                    self._relevant_directory = current_directory
                     break
             else:
-                parent, _ = os.path.split(here)
-                # Guard against infinite recursion. If here == '/' we would
-                # already have found directories./ in the hard-coded defaults,
-                # and broken out of the loop
-                assert len(parent) < len(here)
-                here = parent
+                parent, _ = os.path.split(current_directory)
+                # Guard against infinite recursion. If current_directory == '/'
+                # we would already have found directories./ in the hard-coded
+                # defaults, and broken out of the loop
+                assert len(parent) < len(current_directory)
+                current_directory = parent
                 continue
 
         assert self._relevant_directory is not None
