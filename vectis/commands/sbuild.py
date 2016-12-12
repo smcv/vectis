@@ -437,8 +437,23 @@ def _run(args, machine, tmp):
                 copied_back = os.path.join(args.output_builds, f['name'])
                 machine.copy_to_host(product, copied_back)
 
+        if buildable.sourceful_changes_name:
+            c = os.path.join(args.output_builds,
+                    '{}_source.changes'.format(buildable.product_prefix))
+            if 'source' not in buildable.changes_produced:
+                with AtomicWriter(c) as writer:
+                    subprocess.check_call([
+                            'mergechanges',
+                            '--source',
+                            buildable.sourceful_changes_name,
+                            buildable.sourceful_changes_name,
+                        ],
+                        stdout=writer)
+
+            buildable.merged_changes['source'] = c
+
         if ('all' in buildable.changes_produced and
-                buildable.sourceful_changes_name):
+                'source' in buildable.merged_changes):
             c = os.path.join(args.output_builds,
                     '{}_source+all.changes'.format(buildable.product_prefix))
             buildable.merged_changes['source+all'] = c
@@ -446,51 +461,40 @@ def _run(args, machine, tmp):
                 subprocess.check_call([
                     'mergechanges',
                     buildable.changes_produced['all'],
-                    buildable.sourceful_changes_name,
+                    buildable.merged_changes['source'],
                     ], stdout=writer)
 
-        if buildable.changes_produced:
-            c = os.path.join(args.output_builds,
-                    '{}_multi.changes'.format(buildable.product_prefix))
-            buildable.merged_changes['multi'] = c
-            if len(buildable.changes_produced) > 1:
-                with AtomicWriter(c) as writer:
-                    subprocess.check_call(['mergechanges'] +
-                        list(buildable.changes_produced.values()),
-                        stdout=writer)
-            else:
-                shutil.copy(next(iter(buildable.changes_produced.values())),
-                        c)
+        c = os.path.join(args.output_builds,
+                '{}_binary.changes'.format(buildable.product_prefix))
 
-        if (buildable.sourceful_changes_name is not None and
-                buildable.changes_produced):
+        binary_changes = []
+        for k, v in buildable.changes_produced.items():
+            if k != 'source':
+                binary_changes.append(v)
+
+        if len(binary_changes) > 1:
+            with AtomicWriter(c) as writer:
+                subprocess.check_call(['mergechanges'] + binary_changes,
+                    stdout=writer)
+            buildable.merged_changes['binary'] = c
+        elif len(binary_changes) == 1:
+            shutil.copy(binary_changes[0], c)
+            buildable.merged_changes['binary'] = c
+        # else it was source-only: no binary changes
+
+        if ('source' in buildable.merged_changes and
+                'binary' in buildable.merged_changes):
             c = os.path.join(args.output_builds,
-                    '{}_source+multi.changes'.format(buildable.product_prefix))
-            buildable.merged_changes['source+multi'] = c
+                    '{}_source+binary.changes'.format(buildable.product_prefix))
+            buildable.merged_changes['source+binary'] = c
 
             with AtomicWriter(c) as writer:
                 subprocess.check_call([
                         'mergechanges',
-                        os.path.join(args.output_builds,
-                                '{}_multi.changes'.format(
-                                    buildable.product_prefix)),
-                        buildable.sourceful_changes_name,
+                        buildable.merged_changes['source'],
+                        buildable.merged_changes['binary'],
                     ],
                     stdout=writer)
-
-        if buildable.sourceful_changes_name:
-            c = os.path.join(args.output_builds,
-                    '{}_source.changes'.format(buildable.product_prefix))
-            with AtomicWriter(c) as writer:
-                subprocess.check_call([
-                        'mergechanges',
-                        '--source',
-                        buildable.sourceful_changes_name,
-                        buildable.sourceful_changes_name,
-                    ],
-                    stdout=writer)
-
-            buildable.merged_changes['source'] = c
 
     for buildable in buildables:
         logger.info('Built changes files from %s:\n\t%s',
@@ -504,7 +508,7 @@ def _run(args, machine, tmp):
                 )
 
         # Run lintian near the end for better visibility
-        for x in 'source+multi', 'multi', 'source':
+        for x in 'source+binary', 'binary', 'source':
             if x in buildable.merged_changes:
                 subprocess.call(['lintian', '-I', '-i',
                     buildable.merged_changes[x]])
