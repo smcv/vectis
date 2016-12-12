@@ -195,6 +195,9 @@ class Buildable:
             else:
                 self.archs.insert(0, 'all')
 
+        if self.dsc_name is None or rebuild_source:
+            self.archs.insert(0, 'source')
+
         logger.info('Selected architectures: %r', self.archs)
 
         if indep and self.together_with is not None:
@@ -344,6 +347,9 @@ def _run(args, machine, tmp):
                 else:
                     argv.append('--debbuildopt=-Jauto')
 
+            argv.append('--dpkg-source-opt=-i')
+            argv.append('--dpkg-source-opt=-I')
+
             if arch == 'all':
                 logger.info('Architecture: all')
                 argv.append('-A')
@@ -364,6 +370,7 @@ def _run(args, machine, tmp):
 
             if buildable.dsc_name is None:
                 # build a source package as a side-effect of the first build
+                # (in practice this will be the 'source' build)
                 argv.append('--dpkg-source-opt=-i')
                 argv.append('--dpkg-source-opt=-I')
                 argv.append('--no-clean-source')
@@ -388,7 +395,7 @@ def _run(args, machine, tmp):
 
             changes_out = Changes(open(copied_back))
 
-            if buildable.dsc_name is None:
+            if buildable.dsc_name is None or arch == 'source':
                 # We built a source package as a side-effect of the first
                 # build, but we couldn't use --source-only-changes with a
                 # jessie chroot.
