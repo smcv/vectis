@@ -148,6 +148,10 @@ class Platform(_ConfigLike):
         self._name = name
         self._raw = raw
 
+    @property
+    def platform(self):
+        return self
+
     def __str__(self):
         return self._name
 

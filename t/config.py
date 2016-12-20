@@ -72,25 +72,26 @@ class DefaultsTestCase(unittest.TestCase):
         debian = self.__config._get_platform('debian')
         ubuntu = self.__config._get_platform('ubuntu')
 
+        self.assertEqual(str(debian), 'debian')
         self.assertEqual(debian.unstable_suite, 'sid')
         self.assertEqual(debian.aliases.get('unstable'), 'sid')
         self.assertEqual(debian.components, {'main'})
         self.assertEqual(debian.extra_components, {'contrib', 'non-free'})
         self.assertEqual(debian.all_components, {'main', 'contrib',
             'non-free'})
-        self.assertEqual(debian.platform, 'debian')
+        self.assertEqual(debian.platform, debian)
         self.assertEqual(debian.build_platform, 'debian')
         #self.assertEqual(debian.archive, 'debian')
         #self.assertEqual(debian.mirror, 'http://192.168.122.1:3142/debian')
 
+        self.assertEqual(str(ubuntu), 'ubuntu')
         self.assertEqual(ubuntu.aliases, {})
         self.assertEqual(ubuntu.components, {'main'})
         self.assertEqual(ubuntu.extra_components, {'universe', 'restricted',
             'multiverse'})
         self.assertEqual(ubuntu.all_components, {'main', 'universe',
             'restricted', 'multiverse'})
-        # FIXME: fails: is "debian"
-        #self.assertEqual(ubuntu.platform, 'ubuntu')
+        self.assertEqual(ubuntu.platform, ubuntu)
         self.assertEqual(ubuntu.build_platform, 'ubuntu')
         #self.assertEqual(ubuntu.archive, 'ubuntu')
         #self.assertEqual(ubuntu.mirror, 'http://192.168.122.1:3142/ubuntu')
@@ -98,10 +99,10 @@ class DefaultsTestCase(unittest.TestCase):
     def test_unknown_platform(self):
         steamos = self.__config._get_platform('steamos')
 
+        self.assertEqual(str(steamos), 'steamos')
         self.assertEqual(steamos.aliases, {})
         self.assertEqual(steamos.components, {'main'})
-        # FIXME: fails: is "debian"
-        #self.assertEqual(steamos.platform, 'steamos')
+        self.assertEqual(steamos.platform, steamos)
         self.assertEqual(steamos.build_platform, 'debian')
         # FIXME: fails: is "${platform}"
         #self.assertEqual(steamos.archive, 'steamos')
