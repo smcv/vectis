@@ -6,9 +6,14 @@
 /build-aux/install-sh
 /build-aux/missing
 /build-aux/py-compile
+/build-aux/tap-driver.sh
+/build-aux/test-driver
 /config.log
 /config.status
 /configure
 /m4/
 /scripts/vectis
+/t/*.log
+/t/*.trs
+/test-suite.log
 __pycache__/

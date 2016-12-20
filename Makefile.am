@@ -33,6 +33,36 @@ scripts/vectis: scripts/vectis.in Makefile
 		-e 's#[@]pkgdatadir[@]#${pkgdatadir}#g' \
 		< $< > $@-t && chmod 0755 $@-t && mv $@-t $@
 
+AM_TESTS_ENVIRONMENT = \
+	export PYTHONPATH=$(abs_top_srcdir); \
+	${NULL}
+
+LOG_DRIVER = env \
+	AM_TAP_AWK='$(AWK)' \
+	$(SHELL) \
+	$(top_srcdir)/build-aux/tap-driver.sh
+
+installed_testdir = ${libexecdir}/installed-tests/${PACKAGE_TARNAME}
+installed_test_metadir = ${datadir}/installed-tests/${PACKAGE_TARNAME}
+
+dist_test_scripts = \
+	t/config.py \
+	${NULL}
+
+dist_test_extra_scripts = \
+	t/__init__.py \
+	t/manual/debian.t \
+	${NULL}
+
+nobase_dist_installed_test_SCRIPTS = \
+	${dist_test_scripts} \
+	${dist_test_extra_scripts} \
+	${NULL}
+
+TESTS = \
+	${dist_test_scripts} \
+	${NULL}
+
 @GENERATE_CHANGELOG_RULES@
 
 .version:

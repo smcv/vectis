@@ -12,6 +12,7 @@ AC_INIT([vectis],
 AC_CONFIG_SRCDIR([vectis/__main__.py])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
+AC_REQUIRE_AUX_FILE([tap-driver.sh])
 
 AM_INIT_AUTOMAKE([
     1.15
@@ -24,6 +25,7 @@ AM_INIT_AUTOMAKE([
 AM_MAINTAINER_MODE([enable])
 AM_SILENT_RULES
 AM_PATH_PYTHON([3])
+AX_PYTHON_MODULE([tap])
 
 AC_PROG_SED
 

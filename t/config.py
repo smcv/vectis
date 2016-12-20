@@ -159,4 +159,7 @@ class DefaultsTestCase(unittest.TestCase):
         pass
 
 if __name__ == '__main__':
-    unittest.main(verbosity=2)
+    import tap
+    runner = tap.TAPTestRunner()
+    runner.set_stream(True)
+    unittest.main(verbosity=2, testRunner=runner)
