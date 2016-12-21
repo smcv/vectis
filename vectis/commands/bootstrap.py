@@ -7,7 +7,7 @@ import shutil
 import subprocess
 from tempfile import TemporaryDirectory
 
-from vectis.commands.new_autopkgtest_vm import vmdebootstrap_argv
+from vectis.commands.new import vmdebootstrap_argv
 
 def run(args):
     with TemporaryDirectory() as scratch:
