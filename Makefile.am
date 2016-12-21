@@ -51,7 +51,9 @@ dist_test_scripts = \
 
 dist_test_extra_scripts = \
 	t/__init__.py \
-	t/manual/debian.t \
+	t/manual/bootstrap.t \
+	t/manual/new.t \
+	t/manual/sbuild_tarball.t \
 	${NULL}
 
 nobase_dist_installed_test_SCRIPTS = \
