@@ -10,6 +10,12 @@ from tempfile import TemporaryDirectory
 from vectis.commands.new import vmdebootstrap_argv
 
 def run(args):
+    if args.suite is None:
+        if args.unstable_suite is not None:
+            args.suite = args.unstable_suite
+        else:
+            raise SystemExit('--suite must be specified')
+
     with TemporaryDirectory() as scratch:
         subprocess.check_call(vmdebootstrap_argv(args,
             '/usr/share/autopkgtest/setup-commands/setup-testbed') +
