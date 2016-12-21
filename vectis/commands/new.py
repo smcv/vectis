@@ -72,5 +72,19 @@ def run(args):
         out = os.path.join(args.storage, args.qemu_image)
         machine.copy_to_host('{}/output.qcow2'.format(machine.scratch),
                 out + '.new')
-        # FIXME: smoke-test the new image before renaming
-        os.rename(out + '.new', out)
+
+        try:
+            with Machine('qemu {}.new'.format(out)) as machine:
+                machine.check_call(['apt-get', '-y', 'update'])
+                machine.check_call(['apt-get',
+                    '-y',
+                    '--no-install-recommends',
+                    'install',
+
+                    'python3',
+                    'sbuild'])
+        except:
+            os.remove(out + '.new')
+            raise
+        else:
+            os.rename(out + '.new', out)
