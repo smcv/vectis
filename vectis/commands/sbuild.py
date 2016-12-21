@@ -29,9 +29,10 @@ from vectis.util import AtomicWriter
 logger = logging.getLogger(__name__)
 
 class Buildable:
-    def __init__(self, path):
-        self.path = path
+    def __init__(self, buildable):
+        self.buildable = buildable
 
+        self._product_prefix = None
         self.arch_wildcards = set()
         self.archs = []
         self.binary_packages = []
@@ -43,56 +44,68 @@ class Buildable:
         self.logs = {}
         self.merged_changes = OrderedDict()
         self.nominal_suite = None
-        self.product_prefix = None
+        self.source_from_archive = False
         self.source_package = None
         self.sourceful_changes_name = None
         self.suite = None
         self.together_with = None
         self.version = None
 
-        if os.path.isdir(self.path):
-            changelog = os.path.join(self.path, 'debian', 'changelog')
-            changelog = Changelog(open(changelog))
-            self.source_package = changelog.get_package()
-            self.nominal_suite = changelog.distributions
-            self.version = Version(changelog.version)
-            control = os.path.join(self.path, 'debian', 'control')
+        if os.path.exists(self.buildable):
+            if os.path.isdir(self.buildable):
+                changelog = os.path.join(self.buildable, 'debian', 'changelog')
+                changelog = Changelog(open(changelog))
+                self.source_package = changelog.get_package()
+                self.nominal_suite = changelog.distributions
+                self.version = Version(changelog.version)
+                control = os.path.join(self.buildable, 'debian', 'control')
 
-            if len(changelog.distributions.split()) != 1:
-                raise SystemExit('Cannot build for multiple distributions at '
-                        'once')
+                if len(changelog.distributions.split()) != 1:
+                    raise SystemExit('Cannot build for multiple '
+                            'distributions at once')
 
-            for paragraph in Deb822.iter_paragraphs(open(control)):
-                self.arch_wildcards |= set(
-                        paragraph.get('architecture', '').split())
-                binary = paragraph.get('package')
+                for paragraph in Deb822.iter_paragraphs(open(control)):
+                    self.arch_wildcards |= set(
+                            paragraph.get('architecture', '').split())
+                    binary = paragraph.get('package')
 
                 if binary is not None:
                     self.binary_packages.append(binary)
 
-        elif self.path.endswith('.changes'):
-            self.dirname = os.path.dirname(self.path)
-            self.sourceful_changes_name = self.path
-            sourceful_changes = Changes(open(self.path))
-            assert 'source' in sourceful_changes['architecture']
+            elif self.buildable.endswith('.changes'):
+                self.dirname = os.path.dirname(self.buildable)
+                self.sourceful_changes_name = self.buildable
+                sourceful_changes = Changes(open(self.buildable))
+                assert 'source' in sourceful_changes['architecture']
 
-            self.nominal_suite = sourceful_changes['distribution']
+                self.nominal_suite = sourceful_changes['distribution']
 
-            for f in sourceful_changes['files']:
-                if f['name'].endswith('.dsc'):
-                    self.dsc_name = os.path.join(self.dirname, f['name'])
+                for f in sourceful_changes['files']:
+                    if f['name'].endswith('.dsc'):
+                        self.dsc_name = os.path.join(self.dirname, f['name'])
 
-            assert self.dsc_name is not None
-            self.dsc = Dsc(open(self.dsc_name))
+                assert self.dsc_name is not None
+                self.dsc = Dsc(open(self.dsc_name))
 
-        elif self.path.endswith('.dsc'):
-            self.dirname = os.path.dirname(self.path)
-            self.dsc_name = self.path
-            self.dsc = Dsc(open(self.dsc_name))
+            elif self.buildable.endswith('.dsc'):
+                self.dirname = os.path.dirname(self.buildable)
+                self.dsc_name = self.buildable
+                self.dsc = Dsc(open(self.dsc_name))
 
+            else:
+                raise ValueError('buildable must be .changes, .dsc or '
+                        'directory, not {!r}'.format(self.buildable))
         else:
-            raise ValueError('buildable must be .changes, .dsc or '
-                    'directory, not {!r}'.format(self.path))
+            self.source_from_archive = True
+
+            if '_' in self.buildable:
+                source, version = self.buildable.split('_', 1)
+            else:
+                source = self.buildable
+                version = None
+
+            self.source_package = source
+            self.version = Version(version)
 
         if self.dsc is not None:
             self.source_package = self.dsc['source']
@@ -101,13 +114,20 @@ class Buildable:
             self.binary_packages = [p.strip()
                     for p in self.dsc['binary'].split(',')]
 
-        version_no_epoch = Version(self.version)
-        version_no_epoch.epoch = None
-        self.product_prefix = '{}_{}'.format(self.source_package,
-                version_no_epoch)
+    @property
+    def product_prefix(self):
+        if self._product_prefix is None:
+            version_no_epoch = Version(self.version)
+            version_no_epoch.epoch = None
+            self._product_prefix = '{}_{}'.format(self.source_package,
+                    version_no_epoch)
+
+        return self._product_prefix
 
     def copy_source_to(self, machine):
-        if self.dsc is not None:
+        if self.dsc_name is not None:
+            assert self.dsc is not None
+
             machine.copy_to_guest(self.dsc_name,
                     '{}/{}'.format(machine.scratch,
                         os.path.basename(self.dsc_name)))
@@ -115,15 +135,15 @@ class Buildable:
             for f in self.dsc['files']:
                 machine.copy_to_guest(os.path.join(self.dirname, f['name']),
                         '{}/{}'.format(machine.scratch, f['name']))
-        else:
-            machine.copy_to_guest(os.path.join(self.path, ''),
+        elif not self.source_from_archive:
+            machine.copy_to_guest(os.path.join(self.buildable, ''),
                     '{}/{}_source/'.format(machine.scratch,
                         self.product_prefix))
             machine.check_call(['chown', '-R', 'sbuild:sbuild',
                     '{}/{}_source/'.format(machine.scratch,
                         self.product_prefix)])
             if self.version.debian_revision is not None:
-                orig_pattern = glob.escape(os.path.join(self.path, '..',
+                orig_pattern = glob.escape(os.path.join(self.buildable, '..',
                         '{}_{}.orig.tar.'.format(self.source_package,
                             self.version.upstream_version))) + '*'
                 logger.info('Looking for original tarballs: {}'.format(
@@ -133,8 +153,7 @@ class Buildable:
                     machine.copy_to_guest(orig,
                             '{}/{}'.format(machine.scratch, os.path.basename(orig)))
 
-    def select_archs(self, machine_arch, archs, indep, source_only, together,
-            rebuild_source):
+    def select_archs(self, machine_arch, archs, indep, together):
         builds_i386 = False
         builds_natively = False
 
@@ -149,12 +168,7 @@ class Buildable:
                 logger.info('Package builds on i386')
                 builds_i386 = True
 
-        if source_only:
-            logger.info('Selected source-only build')
-            if rebuild_source or self.dsc is None:
-                self.archs.append('source')
-            return
-        elif archs or indep:
+        if archs or indep:
             # the user is always right
             logger.info('Using architectures from command-line')
             self.archs = archs[:]
@@ -195,9 +209,6 @@ class Buildable:
             else:
                 self.archs.insert(0, 'all')
 
-        if self.dsc_name is None or rebuild_source:
-            self.archs.insert(0, 'source')
-
         logger.info('Selected architectures: %r', self.archs)
 
         if indep and self.together_with is not None:
@@ -215,10 +226,10 @@ class Buildable:
 
         if self.suite is None:
             raise ValueError('Must specify --suite when building from '
-                    '{!r}'.format(self.path))
+                    '{!r}'.format(self.buildable))
 
     def __str__(self):
-        return self.path
+        return self.buildable
 
 class Build:
     def __init__(self, buildable, arch, machine, machine_arch):
@@ -334,7 +345,12 @@ class Build:
             argv.append('--arch')
             argv.append(self.arch)
 
-        if self.buildable.dsc_name is None:
+        if self.buildable.dsc_name is not None:
+            argv.append('{}/{}'.format(self.machine.scratch,
+                os.path.basename(self.buildable.dsc_name)))
+        elif self.buildable.source_from_archive:
+            argv.append(self.buildable.buildable)
+        else:
             # build a source package as a side-effect of the first build
             # (in practice this will be the 'source' build)
             argv.append('--dpkg-source-opt=-i')
@@ -343,16 +359,43 @@ class Build:
             argv.append('--source')
             argv.append('{}/{}_source'.format(self.machine.scratch,
                 self.buildable.product_prefix))
-        else:
-            argv.append('{}/{}'.format(self.machine.scratch,
-                os.path.basename(self.buildable.dsc_name)))
 
         logger.info('Running %r', argv)
         self.machine.check_call(argv)
 
+        if self.arch == 'source' and self.buildable.source_from_archive:
+            dscs = self.machine.check_output(['sh', '-c',
+                'exec ls "$1"/*.dsc',
+                'sh', # argv[0]
+                self.machine.scratch], universal_newlines=True)
+
+            dscs = dscs.splitlines()
+            assert len(dscs) == 1
+
+            product = dscs[0]
+            copied_back = os.path.join(tmp,
+                    '{}.dsc'.format(self.buildable.buildable))
+            self.machine.copy_to_host(product, copied_back)
+
+            self.buildable.dsc = Dsc(open(copied_back))
+            self.buildable.source_package = self.buildable.dsc['source']
+            self.buildable.version = Version(self.buildable.dsc['version'])
+            self.buildable.arch_wildcards = set(
+                    self.buildable.dsc['architecture'].split())
+            self.buildable.binary_packages = [p.strip()
+                    for p in self.buildable.dsc['binary'].split(',')]
+
+            if not args._rebuild_source:
+                # If we are not aiming to rebuild the source, we specifically
+                # don't want to copy back the result here: we only used it
+                # to find the source version, architecture wildcards and
+                # list of binary packages
+                return
+
         product = '{}/{}_{}.changes'.format(self.machine.scratch,
             self.buildable.product_prefix,
             self.arch)
+
         logger.info('Copying %s back to host...', product)
         copied_back = os.path.join(args.output_builds,
                 '{}_{}.changes'.format(self.buildable.product_prefix,
@@ -362,10 +405,7 @@ class Build:
 
         changes_out = Changes(open(copied_back))
 
-        if self.buildable.dsc_name is None or self.arch == 'source':
-            # We built a source package as a side-effect of the first
-            # build, but we couldn't use --source-only-changes with a
-            # jessie chroot.
+        if self.arch == 'source':
             self.buildable.sourceful_changes_name = copied_back
 
             for f in changes_out['files']:
@@ -381,19 +421,31 @@ class Build:
                         self.buildable.product_prefix)])
 
         # Note that we mix use_arch and arch here: an Architecture: all
-        # build produces foo_1.2_amd64.build, which we rename
-        product = '{}/{}_{}.build'.format(self.machine.scratch,
-            self.buildable.product_prefix,
-            use_arch)
-        product = self.machine.check_output(['readlink', '-f', product],
-                universal_newlines=True).rstrip('\n')
-        logger.info('Copying %s back to host as %s_%s.build...',
-                product, self.buildable.product_prefix, self.arch)
-        copied_back = os.path.join(args.output_builds,
-                '{}_{}.build'.format(self.buildable.product_prefix,
-                    self.arch))
-        self.machine.copy_to_host(product, copied_back)
-        self.buildable.logs[self.arch] = copied_back
+        # build produces foo_1.2_amd64.build, which we rename.
+        # We also check for foo_amd64.build because
+        # that's what comes out if we do "vectis sbuild --suite=sid hello".
+        for prefix in (self.buildable.source_package,
+                self.buildable.product_prefix):
+            product = '{}/{}_{}.build'.format(self.machine.scratch, prefix, use_arch)
+            product = self.machine.check_output(['readlink', '-f', product],
+                    universal_newlines=True).rstrip('\n')
+
+            if self.machine.call(['test', '-e', product]) == 0:
+                logger.info('Copying %s back to host as %s_%s.build...',
+                        product, self.buildable.product_prefix, self.arch)
+                copied_back = os.path.join(args.output_builds,
+                        '{}_{}.build'.format(self.buildable.product_prefix,
+                            self.arch))
+                self.machine.copy_to_host(product, copied_back)
+                self.buildable.logs[self.arch] = copied_back
+                break
+        else:
+            logger.warning('Did not find build log at %s', product)
+            logger.warning('Possible build logs:\n%s',
+                    self.machine.check_call(['sh', '-c',
+                        'cd "$1"; ls -l *.build || :',
+                        'sh', # argv[0]
+                        self.machine.scratch]))
 
         for f in changes_out['files']:
             assert '/' not in f['name']
@@ -431,9 +483,6 @@ def _run(args, machine, tmp):
 
         buildable.copy_source_to(machine)
 
-        buildable.select_archs(machine_arch, args._archs, args._indep,
-                args._source_only, args.sbuild_together, args._rebuild_source)
-
         buildable.select_suite(args.suite)
 
         base = buildable.suite
@@ -446,9 +495,18 @@ def _run(args, machine, tmp):
         elif base in ('unstable', 'experimental', 'UNRELEASED'):
             base = args.platform.unstable_suite
 
-        for arch in buildable.archs:
-            build = Build(buildable, arch, machine, machine_arch)
+        if (buildable.source_from_archive or args._rebuild_source or
+                buildable.dsc is None):
+            build = Build(buildable, 'source', machine, machine_arch)
             build.build(base, args, tmp, tarballs_copied)
+
+        if not args._source_only:
+            buildable.select_archs(machine_arch, args._archs, args._indep,
+                    args.sbuild_together)
+
+            for arch in buildable.archs:
+                build = Build(buildable, arch, machine, machine_arch)
+                build.build(base, args, tmp, tarballs_copied)
 
         if buildable.sourceful_changes_name:
             c = os.path.join(args.output_builds,
