@@ -220,6 +220,191 @@ class Buildable:
     def __str__(self):
         return self.path
 
+class Build:
+    def __init__(self, buildable, arch, machine, machine_arch):
+        self.buildable = buildable
+        self.arch = arch
+        self.machine = machine
+        self.machine_arch = machine_arch
+
+    def build(self, base, args, tmp, tarballs_copied):
+        logger.info('Building architecture: %s', self.arch)
+
+        if self.arch in ('all', 'source'):
+            logger.info('(on %s)', self.machine_arch)
+            use_arch = self.machine_arch
+        else:
+            use_arch = self.arch
+
+        sbuild_tarball = (
+                'sbuild-{platform}-{base}-{arch}.tar.gz'.format(
+                    arch=use_arch,
+                    platform=args.platform,
+                    base=base,
+                    ))
+
+        if sbuild_tarball not in tarballs_copied:
+            self.machine.copy_to_guest(os.path.join(args.storage,
+                        sbuild_tarball),
+                    '{}/{}'.format(self.machine.scratch, sbuild_tarball))
+            tarballs_copied.add(sbuild_tarball)
+
+        with AtomicWriter(os.path.join(tmp, 'sbuild.conf')) as writer:
+            writer.write(textwrap.dedent('''
+            [vectis]
+            type=file
+            description=An autobuilder
+            file={scratch}/sbuild-{platform}-{base}-{arch}.tar.gz
+            groups=root,sbuild
+            root-groups=root,sbuild
+            profile=sbuild
+            ''').format(
+                base=base,
+                platform=args.platform,
+                arch=use_arch,
+                scratch=self.machine.scratch))
+        self.machine.copy_to_guest(os.path.join(tmp, 'sbuild.conf'),
+                '/etc/schroot/chroot.d/vectis')
+
+        argv = [
+                self.machine.command_wrapper,
+                '--chdir',
+                self.machine.scratch,
+                '--',
+                'runuser',
+                '-u', 'sbuild',
+                '--',
+                'sbuild',
+                '-c', 'vectis',
+                '-d', self.buildable.nominal_suite,
+                '--no-run-lintian',
+        ]
+
+        if args._versions_since:
+            argv.append('--debbuildopt=-v{}'.format(
+                args._versions_since))
+
+        if self.buildable.suite.endswith('-backports'):
+            argv.append('--extra-repository')
+            argv.append('deb {} {} {}'.format(
+                args.mirror,
+                self.buildable.suite,
+                ' '.join(args.components)))
+            argv.append('--build-dep-resolver=aptitude')
+
+        for x in args._extra_repository:
+            argv.append('--extra-repository')
+            argv.append(x)
+
+        if self.buildable.suite == 'experimental':
+            argv.append('--build-dep-resolver=aspcud')
+            argv.append('--aspcud-criteria=-removed,-changed,'
+                    '-new,'
+                    '-count(solution,APT-Release:=/experimental/)')
+
+        if args.sbuild_force_parallel > 1:
+            argv.append('--debbuildopt=-j{}'.format(
+                args.sbuild_force_parallel))
+        elif (args.parallel != 1 and
+                not self.buildable.suite.startswith(('jessie', 'wheezy'))):
+            if args.parallel:
+                argv.append('--debbuildopt=-J{}'.format(
+                    args.parallel))
+            else:
+                argv.append('--debbuildopt=-Jauto')
+
+        argv.append('--dpkg-source-opt=-i')
+        argv.append('--dpkg-source-opt=-I')
+
+        if self.arch == 'all':
+            logger.info('Architecture: all')
+            argv.append('-A')
+            argv.append('--no-arch-any')
+        elif self.arch == self.buildable.together_with:
+            logger.info('Architecture: %s + all', self.arch)
+            argv.append('-A')
+            argv.append('--arch')
+            argv.append(self.arch)
+        elif self.arch == 'source':
+            logger.info('Source-only')
+            argv.append('--no-arch-any')
+            argv.append('--source')
+        else:
+            logger.info('Architecture: %s only', self.arch)
+            argv.append('--arch')
+            argv.append(self.arch)
+
+        if self.buildable.dsc_name is None:
+            # build a source package as a side-effect of the first build
+            # (in practice this will be the 'source' build)
+            argv.append('--dpkg-source-opt=-i')
+            argv.append('--dpkg-source-opt=-I')
+            argv.append('--no-clean-source')
+            argv.append('--source')
+            argv.append('{}/{}_source'.format(self.machine.scratch,
+                self.buildable.product_prefix))
+        else:
+            argv.append('{}/{}'.format(self.machine.scratch,
+                os.path.basename(self.buildable.dsc_name)))
+
+        logger.info('Running %r', argv)
+        self.machine.check_call(argv)
+
+        product = '{}/{}_{}.changes'.format(self.machine.scratch,
+            self.buildable.product_prefix,
+            self.arch)
+        logger.info('Copying %s back to host...', product)
+        copied_back = os.path.join(args.output_builds,
+                '{}_{}.changes'.format(self.buildable.product_prefix,
+                    self.arch))
+        self.machine.copy_to_host(product, copied_back)
+        self.buildable.changes_produced[self.arch] = copied_back
+
+        changes_out = Changes(open(copied_back))
+
+        if self.buildable.dsc_name is None or self.arch == 'source':
+            # We built a source package as a side-effect of the first
+            # build, but we couldn't use --source-only-changes with a
+            # jessie chroot.
+            self.buildable.sourceful_changes_name = copied_back
+
+            for f in changes_out['files']:
+                if f['name'].endswith('.dsc'):
+                    # expect to find exactly one .dsc file
+                    assert self.buildable.dsc_name is None
+                    self.buildable.dsc_name = os.path.join(args.output_builds,
+                            f['name'])
+
+            assert self.buildable.dsc_name is not None
+            self.machine.check_call(['rm', '-fr',
+                    '{}/{}_source/'.format(self.machine.scratch,
+                        self.buildable.product_prefix)])
+
+        # Note that we mix use_arch and arch here: an Architecture: all
+        # build produces foo_1.2_amd64.build, which we rename
+        product = '{}/{}_{}.build'.format(self.machine.scratch,
+            self.buildable.product_prefix,
+            use_arch)
+        product = self.machine.check_output(['readlink', '-f', product],
+                universal_newlines=True).rstrip('\n')
+        logger.info('Copying %s back to host as %s_%s.build...',
+                product, self.buildable.product_prefix, self.arch)
+        copied_back = os.path.join(args.output_builds,
+                '{}_{}.build'.format(self.buildable.product_prefix,
+                    self.arch))
+        self.machine.copy_to_host(product, copied_back)
+        self.buildable.logs[self.arch] = copied_back
+
+        for f in changes_out['files']:
+            assert '/' not in f['name']
+            assert not f['name'].startswith('.')
+
+            logger.info('Additionally copying %s back to host...',
+                    f['name'])
+            product = '{}/{}'.format(self.machine.scratch, f['name'])
+            copied_back = os.path.join(args.output_builds, f['name'])
+            self.machine.copy_to_host(product, copied_back)
+
 def _run(args, machine, tmp):
     machine_arch = machine.check_output(['dpkg', '--print-architecture'],
             universal_newlines=True).strip()
@@ -262,180 +447,8 @@ def _run(args, machine, tmp):
             base = args.platform.unstable_suite
 
         for arch in buildable.archs:
-            logger.info('Building architecture: %s', arch)
-
-            if arch in ('all', 'source'):
-                logger.info('(on %s)', machine_arch)
-                use_arch = machine_arch
-            else:
-                use_arch = arch
-
-            sbuild_tarball = (
-                    'sbuild-{platform}-{base}-{arch}.tar.gz'.format(
-                        arch=use_arch,
-                        platform=args.platform,
-                        base=base,
-                        ))
-
-            if sbuild_tarball not in tarballs_copied:
-                machine.copy_to_guest(os.path.join(args.storage,
-                            sbuild_tarball),
-                        '{}/{}'.format(machine.scratch, sbuild_tarball))
-                tarballs_copied.add(sbuild_tarball)
-
-            with AtomicWriter(os.path.join(tmp, 'sbuild.conf')) as writer:
-                writer.write(textwrap.dedent('''
-                [vectis]
-                type=file
-                description=An autobuilder
-                file={scratch}/sbuild-{platform}-{base}-{arch}.tar.gz
-                groups=root,sbuild
-                root-groups=root,sbuild
-                profile=sbuild
-                ''').format(
-                    base=base,
-                    platform=args.platform,
-                    arch=use_arch,
-                    scratch=machine.scratch))
-            machine.copy_to_guest(os.path.join(tmp, 'sbuild.conf'),
-                    '/etc/schroot/chroot.d/vectis')
-
-            argv = [
-                    machine.command_wrapper,
-                    '--chdir',
-                    machine.scratch,
-                    '--',
-                    'runuser',
-                    '-u', 'sbuild',
-                    '--',
-                    'sbuild',
-                    '-c', 'vectis',
-                    '-d', buildable.nominal_suite,
-                    '--no-run-lintian',
-            ]
-
-            if args._versions_since:
-                argv.append('--debbuildopt=-v{}'.format(
-                    args._versions_since))
-
-            if buildable.suite.endswith('-backports'):
-                argv.append('--extra-repository')
-                argv.append('deb {} {} {}'.format(
-                    args.mirror,
-                    buildable.suite,
-                    ' '.join(args.components)))
-                argv.append('--build-dep-resolver=aptitude')
-
-            for x in args._extra_repository:
-                argv.append('--extra-repository')
-                argv.append(x)
-
-            if buildable.suite == 'experimental':
-                argv.append('--build-dep-resolver=aspcud')
-                argv.append('--aspcud-criteria=-removed,-changed,'
-                        '-new,'
-                        '-count(solution,APT-Release:=/experimental/)')
-
-            if args.sbuild_force_parallel > 1:
-                argv.append('--debbuildopt=-j{}'.format(
-                    args.sbuild_force_parallel))
-            elif (args.parallel != 1 and
-                    not buildable.suite.startswith(('jessie', 'wheezy'))):
-                if args.parallel:
-                    argv.append('--debbuildopt=-J{}'.format(
-                        args.parallel))
-                else:
-                    argv.append('--debbuildopt=-Jauto')
-
-            argv.append('--dpkg-source-opt=-i')
-            argv.append('--dpkg-source-opt=-I')
-
-            if arch == 'all':
-                logger.info('Architecture: all')
-                argv.append('-A')
-                argv.append('--no-arch-any')
-            elif arch == buildable.together_with:
-                logger.info('Architecture: %s + all', arch)
-                argv.append('-A')
-                argv.append('--arch')
-                argv.append(arch)
-            elif arch == 'source':
-                logger.info('Source-only')
-                argv.append('--no-arch-any')
-                argv.append('--source')
-            else:
-                logger.info('Architecture: %s only', arch)
-                argv.append('--arch')
-                argv.append(arch)
-
-            if buildable.dsc_name is None:
-                # build a source package as a side-effect of the first build
-                # (in practice this will be the 'source' build)
-                argv.append('--dpkg-source-opt=-i')
-                argv.append('--dpkg-source-opt=-I')
-                argv.append('--no-clean-source')
-                argv.append('--source')
-                argv.append('{}/{}_source'.format(machine.scratch,
-                    buildable.product_prefix))
-            else:
-                argv.append('{}/{}'.format(machine.scratch,
-                    os.path.basename(buildable.dsc_name)))
-
-            logger.info('Running %r', argv)
-            machine.check_call(argv)
-
-            product = '{}/{}_{}.changes'.format(machine.scratch,
-                buildable.product_prefix,
-                arch)
-            logger.info('Copying %s back to host...', product)
-            copied_back = os.path.join(args.output_builds,
-                    '{}_{}.changes'.format(buildable.product_prefix, arch))
-            machine.copy_to_host(product, copied_back)
-            buildable.changes_produced[arch] = copied_back
-
-            changes_out = Changes(open(copied_back))
-
-            if buildable.dsc_name is None or arch == 'source':
-                # We built a source package as a side-effect of the first
-                # build, but we couldn't use --source-only-changes with a
-                # jessie chroot.
-                buildable.sourceful_changes_name = copied_back
-
-                for f in changes_out['files']:
-                    if f['name'].endswith('.dsc'):
-                        # expect to find exactly one .dsc file
-                        assert buildable.dsc_name is None
-                        buildable.dsc_name = os.path.join(args.output_builds,
-                                f['name'])
-
-                assert buildable.dsc_name is not None
-                machine.check_call(['rm', '-fr',
-                        '{}/{}_source/'.format(machine.scratch,
-                            buildable.product_prefix)])
-
-            # Note that we mix use_arch and arch here: an Architecture: all
-            # build produces foo_1.2_amd64.build, which we rename
-            product = '{}/{}_{}.build'.format(machine.scratch,
-                buildable.product_prefix,
-                use_arch)
-            product = machine.check_output(['readlink', '-f', product],
-                    universal_newlines=True).rstrip('\n')
-            logger.info('Copying %s back to host as %s_%s.build...',
-                    product, buildable.product_prefix, arch)
-            copied_back = os.path.join(args.output_builds,
-                    '{}_{}.build'.format(buildable.product_prefix, arch))
-            machine.copy_to_host(product, copied_back)
-            buildable.logs[arch] = copied_back
-
-            for f in changes_out['files']:
-                assert '/' not in f['name']
-                assert not f['name'].startswith('.')
-
-                logger.info('Additionally copying %s back to host...',
-                        f['name'])
-                product = '{}/{}'.format(machine.scratch, f['name'])
-                copied_back = os.path.join(args.output_builds, f['name'])
-                machine.copy_to_host(product, copied_back)
+            build = Build(buildable, arch, machine, machine_arch)
+            build.build(base, args, tmp, tarballs_copied)
 
         if buildable.sourceful_changes_name:
             c = os.path.join(args.output_builds,
