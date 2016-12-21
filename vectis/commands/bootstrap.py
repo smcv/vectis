@@ -8,6 +8,7 @@ import subprocess
 from tempfile import TemporaryDirectory
 
 from vectis.commands.new import vmdebootstrap_argv
+from vectis.virt import Machine
 
 def run(args):
     if args.suite is None:
@@ -26,4 +27,19 @@ def run(args):
             '{}/output.qcow2'.format(scratch)])
         out = os.path.join(args.storage, args.qemu_image)
         shutil.move('{}/output.qcow2'.format(scratch), out + '.new')
-        os.rename(out + '.new', out)
+
+        try:
+            with Machine('qemu {}.new'.format(out)) as machine:
+                machine.check_call(['apt-get', '-y', 'update'])
+                machine.check_call(['apt-get',
+                    '-y',
+                    '--no-install-recommends',
+                    'install',
+
+                    'python3',
+                    'sbuild'])
+        except:
+            os.remove(out + '.new')
+            raise
+        else:
+            os.rename(out + '.new', out)
