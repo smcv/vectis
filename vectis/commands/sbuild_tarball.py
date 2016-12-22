@@ -46,12 +46,32 @@ def run(args):
                 '--include=fakeroot,sudo,vim',
                 '--components={}'.format(','.join(args.components)),
                 '--make-sbuild-tarball={}/output.tar.gz'.format(machine.scratch),
+                '--chroot-prefix=vectis',
+                '--chroot-suffix=',
                 args.suite, '{}/chroot'.format(machine.scratch),
                 args.mirror,
                 '/usr/share/debootstrap/scripts/{}'.format(args.debootstrap_script),
             ])
+
+        # Smoke-test the new tarball before being prepared to use it.
+        if args._test_package:
+            machine.check_call([
+                machine.command_wrapper,
+                '--chdir',
+                machine.scratch,
+                '--',
+                'runuser',
+                '-u', 'sbuild',
+                '--',
+                'sbuild',
+                '-c', 'vectis-{}'.format(args.architecture),
+                '-d', 'whatever',
+                '--no-run-lintian',
+                args._test_package,
+                ])
+
         out = os.path.join(args.storage, sbuild_tarball)
         machine.copy_to_host('{}/output.tar.gz'.format(machine.scratch), out + '.new')
-        #os.rename(out + '.new', out)
+        os.rename(out + '.new', out)
 
     logger.info('Created tarball %s', sbuild_tarball)

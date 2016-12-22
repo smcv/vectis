@@ -89,6 +89,9 @@ p.add_argument('--suite',
         help='Release suite [default: {}]'.format(args.default_suite))
 p.add_argument('--architecture', '--arch',
         help='dpkg architecture [default: {}]'.format(args.architecture))
+p.add_argument('--test-package', dest='_test_package',
+        help='An architecture-dependent test package to build as a smoke-test',
+        default='sed')
 
 help = 'Build a Debian package with sbuild'
 p = subparsers.add_parser('sbuild',
