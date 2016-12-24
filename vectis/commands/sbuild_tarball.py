@@ -36,6 +36,7 @@ def run(args):
 
             'debootstrap',
             'sbuild',
+            'schroot',
             ])
         machine.check_call([
                 'env', 'DEBIAN_FRONTEND=noninteractive',

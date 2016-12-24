@@ -82,7 +82,9 @@ def run(args):
                     'install',
 
                     'python3',
-                    'sbuild'])
+                    'sbuild',
+                    'schroot',
+                    ])
         except:
             os.remove(out + '.new')
             raise

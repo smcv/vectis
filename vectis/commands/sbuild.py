@@ -476,6 +476,7 @@ def _run(args, machine, tmp):
 
         'python3',
         'sbuild',
+        'schroot',
         ])
 
     for buildable in buildables:
