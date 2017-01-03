@@ -63,6 +63,10 @@ Usage
 
     Build Debian packages from source.
 
+- `vectis run`
+
+    Run an executable or shell command in the virtual machine.
+
 Design principles
 -----------------
 

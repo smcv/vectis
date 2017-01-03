@@ -76,6 +76,23 @@ p.add_argument('--suite',
 p.add_argument('--architecture', '--arch',
         help='dpkg architecture [default: {}]'.format(args.architecture))
 
+help = 'Run a script or command'
+p = subparsers.add_parser('run',
+        help=help, description=help,
+        argument_default=argparse.SUPPRESS,
+        conflict_handler='resolve',
+        parents=(base,),
+        )
+p.add_argument('--qemu-image',
+        help='Virtual machine image to use '
+        '[default: {}]'.format(args.qemu_image))
+p.add_argument('-c', '--shell-command', dest='_shell_command',
+        default=None,
+        help='Run this shell command')
+p.add_argument('_argv', metavar='ARGV',
+        help='Argument vector', nargs='*',
+        default=[])
+
 help = 'Create a schroot tarball with sbuild-createchroot'
 p = subparsers.add_parser('sbuild-tarball',
         help=help, description=help,
