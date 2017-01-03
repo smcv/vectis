@@ -17,6 +17,7 @@ nobase_python_PYTHON = \
 	vectis/commands/sbuild.py \
 	vectis/commands/sbuild_tarball.py \
 	vectis/config.py \
+	vectis/error.py \
 	vectis/util.py \
 	vectis/virt.py \
 	${NULL}

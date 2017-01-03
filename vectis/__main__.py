@@ -5,11 +5,14 @@
 import argparse
 import importlib
 import logging
+import subprocess
 
 from vectis.config import (Config)
+from vectis.error import (Error)
 
 logging.basicConfig()
 logging.getLogger().setLevel(logging.INFO)
+logger = logging.getLogger(__name__)
 
 args = Config()
 
@@ -144,5 +147,12 @@ p.add_argument('--reprepro-suite', dest='_reprepro_suite', default=None,
 
 parser.parse_args(namespace=args)
 
-importlib.import_module('vectis.commands.' +
-        args._subcommand.replace('-', '_')).run(args)
+try:
+    importlib.import_module('vectis.commands.' +
+            args._subcommand.replace('-', '_')).run(args)
+except KeyboardInterrupt:
+    raise SystemExit(130)
+except subprocess.CalledProcessError as e:
+    logger.error('%s', e)
+except Error as e:
+    logger.error('%s', e)

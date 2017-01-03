@@ -6,7 +6,4 @@
 
 import runpy
 
-try:
-    runpy.run_module('vectis')
-except KeyboardInterrupt:
-    raise SystemExit(130)
+runpy.run_module('vectis')
