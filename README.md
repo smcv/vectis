@@ -8,11 +8,15 @@ implementation of the autopkgtest virtualisation service interface
 Requirements
 ------------
 
+* At build/install time:
+  - GNU autoconf, automake, make
+  - python3
+
 * In the host system:
   - autopkgtest (for autopkgtest-virt-qemu)
   - devscripts (for mergechanges)
   - python3
-  - qemu-system (or qemu-system-* for the appropriate architecture)
+  - qemu-system (or qemu-system-whatever for the appropriate architecture)
   - qemu-utils
   - lots of RAM, to be able to do the entire build in a tmpfs
 
@@ -37,22 +41,26 @@ Usage
 -----
 
 - `vectis bootstrap`
+
     Create a Debian virtual machine image in which to do builds.
 
     This command requires root access (via sudo), but you only have to run
     it once. You can run it in a virtual machine by hand if you want.
 
 - `vectis new`
+
     Create a Debian-derived virtual machine image in which to do builds.
 
-    After you have run "vectis bootstrap" once, you can use the resulting
-    virtual machine for "vectis new" to create all your other build
+    After you have run `vectis bootstrap` once, you can use the resulting
+    virtual machine for `vectis new` to create all your other build
     environments.
 
 - `vectis sbuild-tarball`
+
     Create a base tarball for sbuild/schroot.
 
 - `vectis sbuild`
+
     Build Debian packages from source.
 
 Design principles
