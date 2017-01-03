@@ -16,4 +16,8 @@
 /t/*.log
 /t/*.trs
 /test-suite.log
+/vectis-UNKNOWN.tar.xz
+/vectis-UNKNOWN/
+/vectis-[0-9]*.tar.xz
+/vectis-[0-9]*/
 __pycache__/

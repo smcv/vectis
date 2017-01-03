@@ -1,10 +1,12 @@
 ACLOCAL_AMFLAGS = -I m4
 
 CLEANFILES = \
+	${nodist_bin_SCRIPTS} \
 	${NULL}
 
 EXTRA_DIST = \
 	${dist_uninstalled_test_scripts} \
+	${nodist_bin_SCRIPTS:=.in} \
 	run \
 	${NULL}
 
@@ -22,7 +24,7 @@ nobase_python_PYTHON = \
 	vectis/virt.py \
 	${NULL}
 
-nobase_python_SCRIPTS = \
+nobase_dist_python_SCRIPTS = \
 	vectis/vectis-command-wrapper \
 	${NULL}
 
@@ -31,6 +33,7 @@ nodist_bin_SCRIPTS = \
 	${NULL}
 
 scripts/vectis: scripts/vectis.in Makefile
+	@${MKDIR_P} scripts
 	${AM_V_GEN}${SED} \
 		-e 's#[@]pkgdatadir[@]#${pkgdatadir}#g' \
 		< $< > $@-t && chmod 0755 $@-t && mv $@-t $@

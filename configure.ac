@@ -15,6 +15,7 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_REQUIRE_AUX_FILE([tap-driver.sh])
 
 AC_CHECK_PROG([PYFLAKES], [pyflakes3], [pyflakes3], [false])
+AC_PROG_MKDIR_P
 
 AM_INIT_AUTOMAKE([
     1.15
