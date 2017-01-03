@@ -23,6 +23,10 @@ from debian.debian_support import (
         Version,
         )
 
+from vectis.error import (
+        ArgumentError,
+        CannotHappen,
+        )
 from vectis.virt import Machine
 from vectis.util import AtomicWriter
 
@@ -61,7 +65,7 @@ class Buildable:
                 control = os.path.join(self.buildable, 'debian', 'control')
 
                 if len(changelog.distributions.split()) != 1:
-                    raise SystemExit('Cannot build for multiple '
+                    raise ArgumentError('Cannot build for multiple '
                             'distributions at once')
 
                 for paragraph in Deb822.iter_paragraphs(open(control)):
@@ -76,15 +80,25 @@ class Buildable:
                 self.dirname = os.path.dirname(self.buildable)
                 self.sourceful_changes_name = self.buildable
                 sourceful_changes = Changes(open(self.buildable))
-                assert 'source' in sourceful_changes['architecture']
+                if 'source' not in sourceful_changes['architecture']:
+                    raise ArgumentError('Changes file {!r} must be '
+                            'sourceful'.format(self.buildable))
 
                 self.nominal_suite = sourceful_changes['distribution']
 
                 for f in sourceful_changes['files']:
                     if f['name'].endswith('.dsc'):
+                        if self.dsc_name is not None:
+                            raise ArgumentError('Changes file {!r} contained '
+                                    'more than one .dsc '
+                                    'file'.format(self.buildable))
+
                         self.dsc_name = os.path.join(self.dirname, f['name'])
 
-                assert self.dsc_name is not None
+                if self.dsc_name is None:
+                    raise ArgumentError('Changes file {!r} did not contain a '
+                            '.dsc file'.format(self.buildable))
+
                 self.dsc = Dsc(open(self.dsc_name))
 
             elif self.buildable.endswith('.dsc'):
@@ -93,7 +107,7 @@ class Buildable:
                 self.dsc = Dsc(open(self.dsc_name))
 
             else:
-                raise ValueError('buildable must be .changes, .dsc or '
+                raise ArgumentError('buildable must be .changes, .dsc or '
                         'directory, not {!r}'.format(self.buildable))
         else:
             self.source_from_archive = True
@@ -225,7 +239,7 @@ class Buildable:
                 self.nominal_suite = suite
 
         if self.suite is None:
-            raise ValueError('Must specify --suite when building from '
+            raise ArgumentError('Must specify --suite when building from '
                     '{!r}'.format(self.buildable))
 
     def __str__(self):
@@ -370,7 +384,9 @@ class Build:
                 self.machine.scratch], universal_newlines=True)
 
             dscs = dscs.splitlines()
-            assert len(dscs) == 1
+            if len(dscs) != 1:
+                raise CannotHappen('sbuild --source produced more than one '
+                        '.dsc file from {!r}'.format(self.buildable))
 
             product = dscs[0]
             copied_back = os.path.join(tmp,

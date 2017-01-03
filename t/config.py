@@ -8,7 +8,10 @@ import os
 import subprocess
 import unittest
 
-from vectis.config import (Config)
+from vectis.config import (
+        Config,
+        ConfigError,
+        )
 
 class DefaultsTestCase(unittest.TestCase):
     def setUp(self):
@@ -109,10 +112,10 @@ class DefaultsTestCase(unittest.TestCase):
         # FIXME: fails: ends with "${archive}"
         #self.assertEqual(steamos.mirror, 'http://192.168.122.1:3142/steamos')
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ConfigError):
             steamos.stable_suite
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ConfigError):
             steamos.unstable_suite
 
     def test_architecture(self):

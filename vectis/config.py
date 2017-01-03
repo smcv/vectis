@@ -6,7 +6,12 @@ import os
 import subprocess
 from string import Template
 
+from vectis.error import Error
+
 import yaml
+
+class ConfigError(Error):
+    pass
 
 DEFAULTS = '''
 ---
@@ -113,7 +118,7 @@ class _ConfigLike:
         if isinstance(value, bool):
             return value
 
-        raise ValueError('Invalid value for {!r}: {!r} is not a boolean '
+        raise ConfigError('Invalid value for {!r}: {!r} is not a boolean '
                 'value'.format(name, value))
 
     def _get_mandatory_string(self, name):
@@ -122,7 +127,7 @@ class _ConfigLike:
         if isinstance(value, str):
             return value
 
-        raise ValueError('{!r} key {!r} has no default and must be '
+        raise ConfigError('{!r} key {!r} has no default and must be '
                 'configured'.format(self, name))
 
     # FIXME: architecture and suite can't be mandatory like this because
@@ -282,7 +287,7 @@ class Config(_ConfigLike):
                     raw = yaml.safe_load(reader)
 
                     if not isinstance(raw, dict):
-                        raise ValueError('Reading {!r} did not yield a '
+                        raise ConfigError('Reading {!r} did not yield a '
                                 'dict'.format(conffile))
 
                     self._raw.insert(0, raw)
