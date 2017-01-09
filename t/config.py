@@ -77,7 +77,10 @@ class DefaultsTestCase(unittest.TestCase):
 
         self.assertEqual(str(debian), 'debian')
         self.assertEqual(debian.unstable_suite, 'sid')
-        self.assertEqual(debian.aliases.get('unstable'), 'sid')
+        self.assertEqual(str(debian.get_suite('unstable')), 'sid')
+        self.assertIs(debian.get_suite('unstable'), debian.get_suite('sid'))
+        self.assertEqual(str(debian.get_suite('rc-buggy')), 'experimental')
+        self.assertIs(debian.get_suite('rc-buggy'), debian.get_suite('experimental'))
         self.assertEqual(debian.components, {'main'})
         self.assertEqual(debian.extra_components, {'contrib', 'non-free'})
         self.assertEqual(debian.all_components, {'main', 'contrib',
@@ -86,9 +89,11 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(debian.build_platform, 'debian')
         #self.assertEqual(debian.archive, 'debian')
         #self.assertEqual(debian.mirror, 'http://192.168.122.1:3142/debian')
+        self.assertIsNone(debian.get_suite('xenial', create=False))
+        self.assertEqual(debian.get_suite('experimental').sbuild_resolver[0],
+                '--build-dep-resolver=aspcud')
 
         self.assertEqual(str(ubuntu), 'ubuntu')
-        self.assertEqual(ubuntu.aliases, {})
         self.assertEqual(ubuntu.components, {'main'})
         self.assertEqual(ubuntu.extra_components, {'universe', 'restricted',
             'multiverse'})
@@ -98,12 +103,13 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(ubuntu.build_platform, 'ubuntu')
         #self.assertEqual(ubuntu.archive, 'ubuntu')
         #self.assertEqual(ubuntu.mirror, 'http://192.168.122.1:3142/ubuntu')
+        self.assertIsNone(ubuntu.get_suite('unstable', create=False))
+        self.assertIsNone(ubuntu.get_suite('stable', create=False))
 
     def test_unknown_platform(self):
         steamos = self.__config._get_platform('steamos')
 
         self.assertEqual(str(steamos), 'steamos')
-        self.assertEqual(steamos.aliases, {})
         self.assertEqual(steamos.components, {'main'})
         self.assertEqual(steamos.platform, steamos)
         self.assertEqual(steamos.build_platform, 'debian')
@@ -117,6 +123,10 @@ class DefaultsTestCase(unittest.TestCase):
 
         with self.assertRaises(ConfigError):
             steamos.unstable_suite
+
+        self.assertIsNone(steamos.get_suite('xyzzy', create=False))
+        self.assertIsNotNone(steamos.get_suite('xyzzy'))
+        self.assertIs(steamos.get_suite('xyzzy'), steamos.get_suite('xyzzy'))
 
     def test_architecture(self):
         try:
@@ -150,14 +160,33 @@ class DefaultsTestCase(unittest.TestCase):
             self.assertEqual(debian.stable_suite, debian_info.stable())
             self.assertEqual(ubuntu.stable_suite, ubuntu_info.lts())
             self.assertEqual(ubuntu.unstable_suite, ubuntu_info.devel())
-            self.assertEqual(debian.aliases.get('unstable'), 'sid')
-            self.assertEqual(debian.aliases.get('stable'),
+            self.assertEqual(str(ubuntu.get_suite('devel')),
+                    ubuntu_info.devel())
+            self.assertEqual(str(debian.get_suite('unstable')),
+                    'sid')
+            self.assertEqual(str(debian.get_suite('stable')),
                     debian_info.stable())
-            self.assertEqual(debian.aliases.get('testing'),
+            self.assertEqual(str(debian.get_suite('stable-backports')),
+                    debian_info.stable() + '-backports')
+            self.assertEqual(str(debian.get_suite('testing')),
                     debian_info.testing())
-            self.assertEqual(debian.aliases.get('oldstable'),
+            self.assertEqual(str(debian.get_suite('oldstable')),
                     debian_info.old())
-            self.assertEqual(debian.aliases.get('rc-buggy'), 'experimental')
+            self.assertEqual(str(debian.get_suite('rc-buggy')),
+                    'experimental')
+
+            self.assertEqual(debian.get_suite('stable').sbuild_resolver,
+                    [])
+            self.assertEqual(debian.get_suite('stable-backports').sbuild_resolver,
+                    ['--build-dep-resolver=aptitude'])
+            self.assertEqual(debian.get_suite('stable-backports').apt_suite,
+                    debian_info.stable() + '-backports')
+            self.assertEqual(debian.get_suite('stable-backports').mirror,
+                    'http://192.168.122.1:3142/debian')
+            self.assertEqual(debian.get_suite('stable-security').apt_suite,
+                    '{}/updates'.format(debian_info.stable()))
+            self.assertEqual(debian.get_suite('stable-security').mirror,
+                    'http://192.168.122.1:3142/security.debian.org')
 
     def tearDown(self):
         pass

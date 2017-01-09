@@ -252,7 +252,7 @@ class Build:
         self.machine = machine
         self.machine_arch = machine_arch
 
-    def build(self, base, args, tmp, tarballs_copied):
+    def build(self, suite, args, tmp, tarballs_copied):
         logger.info('Building architecture: %s', self.arch)
 
         if self.arch in ('all', 'source'):
@@ -261,11 +261,13 @@ class Build:
         else:
             use_arch = self.arch
 
+        hierarchy = suite.hierarchy
+
         sbuild_tarball = (
                 'sbuild-{platform}-{base}-{arch}.tar.gz'.format(
                     arch=use_arch,
                     platform=args.platform,
-                    base=base,
+                    base=hierarchy[-1],
                     ))
 
         if sbuild_tarball not in tarballs_copied:
@@ -284,7 +286,7 @@ class Build:
             root-groups=root,sbuild
             profile=sbuild
             ''').format(
-                base=base,
+                base=hierarchy[-1],
                 platform=args.platform,
                 arch=use_arch,
                 scratch=self.machine.scratch))
@@ -309,23 +311,19 @@ class Build:
             argv.append('--debbuildopt=-v{}'.format(
                 args._versions_since))
 
-        if self.buildable.suite.endswith('-backports'):
+        for child in hierarchy[:-1]:
             argv.append('--extra-repository')
             argv.append('deb {} {} {}'.format(
-                args.mirror,
-                self.buildable.suite,
+                child.mirror,
+                child.apt_suite,
                 ' '.join(args.components)))
-            argv.append('--build-dep-resolver=aptitude')
+
+            if child.sbuild_resolver:
+                argv.extend(child.sbuild_resolver)
 
         for x in args._extra_repository:
             argv.append('--extra-repository')
             argv.append(x)
-
-        if self.buildable.suite == 'experimental':
-            argv.append('--build-dep-resolver=aspcud')
-            argv.append('--aspcud-criteria=-removed,-changed,'
-                    '-new,'
-                    '-count(solution,APT-Release:=/experimental/)')
 
         if args.sbuild_force_parallel > 1:
             argv.append('--debbuildopt=-j{}'.format(
@@ -502,20 +500,15 @@ def _run(args, machine, tmp):
 
         buildable.select_suite(args.suite)
 
-        base = buildable.suite
-
-        base = base.replace('-backports', '')
-        base = base.replace('-security', '')
-
-        if base in args.platform.aliases:
-            base = args.platform.aliases[base]
-        elif base in ('unstable', 'experimental', 'UNRELEASED'):
-            base = args.platform.unstable_suite
+        if buildable.suite == 'UNRELEASED':
+            suite = args.platform.get_suite(args.platform.unstable_suite)
+        else:
+            suite = args.platform.get_suite(buildable.suite)
 
         if (buildable.source_from_archive or args._rebuild_source or
                 buildable.dsc is None):
             build = Build(buildable, 'source', machine, machine_arch)
-            build.build(base, args, tmp, tarballs_copied)
+            build.build(suite, args, tmp, tarballs_copied)
 
         if not args._source_only:
             buildable.select_archs(machine_arch, args._archs, args._indep,
@@ -523,7 +516,7 @@ def _run(args, machine, tmp):
 
             for arch in buildable.archs:
                 build = Build(buildable, arch, machine, machine_arch)
-                build.build(base, args, tmp, tarballs_copied)
+                build.build(suite, args, tmp, tarballs_copied)
 
         if buildable.sourceful_changes_name:
             c = os.path.join(args.output_builds,
@@ -604,7 +597,7 @@ def _run(args, machine, tmp):
                 reprepro_suite = args._reprepro_suite
 
                 if reprepro_suite is None:
-                    reprepro_suite = buildable.suite
+                    reprepro_suite = buildable.nominal_suite
 
                 if args._reprepro_dir:
                     subprocess.call(['reprepro', '-b', args._reprepro_dir,

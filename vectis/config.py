@@ -5,6 +5,7 @@
 import os
 import subprocess
 from string import Template
+from weakref import WeakValueDictionary
 
 from vectis.error import Error
 
@@ -12,6 +13,26 @@ import yaml
 
 class ConfigError(Error):
     pass
+
+class RecursiveExpansionMap(dict):
+    def __getitem__(self, k):
+        v = super(RecursiveExpansionMap, self).__getitem__(k)
+        return self.__expand(v)
+
+    def __expand(self, v):
+        if isinstance(v, str):
+            return Template(v).substitute(self)
+        elif isinstance(v, set):
+            return set([self.__expand(x) for x in v])
+        elif isinstance(v, list):
+            return list([self.__expand(x) for x in v])
+        elif isinstance(v, dict):
+            ret = {}
+            for k, x in v.items():
+                ret[k] = self.__expand(x)
+            return ret
+        else:
+            return v
 
 DEFAULTS = '''
 ---
@@ -50,18 +71,50 @@ defaults:
     output_builds: ".."
 
     sbuild_buildables: null
+    sbuild_resolver: []
+    apt_suite: "${suite}"
 
 platforms:
     debian:
         extra_components: contrib non-free
-        aliases:
-            unstable: sid
-            rc-buggy: experimental
+        suites:
+            sid: {}
+            unstable:
+                alias_for: sid
+            experimental:
+                base: sid
+                sbuild_resolver:
+                    - "--build-dep-resolver=aspcud"
+                    - "--aspcud-criteria=-removed,-changed,-new,-count(solution,APT-Release:=/experimental/)"
+            rc-buggy:
+                alias_for: experimental
+            "*-backports":
+                sbuild_resolver:
+                    - "--build-dep-resolver=aptitude"
+            "*-backports-sloppy":
+                sbuild_resolver:
+                    - "--build-dep-resolver=aptitude"
+            # *-proposed-updates intentionally omitted because nobody is
+            # meant to upload to it
+            "*-security":
+                mirror: "http://192.168.122.1:3142/security.debian.org"
+                apt_suite: "${base}/updates"
+            "*-updates":
+                null: null
 
     ubuntu:
         build_suite: "${stable_suite}"
         build_platform: ubuntu
         extra_components: universe restricted multiverse
+        suites:
+            "*-backports":
+                null: null
+            "*-proposed":
+                null: null
+            "*-security":
+                null: null
+            "*-updates":
+                null: null
 
 directories:
     /:
@@ -152,10 +205,77 @@ class Platform(_ConfigLike):
         super(Platform, self).__init__()
         self._name = name
         self._raw = raw
+        self._suites = WeakValueDictionary()
+
+        for r in self._raw:
+            p = r.get('platforms', {}).get(self._name, {})
+            suites = p.get('suites', {})
+
+            for suite in suites.keys():
+                if '*' not in suite:
+                    continue
+
+                if (not suite.startswith('*-') or
+                        '*' in suite[2:]):
+                    raise ConfigError('Suite wildcards must be of the '
+                            'form *-something')
 
     @property
     def platform(self):
         return self
+
+    def get_suite(self, name, create=True):
+        if name is None:
+            return None
+
+        s = self._suites.get(name)
+
+        if s is not None:
+            return s
+
+        raw = None
+        aliases = set()
+        base = None
+        pattern = None
+
+        while True:
+            for r in self._raw:
+                p = r.get('platforms', {}).get(self._name, {})
+                raw = p.get('suites', {}).get(name)
+
+                if raw:
+                    break
+
+            if raw is None or 'alias_for' not in raw:
+                break
+
+            name = raw['alias_for']
+            if name in aliases:
+                raise ConfigError('{!r}/{!r} is an alias for '
+                        'itself'.format(self, name))
+            aliases.add(name)
+            continue
+
+        if raw is None and '-' in name:
+            base, pocket = name.split('-', 1)
+            base = self.get_suite(base, create=False)
+
+            if base is not None:
+                pattern = '*-{}'.format(pocket)
+                for r in self._raw:
+                    p = r.get('platforms', {}).get(self._name, {})
+                    raw = p.get('suites', {}).get(pattern)
+
+                    if raw is not None:
+                        name = '{}-{}'.format(base, pocket)
+                        break
+
+        if raw is None and not create:
+            return None
+
+        s = Suite(name, self, self._raw, base=base, pattern=pattern)
+        self._suites[name] = s
+        return s
 
     def __str__(self):
         return self._name
@@ -183,6 +303,93 @@ class Platform(_ConfigLike):
         # hard-coded defaults from this file, as augmented with environment
         # variables etc.
         raise AssertionError('Not reached')
+
+class Suite(_ConfigLike):
+    def __init__(self, name, platform, raw, base=None, pattern=None):
+        super(Suite, self).__init__()
+        self._name = name
+        self._platform = platform
+        self._raw = raw
+        self.base = None
+
+        if pattern is None:
+            self._pattern = name
+        else:
+            self._pattern = pattern
+
+        if base is None:
+            base = platform.get_suite(self.__get('base'))
+
+        self.base = base
+        self.hierarchy = []
+        suite = self
+
+        while suite is not None:
+            self.hierarchy.append(suite)
+            suite = suite.base
+
+    @property
+    def platform(self):
+        return self._platform
+
+    @property
+    def suite(self):
+        return self
+
+    @property
+    def apt_suite(self):
+        suite = self['apt_suite']
+
+        if suite is not None:
+            return Template(self['apt_suite']).substitute(
+                    RecursiveExpansionMap(
+                        base=self.base,
+                        suite=self,
+                        ),
+                    )
+
+        return self._name
+
+    @property
+    def mirror(self):
+        return Template(self['mirror']).substitute(
+                RecursiveExpansionMap(
+                    archive=self.archive,
+                    platform=self.platform,
+                    ),
+                )
+
+    def __str__(self):
+        return self._name
+
+    def __repr__(self):
+        return '<Suite {!r}/{!r}>'.format(self._platform, self._name)
+
+    def __getitem__(self, name):
+        if name == 'base':
+            return str(self.base)
+
+        for ancestor in self.hierarchy:
+            value = ancestor.__get(name)
+
+            if value is not None:
+                return value
+
+        return self.platform[name]
+
+    def __get(self, name):
+        if (name not in self._raw[-1]['defaults'] and
+                name not in ('apt_suite', 'base')):
+            raise KeyError('{!r} does not configure {!r}'.format(self, name))
+
+        for r in self._raw:
+            p = r.get('platforms', {}).get(str(self._platform), {})
+            s = p.get('suites', {}).get(self._pattern, {})
+
+            if name in s:
+                return s[name]
+
+        return None
 
 class Directory(_ConfigLike):
     def __init__(self, path, raw):
@@ -260,11 +467,24 @@ class Config(_ConfigLike):
             d['platforms']['ubuntu']['stable_suite'] = ubuntu.lts()
             d['platforms']['debian']['unstable_suite'] = debian.devel()
             d['platforms']['ubuntu']['unstable_suite'] = ubuntu.devel()
-            d['platforms']['debian']['aliases']['unstable'] = debian.devel()
-            d['platforms']['debian']['aliases']['stable'] = debian.stable()
-            d['platforms']['debian']['aliases']['testing'] = debian.testing()
-            d['platforms']['debian']['aliases']['oldstable'] = debian.old()
-            d['platforms']['debian']['aliases']['rc-buggy'] = 'experimental'
+            d['platforms']['debian']['suites']['stable'] = {
+                    'alias_for': debian.stable(),
+            }
+            d['platforms']['debian']['suites']['testing'] = {
+                    'alias_for': debian.testing(),
+            }
+            d['platforms']['debian']['suites']['oldstable'] = {
+                    'alias_for': debian.old(),
+            }
+            d['platforms']['ubuntu']['suites']['devel'] = {
+                    'alias_for': ubuntu.devel(),
+            }
+
+            for suite in debian.all:
+                d['platforms']['debian']['suites'].setdefault(suite, {})
+
+            for suite in ubuntu.all:
+                d['platforms']['ubuntu']['suites'].setdefault(suite, {})
 
         self._raw = []
         self._raw.append(d)
