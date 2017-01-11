@@ -35,6 +35,7 @@ def run(args):
             'install',
 
             'debootstrap',
+            'python3',
             'sbuild',
             'schroot',
             ])
