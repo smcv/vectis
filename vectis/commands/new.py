@@ -23,13 +23,23 @@ def vmdebootstrap_argv(args, setup_script):
             '--hostname=host',
             '--sparse',
             '--size={}'.format(args.size),
-            '--grub',
-            '--no-mbr',
-            '--no-extlinux',
             '--mirror={}'.format(args.bootstrap_mirror),
             '--arch={}'.format(args.architecture),
         ]
     argv.append('--customize={}'.format(setup_script))
+
+    if args.suite == 'wheezy':
+        # FIXME: this assumes vmdebootstrap from jessie: different
+        # options are needed for vmdebootstrap from sid.
+        argv.extend([
+            '--boottype=ext2',
+            ])
+    else:
+        argv.extend([
+            '--grub',
+            '--no-mbr',
+            '--no-extlinux',
+            ])
 
     return argv
 
@@ -52,6 +62,7 @@ def run(args):
             'install',
 
             'autopkgtest',
+            'mbr',
             'python3',
             'qemu-utils',
             'vmdebootstrap',
