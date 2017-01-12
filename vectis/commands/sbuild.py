@@ -336,8 +336,8 @@ class Build:
             else:
                 argv.append('--debbuildopt=-Jauto')
 
-        argv.append('--dpkg-source-opt=-i')
-        argv.append('--dpkg-source-opt=-I')
+        argv.append('--dpkg-source-opt=-i\\.git/')
+        argv.append('--dpkg-source-opt=-I.git')
 
         if self.arch == 'all':
             logger.info('Architecture: all')
