@@ -161,6 +161,14 @@ p.add_argument('--reprepro-dir', dest='_reprepro_dir', default=None,
 p.add_argument('--reprepro-suite', dest='_reprepro_suite', default=None,
         help='Inject built packages into this reprepro suite (default: same '
             'as package)')
+p.add_argument('-u',
+        dest='_u_ignored', choices=['c', 's'],
+        help='Ignored for compatibility with dgit: vectis never signs '
+            'changes files')
+p.add_argument('--unsigned-changes', '--unsigned-source',
+        dest='_u_ignored', action='store_const', const=None,
+        help='Ignored for compatibility with dgit: vectis never signs '
+            'changes files')
 
 parser.parse_args(namespace=args)
 
