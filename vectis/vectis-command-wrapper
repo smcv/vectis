@@ -26,7 +26,14 @@ if __name__ == '__main__':
     if sys.version_info >= (3, 4):
         # vmdebootstrap unconditionally writes to /dev/tty. Fool it by using
         # a pty.
-        sys.exit(pty.spawn(args.argv))
+        status = pty.spawn(args.argv)
+
+        if os.WIFEXITED(status):
+            sys.exit(os.WEXITSTATUS(status))
+        elif os.WIFSIGNALED(status):
+            sys.exit(128 + os.WTERMSIG(status))
+        else:
+            sys.exit(1)
     else:
         # give up on /dev/tty for the sake of having an exit status
         os.execvp(args.argv[0], args.argv)
