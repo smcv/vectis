@@ -365,8 +365,6 @@ class Build:
         else:
             # build a source package as a side-effect of the first build
             # (in practice this will be the 'source' build)
-            argv.append('--dpkg-source-opt=-i')
-            argv.append('--dpkg-source-opt=-I')
             argv.append('--no-clean-source')
             argv.append('--source')
             argv.append('{}/{}_source'.format(self.machine.scratch,
