@@ -418,6 +418,7 @@ class Build:
         changes_out = Changes(open(copied_back))
 
         if self.arch == 'source':
+            self.buildable.dsc_name = None
             self.buildable.sourceful_changes_name = copied_back
 
             for f in changes_out['files']:
