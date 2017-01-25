@@ -157,8 +157,7 @@ class Buildable:
                     '{}/in/{}_source/'.format(machine.scratch,
                         self.product_prefix))
             machine.check_call(['chown', '-R', 'sbuild:sbuild',
-                    '{}/in/{}_source/'.format(machine.scratch,
-                        self.product_prefix)])
+                    '{}/in/'.format(machine.scratch)])
             if self.version.debian_revision is not None:
                 orig_pattern = glob.escape(os.path.join(self.buildable, '..',
                         '{}_{}.orig.tar.'.format(self.source_package,
