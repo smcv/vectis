@@ -159,16 +159,26 @@ class Buildable:
             machine.check_call(['chown', '-R', 'sbuild:sbuild',
                     '{}/in/'.format(machine.scratch)])
             if self.version.debian_revision is not None:
+                machine.check_call(['install', '-d', '-m755',
+                    '-osbuild', '-gsbuild',
+                    '{}/out'.format(machine.scratch)])
+
                 orig_pattern = glob.escape(os.path.join(self.buildable, '..',
                         '{}_{}.orig.tar.'.format(self.source_package,
                             self.version.upstream_version))) + '*'
                 logger.info('Looking for original tarballs: {}'.format(
                         orig_pattern))
+
                 for orig in glob.glob(orig_pattern):
                     logger.info('Copying original tarball: {}'.format(orig))
                     machine.copy_to_guest(orig,
                             '{}/in/{}'.format(machine.scratch,
                                 os.path.basename(orig)))
+                    machine.check_call(['ln', '-s',
+                            '{}/in/{}'.format(machine.scratch,
+                                os.path.basename(orig)),
+                            '{}/out/{}'.format(machine.scratch,
+                                os.path.basename(orig))])
 
     def select_archs(self, machine_arch, archs, indep, together):
         builds_i386 = False
