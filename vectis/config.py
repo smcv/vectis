@@ -73,6 +73,9 @@ defaults:
     sbuild_buildables: null
     sbuild_resolver: []
     apt_suite: "${suite}"
+    dpkg_source_tar_ignore: []
+    dpkg_source_diff_ignore: null
+    dpkg_source_extend_diff_ignore: []
 
 platforms:
     debian:

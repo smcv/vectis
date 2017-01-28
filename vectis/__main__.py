@@ -170,6 +170,15 @@ p.add_argument('--unsigned-changes', '--unsigned-source',
         dest='_u_ignored', action='store_const', const=None,
         help='Ignored for compatibility with dgit: vectis never signs '
             'changes files')
+p.add_argument('--tar-ignore', '-I', nargs='?', metavar='PATTERN',
+        dest='dpkg_source_tar_ignore', action='append', const=...,
+        help='Build with --dpkg-source-opt=--tar-ignore[=PATTERN]')
+p.add_argument('--diff-ignore', '-i', nargs='?', metavar='PATTERN',
+        dest='dpkg_source_diff_ignore', const=...,
+        help='Build with --dpkg-source-opt=--diff-ignore[=PATTERN]')
+p.add_argument('--extend-diff-ignore', metavar='PATTERN',
+        dest='dpkg_source_extend_diff_ignore', action='append',
+        help='Build with --dpkg-source-opt=--extend-diff-ignore=PATTERN')
 
 parser.parse_args(namespace=args)
 

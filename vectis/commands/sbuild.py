@@ -351,8 +351,21 @@ class Build:
             else:
                 argv.append('--debbuildopt=-Jauto')
 
-        argv.append('--dpkg-source-opt=-i\\.git/')
-        argv.append('--dpkg-source-opt=-I.git')
+        if args.dpkg_source_diff_ignore is ...:
+            argv.append('--dpkg-source-opt=-i')
+        elif args.dpkg_source_diff_ignore is not None:
+            argv.append('--dpkg-source-opt=-i{}'.format(
+                args.dpkg_source_diff_ignore))
+
+        for pattern in args.dpkg_source_tar_ignore:
+            if pattern is ...:
+                argv.append('--dpkg-source-opt=-I')
+            else:
+                argv.append('--dpkg-source-opt=-I{}'.format(pattern))
+
+        for pattern in args.dpkg_source_extend_diff_ignore:
+            argv.append('--dpkg-source-opt=--extend-diff-ignore={}'.format(
+                pattern))
 
         if self.arch == 'all':
             logger.info('Architecture: all')
