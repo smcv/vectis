@@ -294,9 +294,12 @@ class Build:
                     '{}/in/{}'.format(self.machine.scratch, sbuild_tarball))
             tarballs_copied.add(sbuild_tarball)
 
+        chroot = '{base}-{arch}-sbuild'.format(base=hierarchy[-1],
+                arch=use_arch)
+
         with AtomicWriter(os.path.join(tmp, 'sbuild.conf')) as writer:
             writer.write(textwrap.dedent('''
-            [vectis]
+            [{chroot}]
             type=file
             description=An autobuilder
             file={scratch}/in/{sbuild_tarball}
@@ -304,10 +307,11 @@ class Build:
             root-groups=root,sbuild
             profile=sbuild
             ''').format(
+                chroot=chroot,
                 sbuild_tarball=sbuild_tarball,
                 scratch=self.machine.scratch))
         self.machine.copy_to_guest(os.path.join(tmp, 'sbuild.conf'),
-                '/etc/schroot/chroot.d/vectis')
+                '/etc/schroot/chroot.d/{}'.format(chroot))
 
         argv = [
                 self.machine.command_wrapper,
@@ -318,7 +322,7 @@ class Build:
                 '-u', 'sbuild',
                 '--',
                 'sbuild',
-                '-c', 'vectis',
+                '-c', chroot,
                 '-d', self.buildable.nominal_suite,
                 '--no-run-lintian',
         ]
