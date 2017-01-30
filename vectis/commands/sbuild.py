@@ -8,6 +8,7 @@ import os
 import shutil
 import subprocess
 import textwrap
+import time
 from collections import OrderedDict
 from tempfile import TemporaryDirectory
 
@@ -403,7 +404,47 @@ class Build:
                 self.buildable.product_prefix))
 
         logger.info('Running %r', argv)
-        self.machine.check_call(argv)
+        try:
+            self.machine.check_call(argv)
+        finally:
+            # Note that we mix use_arch and arch here: an Architecture: all
+            # build produces foo_1.2_amd64.build, which we rename.
+            # We also check for foo_amd64.build because
+            # that's what comes out if we do "vectis sbuild --suite=sid hello".
+            for prefix in (self.buildable.source_package,
+                    self.buildable.product_prefix):
+                product = '{}/out/{}_{}.build'.format(self.machine.scratch,
+                        prefix, use_arch)
+                product = self.machine.check_output(['readlink', '-f', product],
+                        universal_newlines=True).rstrip('\n')
+
+                if self.machine.call(['test', '-e', product]) == 0:
+                    logger.info('Copying %s back to host as %s_%s.build...',
+                            product, self.buildable.product_prefix, self.arch)
+                    copied_back = os.path.join(args.output_builds,
+                            '{}_{}_{}.build'.format(self.buildable.product_prefix,
+                                self.arch,
+                                time.strftime('%Y%m%dt%H%M%S', time.gmtime())))
+                    self.machine.copy_to_host(product, copied_back)
+                    self.buildable.logs[self.arch] = copied_back
+
+                    symlink = os.path.join(args.output_builds,
+                            '{}_{}.build'.format(self.buildable.product_prefix,
+                                self.arch))
+                    try:
+                        os.remove(symlink)
+                    except FileNotFoundError:
+                        pass
+
+                    os.symlink(os.path.abspath(copied_back), symlink)
+                    break
+            else:
+                logger.warning('Did not find build log at %s', product)
+                logger.warning('Possible build logs:\n%s',
+                        self.machine.check_call(['sh', '-c',
+                            'cd "$1"; ls -l *.build || :',
+                            'sh', # argv[0]
+                            self.machine.scratch]))
 
         if self.arch == 'source' and self.buildable.source_from_archive:
             dscs = self.machine.check_output(['sh', '-c',
@@ -465,34 +506,6 @@ class Build:
             self.machine.check_call(['rm', '-fr',
                     '{}/in/{}_source/'.format(self.machine.scratch,
                         self.buildable.product_prefix)])
-
-        # Note that we mix use_arch and arch here: an Architecture: all
-        # build produces foo_1.2_amd64.build, which we rename.
-        # We also check for foo_amd64.build because
-        # that's what comes out if we do "vectis sbuild --suite=sid hello".
-        for prefix in (self.buildable.source_package,
-                self.buildable.product_prefix):
-            product = '{}/out/{}_{}.build'.format(self.machine.scratch,
-                    prefix, use_arch)
-            product = self.machine.check_output(['readlink', '-f', product],
-                    universal_newlines=True).rstrip('\n')
-
-            if self.machine.call(['test', '-e', product]) == 0:
-                logger.info('Copying %s back to host as %s_%s.build...',
-                        product, self.buildable.product_prefix, self.arch)
-                copied_back = os.path.join(args.output_builds,
-                        '{}_{}.build'.format(self.buildable.product_prefix,
-                            self.arch))
-                self.machine.copy_to_host(product, copied_back)
-                self.buildable.logs[self.arch] = copied_back
-                break
-        else:
-            logger.warning('Did not find build log at %s', product)
-            logger.warning('Possible build logs:\n%s',
-                    self.machine.check_call(['sh', '-c',
-                        'cd "$1"; ls -l *.build || :',
-                        'sh', # argv[0]
-                        self.machine.scratch]))
 
         for f in changes_out['files']:
             assert '/' not in f['name']
