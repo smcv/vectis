@@ -15,9 +15,9 @@ def run(args):
     if args.suite is None:
         args.suite = args.default_suite
 
-    sbuild_tarball = 'sbuild-{platform}-{suite}-{arch}.tar.gz'.format(
+    sbuild_tarball = 'sbuild-{vendor}-{suite}-{arch}.tar.gz'.format(
             arch=args.architecture,
-            platform=args.platform,
+            vendor=args.vendor,
             suite=args.suite,
             )
     logger.info('Creating tarball %s...', sbuild_tarball)

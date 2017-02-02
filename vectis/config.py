@@ -38,17 +38,17 @@ DEFAULTS = '''
 ---
 defaults:
     storage: "${XDG_CACHE_HOME}/vectis"
-    platform: debian
+    vendor: debian
     size: 42G
     components: main
     extra_components: []
-    archive: "${platform}"
+    archive: "${vendor}"
     mirror: "http://192.168.122.1:3142/${archive}"
     # FIXME: qemu_image doesn't actually work as intended because the value
     # of ${suite} is still None when we evaluate this. Fixing this would
     # need some sort of late-evaluation that takes into account config keys
     # with "magic" values, like guessing suite from debian/changelog
-    qemu_image: "vectis-${platform}-${suite}-${architecture}.qcow2"
+    qemu_image: "vectis-${vendor}-${suite}-${architecture}.qcow2"
     debootstrap_script: "${suite}"
     default_suite: "${unstable_suite}"
     aliases: {}
@@ -57,11 +57,11 @@ defaults:
     suite: null
     unstable_suite: null
 
-    build_platform: debian
-    build_suite: ${build_platform__unstable_suite}
+    build_vendor: debian
+    build_suite: ${build_vendor__unstable_suite}
     build_architecture: "${architecture}"
     builder: "autopkgtest-virt-qemu ${storage}/${builder_qemu_image}"
-    builder_qemu_image: "vectis-${build_platform}-${build_suite}-${build_architecture}.qcow2"
+    builder_qemu_image: "vectis-${build_vendor}-${build_suite}-${build_architecture}.qcow2"
 
     bootstrap_mirror: "${mirror}"
 
@@ -77,7 +77,7 @@ defaults:
     dpkg_source_diff_ignore: null
     dpkg_source_extend_diff_ignore: []
 
-platforms:
+vendors:
     debian:
         extra_components: contrib non-free
         suites:
@@ -107,7 +107,7 @@ platforms:
 
     ubuntu:
         build_suite: "${stable_suite}"
-        build_platform: ubuntu
+        build_vendor: ubuntu
         extra_components: universe restricted multiverse
         suites:
             "*-backports":
@@ -203,15 +203,15 @@ class _ConfigLike:
         except KeyError as e:
             raise AttributeError('No configuration item {!r}'.format(name))
 
-class Platform(_ConfigLike):
+class Vendor(_ConfigLike):
     def __init__(self, name, raw):
-        super(Platform, self).__init__()
+        super(Vendor, self).__init__()
         self._name = name
         self._raw = raw
         self._suites = WeakValueDictionary()
 
         for r in self._raw:
-            p = r.get('platforms', {}).get(self._name, {})
+            p = r.get('vendors', {}).get(self._name, {})
             suites = p.get('suites', {})
 
             for suite in suites.keys():
@@ -224,7 +224,7 @@ class Platform(_ConfigLike):
                             'form *-something')
 
     @property
-    def platform(self):
+    def vendor(self):
         return self
 
     def get_suite(self, name, create=True):
@@ -243,7 +243,7 @@ class Platform(_ConfigLike):
 
         while True:
             for r in self._raw:
-                p = r.get('platforms', {}).get(self._name, {})
+                p = r.get('vendors', {}).get(self._name, {})
                 raw = p.get('suites', {}).get(name)
 
                 if raw:
@@ -266,7 +266,7 @@ class Platform(_ConfigLike):
             if base is not None:
                 pattern = '*-{}'.format(pocket)
                 for r in self._raw:
-                    p = r.get('platforms', {}).get(self._name, {})
+                    p = r.get('vendors', {}).get(self._name, {})
                     raw = p.get('suites', {}).get(pattern)
 
                     if raw is not None:
@@ -284,14 +284,14 @@ class Platform(_ConfigLike):
         return self._name
 
     def __repr__(self):
-        return '<Platform {!r}>'.format(self._name)
+        return '<Vendor {!r}>'.format(self._name)
 
     def __getitem__(self, name):
         if name not in self._raw[-1]['defaults']:
             raise KeyError('{!r} does not configure {!r}'.format(self, name))
 
         for r in self._raw:
-            p = r.get('platforms', {}).get(self._name, {})
+            p = r.get('vendors', {}).get(self._name, {})
 
             if name in p:
                 return p[name]
@@ -308,10 +308,10 @@ class Platform(_ConfigLike):
         raise AssertionError('Not reached')
 
 class Suite(_ConfigLike):
-    def __init__(self, name, platform, raw, base=None, pattern=None):
+    def __init__(self, name, vendor, raw, base=None, pattern=None):
         super(Suite, self).__init__()
         self._name = name
-        self._platform = platform
+        self._vendor = vendor
         self._raw = raw
         self.base = None
 
@@ -321,7 +321,7 @@ class Suite(_ConfigLike):
             self._pattern = pattern
 
         if base is None:
-            base = platform.get_suite(self.__get('base'))
+            base = vendor.get_suite(self.__get('base'))
 
         self.base = base
         self.hierarchy = []
@@ -332,8 +332,8 @@ class Suite(_ConfigLike):
             suite = suite.base
 
     @property
-    def platform(self):
-        return self._platform
+    def vendor(self):
+        return self._vendor
 
     @property
     def suite(self):
@@ -358,7 +358,7 @@ class Suite(_ConfigLike):
         return Template(self['mirror']).substitute(
                 RecursiveExpansionMap(
                     archive=self.archive,
-                    platform=self.platform,
+                    vendor=self.vendor,
                     ),
                 )
 
@@ -366,7 +366,7 @@ class Suite(_ConfigLike):
         return self._name
 
     def __repr__(self):
-        return '<Suite {!r}/{!r}>'.format(self._platform, self._name)
+        return '<Suite {!r}/{!r}>'.format(self._vendor, self._name)
 
     def __getitem__(self, name):
         if name == 'base':
@@ -378,7 +378,7 @@ class Suite(_ConfigLike):
             if value is not None:
                 return value
 
-        return self.platform[name]
+        return self.vendor[name]
 
     def __get(self, name):
         if (name not in self._raw[-1]['defaults'] and
@@ -386,7 +386,7 @@ class Suite(_ConfigLike):
             raise KeyError('{!r} does not configure {!r}'.format(self, name))
 
         for r in self._raw:
-            p = r.get('platforms', {}).get(str(self._platform), {})
+            p = r.get('vendors', {}).get(str(self._vendor), {})
             s = p.get('suites', {}).get(self._pattern, {})
 
             if name in s:
@@ -430,7 +430,7 @@ class Config(_ConfigLike):
     def __init__(self, config_layers=(), current_directory=None):
         super(Config, self).__init__()
 
-        self._platforms = {}
+        self._vendors = {}
         self._overrides = {}
         self._relevant_directory = None
 
@@ -466,28 +466,28 @@ class Config(_ConfigLike):
         else:
             debian = distro_info.DebianDistroInfo()
             ubuntu = distro_info.UbuntuDistroInfo()
-            d['platforms']['debian']['stable_suite'] = debian.stable()
-            d['platforms']['ubuntu']['stable_suite'] = ubuntu.lts()
-            d['platforms']['debian']['unstable_suite'] = debian.devel()
-            d['platforms']['ubuntu']['unstable_suite'] = ubuntu.devel()
-            d['platforms']['debian']['suites']['stable'] = {
+            d['vendors']['debian']['stable_suite'] = debian.stable()
+            d['vendors']['ubuntu']['stable_suite'] = ubuntu.lts()
+            d['vendors']['debian']['unstable_suite'] = debian.devel()
+            d['vendors']['ubuntu']['unstable_suite'] = ubuntu.devel()
+            d['vendors']['debian']['suites']['stable'] = {
                     'alias_for': debian.stable(),
             }
-            d['platforms']['debian']['suites']['testing'] = {
+            d['vendors']['debian']['suites']['testing'] = {
                     'alias_for': debian.testing(),
             }
-            d['platforms']['debian']['suites']['oldstable'] = {
+            d['vendors']['debian']['suites']['oldstable'] = {
                     'alias_for': debian.old(),
             }
-            d['platforms']['ubuntu']['suites']['devel'] = {
+            d['vendors']['ubuntu']['suites']['devel'] = {
                     'alias_for': ubuntu.devel(),
             }
 
             for suite in debian.all:
-                d['platforms']['debian']['suites'].setdefault(suite, {})
+                d['vendors']['debian']['suites'].setdefault(suite, {})
 
             for suite in ubuntu.all:
-                d['platforms']['ubuntu']['suites'].setdefault(suite, {})
+                d['vendors']['ubuntu']['suites'].setdefault(suite, {})
 
         self._raw = []
         self._raw.append(d)
@@ -543,18 +543,18 @@ class Config(_ConfigLike):
 
         return Template(value).substitute(self)
 
-    def _get_platform(self, name):
-        if name not in self._platforms:
-            self._platforms[name] = Platform(name, self._raw)
-        return self._platforms[name]
+    def _get_vendor(self, name):
+        if name not in self._vendors:
+            self._vendors[name] = Vendor(name, self._raw)
+        return self._vendors[name]
 
     def __getitem__(self, name):
         # FIXME: this hack is only here because we need to evaluate
-        # builder_qemu_image, which uses the build platform's suite,
-        # not the host platform's
+        # builder_qemu_image, which uses the build vendor's suite,
+        # not the host vendor's
         if '__' in name:
             which, name = name.split('__')
-            return self._get_platform(self[which])[name]
+            return self._get_vendor(self[which])[name]
 
         if name in self._overrides:
             return self.expand(self._overrides[name])
@@ -562,22 +562,22 @@ class Config(_ConfigLike):
         if name in self._path_based:
             return self.expand(self._path_based[name])
 
-        if name != 'platform':
-            return self.expand(self.platform[name])
+        if name != 'vendor':
+            return self.expand(self.vendor[name])
 
         for r in self._raw:
-            if 'platform' in r.get('defaults', {}):
-                return r['defaults']['platform']
+            if 'vendor' in r.get('defaults', {}):
+                return r['defaults']['vendor']
 
-        raise AssertionError('I know the defaults do specify a platform')
-
-    @property
-    def platform(self):
-        return self._get_platform(self['platform'])
+        raise AssertionError('I know the defaults do specify a vendor')
 
     @property
-    def build_platform(self):
-        return self._get_platform(self['build_platform'])
+    def vendor(self):
+        return self._get_vendor(self['vendor'])
+
+    @property
+    def build_vendor(self):
+        return self._get_vendor(self['build_vendor'])
 
     def __setattr__(self, name, value):
         if name.startswith('_'):
@@ -588,15 +588,15 @@ class Config(_ConfigLike):
 if __name__ == '__main__':
     for args in (
             {},
-            { 'platform': 'debian' },
-            { 'platform': 'ubuntu', 'unstable_suite': 'yakkety' },
-            { 'platform': 'steamos',
+            { 'vendor': 'debian' },
+            { 'vendor': 'ubuntu', 'unstable_suite': 'yakkety' },
+            { 'vendor': 'steamos',
                 'stable_suite': 'alchemist',
                 'unstable_suite': 'brewmaster',
                 'extra_components': 'contrib non-free',
                 'debootstrap_script': 'sid',
                 'mirror': 'http://repo.steampowered.com/${archive}' },
-            { 'platform': 'xyz',
+            { 'vendor': 'xyz',
                 'default_suite': 'whatever',
                 'components': 'main drivers sdk',
                 'debootstrap_script': 'xenial',

@@ -23,12 +23,12 @@ fi
 
 echo "1..1"
 
-PYTHONPATH=$(pwd) ./run --platform=debian --storage="${storage}" \
+PYTHONPATH=$(pwd) ./run --vendor=debian --storage="${storage}" \
 	new \
 	--builder='qemu ${storage}/vectis-debian-sid-${architecture}.qcow2' \
 	--suite=sid
 test ! -L "${storage}/vectis-debian-sid-${arch}.qcow2"
-PYTHONPATH=$(pwd) ./run --platform=debian --storage="${storage}" sbuild \
+PYTHONPATH=$(pwd) ./run --vendor=debian --storage="${storage}" sbuild \
 	--builder='qemu ${storage}/vectis-debian-sid-${architecture}.qcow2' \
 	--suite=sid \
 	hello

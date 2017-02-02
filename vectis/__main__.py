@@ -21,12 +21,12 @@ base = argparse.ArgumentParser(argument_default=argparse.SUPPRESS,
 base.add_argument('--storage',
         help='Directory for VM images and schroot tarballs '
         '[default: {}]'.format(args.storage))
-base.add_argument('--platform',
+base.add_argument('--vendor',
         help='OS distribution or isolated environment to work with '
-        '[default: {}]'.format(args.platform))
+        '[default: {}]'.format(args.vendor))
 base.add_argument('--archive',
         help='OS distribution to look for on mirrors '
-        '[default: {}]'.format(args.platform))
+        '[default: {}]'.format(args.vendor))
 base.add_argument('--mirror',
         help='Mirror [default: {}]'.format(args.mirror))
 

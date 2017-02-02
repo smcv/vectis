@@ -17,10 +17,10 @@ fi
 
 echo "1..1"
 
-PYTHONPATH=$(pwd) ./run --platform=debian --storage="${storage}" sbuild-tarball \
+PYTHONPATH=$(pwd) ./run --vendor=debian --storage="${storage}" sbuild-tarball \
 	--builder='qemu ${storage}/vectis-debian-sid-${architecture}.qcow2' \
 	--suite=sid
-PYTHONPATH=$(pwd) ./run --platform=debian --storage="${storage}" sbuild \
+PYTHONPATH=$(pwd) ./run --vendor=debian --storage="${storage}" sbuild \
 	--builder='qemu ${storage}/vectis-debian-sid-${architecture}.qcow2' \
 	--suite=sid hello
 rm -fr "${storage}"

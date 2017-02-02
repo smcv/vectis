@@ -282,9 +282,9 @@ class Build:
         hierarchy = suite.hierarchy
 
         sbuild_tarball = (
-                'sbuild-{platform}-{base}-{arch}.tar.gz'.format(
+                'sbuild-{vendor}-{base}-{arch}.tar.gz'.format(
                     arch=use_arch,
-                    platform=args.platform,
+                    vendor=args.vendor,
                     base=hierarchy[-1],
                     ))
 
@@ -551,9 +551,9 @@ def _run(args, machine, tmp):
         buildable.select_suite(args.suite)
 
         if buildable.suite == 'UNRELEASED':
-            suite = args.platform.get_suite(args.platform.unstable_suite)
+            suite = args.vendor.get_suite(args.vendor.unstable_suite)
         else:
-            suite = args.platform.get_suite(buildable.suite)
+            suite = args.vendor.get_suite(buildable.suite)
 
         if (buildable.source_from_archive or args._rebuild_source or
                 buildable.dsc is None):

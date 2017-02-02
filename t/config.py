@@ -20,13 +20,13 @@ class DefaultsTestCase(unittest.TestCase):
     def test_defaults(self):
         self.assertGreaterEqual(self.__config.parallel, 1)
 
-        debian = self.__config._get_platform('debian')
-        ubuntu = self.__config._get_platform('ubuntu')
+        debian = self.__config._get_vendor('debian')
+        ubuntu = self.__config._get_vendor('ubuntu')
 
-        self.assertEqual(str(self.__config.platform), 'debian')
-        self.assertEqual(str(self.__config.build_platform), 'debian')
-        self.assertIs(self.__config.platform, debian)
-        self.assertIs(self.__config.build_platform, debian)
+        self.assertEqual(str(self.__config.vendor), 'debian')
+        self.assertEqual(str(self.__config.build_vendor), 'debian')
+        self.assertIs(self.__config.vendor, debian)
+        self.assertIs(self.__config.build_vendor, debian)
         self.assertEqual(self.__config.mirror,
                 'http://192.168.122.1:3142/debian')
         self.assertEqual(self.__config.bootstrap_mirror,
@@ -71,9 +71,9 @@ class DefaultsTestCase(unittest.TestCase):
             'autopkgtest-virt-qemu {}/{}'.format(self.__config.storage,
                 self.__config.builder_qemu_image))
 
-    def test_known_platforms(self):
-        debian = self.__config._get_platform('debian')
-        ubuntu = self.__config._get_platform('ubuntu')
+    def test_known_vendors(self):
+        debian = self.__config._get_vendor('debian')
+        ubuntu = self.__config._get_vendor('ubuntu')
 
         self.assertEqual(str(debian), 'debian')
         self.assertEqual(debian.unstable_suite, 'sid')
@@ -85,8 +85,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(debian.extra_components, {'contrib', 'non-free'})
         self.assertEqual(debian.all_components, {'main', 'contrib',
             'non-free'})
-        self.assertEqual(debian.platform, debian)
-        self.assertEqual(debian.build_platform, 'debian')
+        self.assertEqual(debian.vendor, debian)
+        self.assertEqual(debian.build_vendor, 'debian')
         #self.assertEqual(debian.archive, 'debian')
         #self.assertEqual(debian.mirror, 'http://192.168.122.1:3142/debian')
         self.assertIsNone(debian.get_suite('xenial', create=False))
@@ -99,21 +99,21 @@ class DefaultsTestCase(unittest.TestCase):
             'multiverse'})
         self.assertEqual(ubuntu.all_components, {'main', 'universe',
             'restricted', 'multiverse'})
-        self.assertEqual(ubuntu.platform, ubuntu)
-        self.assertEqual(ubuntu.build_platform, 'ubuntu')
+        self.assertEqual(ubuntu.vendor, ubuntu)
+        self.assertEqual(ubuntu.build_vendor, 'ubuntu')
         #self.assertEqual(ubuntu.archive, 'ubuntu')
         #self.assertEqual(ubuntu.mirror, 'http://192.168.122.1:3142/ubuntu')
         self.assertIsNone(ubuntu.get_suite('unstable', create=False))
         self.assertIsNone(ubuntu.get_suite('stable', create=False))
 
-    def test_unknown_platform(self):
-        steamos = self.__config._get_platform('steamos')
+    def test_unknown_vendor(self):
+        steamos = self.__config._get_vendor('steamos')
 
         self.assertEqual(str(steamos), 'steamos')
         self.assertEqual(steamos.components, {'main'})
-        self.assertEqual(steamos.platform, steamos)
-        self.assertEqual(steamos.build_platform, 'debian')
-        # FIXME: fails: is "${platform}"
+        self.assertEqual(steamos.vendor, steamos)
+        self.assertEqual(steamos.build_vendor, 'debian')
+        # FIXME: fails: is "${vendor}"
         #self.assertEqual(steamos.archive, 'steamos')
         # FIXME: fails: ends with "${archive}"
         #self.assertEqual(steamos.mirror, 'http://192.168.122.1:3142/steamos')
@@ -140,8 +140,8 @@ class DefaultsTestCase(unittest.TestCase):
                 self.__config.build_architecture)
 
     def test_distro_info(self):
-        debian = self.__config._get_platform('debian')
-        ubuntu = self.__config._get_platform('ubuntu')
+        debian = self.__config._get_vendor('debian')
+        ubuntu = self.__config._get_vendor('ubuntu')
 
         try:
             import distro_info
