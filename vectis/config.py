@@ -141,6 +141,13 @@ class _ConfigLike:
     def _get_int(self, name):
         return int(self[name])
 
+    def _get_filename(self, name):
+        value = self[name]
+        value = os.path.expandvars(value)
+        value = os.path.expanduser(value)
+        value = Template(value).substitute(self._env)
+        return value
+
     @property
     def all_components(self):
         return self.components | self.extra_components
@@ -263,7 +270,11 @@ class _ConfigLike:
 
     @property
     def storage(self):
-        return Template(self['storage']).substitute(self)
+        return self._get_filename('storage')
+
+    @property
+    def output_builds(self):
+        return self._get_filename('output_builds')
 
     @property
     def build_architecture(self):
@@ -520,18 +531,19 @@ class Config(_ConfigLike):
 
         d = yaml.safe_load(DEFAULTS)
 
-        # Let these be used for expansion, unconditionally
-        d['defaults']['HOME'] = os.path.expanduser('~')
-        d['defaults']['XDG_CACHE_HOME'] = os.getenv('XDG_CACHE_HOME',
-                os.path.expanduser('~/.cache'))
-        d['defaults']['XDG_CONFIG_HOME'] = os.getenv('XDG_CONFIG_HOME',
-                os.path.expanduser('~/.config'))
-        d['defaults']['XDG_CONFIG_DIRS'] = os.getenv('XDG_CONFIG_DIRS',
-                '/etc/xdg')
-        d['defaults']['XDG_DATA_HOME'] = os.getenv('XDG_DATA_HOME',
-                os.path.expanduser('~/.local/share'))
-        d['defaults']['XDG_DATA_DIRS'] = os.getenv('XDG_DATA_DIRS',
-                os.path.expanduser('~/.local/share'))
+        self._env = {
+                'HOME': os.path.expanduser('~'),
+                'XDG_CACHE_HOME': os.getenv('XDG_CACHE_HOME',
+                    os.path.expanduser('~/.cache')),
+                'XDG_CONFIG_HOME': os.getenv('XDG_CONFIG_HOME',
+                    os.path.expanduser('~/.config')),
+                'XDG_CONFIG_DIRS': os.getenv('XDG_CONFIG_DIRS',
+                    '/etc/xdg'),
+                'XDG_DATA_HOME': os.getenv('XDG_DATA_HOME',
+                    os.path.expanduser('~/.local/share')),
+                'XDG_DATA_DIRS': os.getenv('XDG_DATA_DIRS',
+                    os.path.expanduser('~/.local/share')),
+                }
 
         # Some things can have better defaults that can't be hard-coded
         d['defaults']['parallel'] = str(os.cpu_count())
@@ -579,9 +591,9 @@ class Config(_ConfigLike):
         if config_layers:
             self._raw[:0] = list(config_layers)
         else:
-            config_dirs = d['defaults']['XDG_CONFIG_DIRS'].split(':')
+            config_dirs = self._env['XDG_CONFIG_DIRS'].split(':')
             config_dirs = list(reversed(config_dirs))
-            config_dirs.append(d['defaults']['XDG_CONFIG_HOME'])
+            config_dirs.append(self._env['XDG_CONFIG_HOME'])
             for p in config_dirs:
                 conffile = os.path.join(p, 'vectis', 'vectis.yaml')
 

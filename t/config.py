@@ -50,23 +50,9 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(self.__config.all_components, {'main',
             'contrib', 'non-free'})
 
-        self.assertEqual(self.__config.XDG_CACHE_HOME,
-                os.environ.get('XDG_CACHE_HOME',
-                    os.path.expanduser('~/.cache')))
-        self.assertEqual(self.__config.XDG_CONFIG_HOME,
-                os.environ.get('XDG_CONFIG_HOME',
-                    os.path.expanduser('~/.config')))
-        self.assertEqual(self.__config.XDG_DATA_HOME,
-                os.environ.get('XDG_DATA_HOME',
-                    os.path.expanduser('~/.local/share')))
-
-        self.assertEqual(self.__config.XDG_CONFIG_DIRS,
-                os.environ.get('XDG_CONFIG_DIRS', '/etc/xdg'))
-        self.assertEqual(self.__config.XDG_DATA_DIRS,
-                os.environ.get('XDG_DATA_DIRS', '/usr/local/share:/usr/share'))
-
         self.assertEqual(self.__config.storage,
-            '{}/vectis'.format(self.__config.XDG_CACHE_HOME))
+            '{}/vectis'.format(os.getenv('XDG_CACHE_HOME',
+                os.path.expanduser('~/.cache'))))
         self.assertEqual(self.__config.builder,
             'autopkgtest-virt-qemu {}'.format(self.__config.builder_qemu_image))
 
