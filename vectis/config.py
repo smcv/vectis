@@ -45,6 +45,7 @@ defaults:
     archive: "${vendor}"
     mirror: "http://192.168.122.1:3142/${archive}"
     qemu_image: "vectis-${vendor}-${suite}-${architecture}.qcow2"
+    write_qemu_image: "${qemu_image}"
     debootstrap_script: "${suite}"
     default_suite: "${unstable_suite}"
     aliases: {}
@@ -198,6 +199,20 @@ class _ConfigLike:
             return self[name]
         except KeyError as e:
             raise AttributeError('No configuration item {!r}'.format(name))
+
+    @property
+    def write_qemu_image(self):
+        value = Template(self['write_qemu_image']).substitute(
+                architecture=self.architecture,
+                qemu_image=self.qemu_image,
+                suite=self.suite,
+                vendor=self.vendor,
+                )
+
+        if '/' not in value:
+            return os.path.join(self.storage, value)
+
+        return value
 
     @property
     def qemu_image(self):

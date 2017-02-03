@@ -26,7 +26,7 @@ def run(args):
             '-O', 'qcow2', '-c', '-p',
             '{}/output.raw'.format(scratch),
             '{}/output.qcow2'.format(scratch)])
-        out = args.qemu_image
+        out = args.write_qemu_image
         shutil.move('{}/output.qcow2'.format(scratch), out + '.new')
 
         try:

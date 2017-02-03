@@ -49,9 +49,9 @@ p.add_argument('--size',
 p.add_argument('--bootstrap-mirror',
         help='Mirror to use for initial setup '
         '[default: {}]'.format(args.bootstrap_mirror))
-p.add_argument('--qemu-image',
+p.add_argument('--qemu-image', dest='write_qemu_image',
         help='Virtual machine image to create '
-        '[default: {}]'.format(args.qemu_image))
+        '[default: {}]'.format(args.write_qemu_image))
 p.add_argument('--suite',
         help='Release suite [default: {}]'.format(args.default_suite))
 p.add_argument('--architecture', '--arch',
@@ -65,9 +65,9 @@ p = subparsers.add_parser('new',
         )
 p.add_argument('--size',
         help='Size of image [default: {}]'.format(args.size))
-p.add_argument('--qemu-image',
+p.add_argument('--qemu-image', dest='write_qemu_image',
         help='Virtual machine image to create '
-        '[default: {}]'.format(args.qemu_image))
+        '[default: {}]'.format(args.write_qemu_image))
 p.add_argument('--builder',
         help='Virtual machine to use to create it '
         '[default: {}]'.format(args.builder))
