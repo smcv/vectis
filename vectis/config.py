@@ -44,10 +44,6 @@ defaults:
     extra_components: []
     archive: "${vendor}"
     mirror: "http://192.168.122.1:3142/${archive}"
-    # FIXME: qemu_image doesn't actually work as intended because the value
-    # of ${suite} is still None when we evaluate this. Fixing this would
-    # need some sort of late-evaluation that takes into account config keys
-    # with "magic" values, like guessing suite from debian/changelog
     qemu_image: "vectis-${vendor}-${suite}-${architecture}.qcow2"
     debootstrap_script: "${suite}"
     default_suite: "${unstable_suite}"
@@ -58,10 +54,10 @@ defaults:
     unstable_suite: null
 
     build_vendor: debian
-    build_suite: ${build_vendor__unstable_suite}
+    build_suite: null
     build_architecture: "${architecture}"
     builder: "autopkgtest-virt-qemu ${storage}/${builder_qemu_image}"
-    builder_qemu_image: "vectis-${build_vendor}-${build_suite}-${build_architecture}.qcow2"
+    builder_qemu_image: null
 
     bootstrap_mirror: "${mirror}"
 
@@ -203,6 +199,92 @@ class _ConfigLike:
         except KeyError as e:
             raise AttributeError('No configuration item {!r}'.format(name))
 
+    @property
+    def qemu_image(self):
+        return Template(self['qemu_image']).substitute(
+                architecture=self.architecture,
+                suite=self.suite,
+                vendor=self.vendor,
+                )
+
+    @property
+    def build_suite(self):
+        value = self['build_suite']
+
+        if value is None:
+            value = self.build_vendor.unstable_suite
+
+        return value
+
+    @property
+    def builder_qemu_image(self):
+        value = self['builder_qemu_image']
+
+        if value is None:
+            value = self.build_vendor['qemu_image']
+
+        return Template(value).substitute(
+                architecture=self.build_architecture,
+                suite=self.build_suite,
+                vendor=self.build_vendor,
+                )
+
+    @property
+    def builder(self):
+        return Template(self['builder']).substitute(
+                builder_qemu_image=self.builder_qemu_image,
+                storage=self.storage,
+                )
+
+    @property
+    def storage(self):
+        return Template(self['storage']).substitute(self)
+
+    @property
+    def build_architecture(self):
+        return Template(self['build_architecture']).substitute(
+                architecture=self.architecture,
+                )
+
+    @property
+    def archive(self):
+        return Template(self['archive']).substitute(
+                vendor=self.vendor,
+                )
+
+    @property
+    def debootstrap_script(self):
+        return Template(self['debootstrap_script']).substitute(
+                suite=self.suite,
+                )
+
+    @property
+    def mirror(self):
+        return Template(self['mirror']).substitute(
+                archive=self.archive,
+                vendor=self.vendor,
+                )
+
+    @property
+    def bootstrap_mirror(self):
+        return Template(self['bootstrap_mirror']).substitute(
+                archive=self.archive,
+                mirror=self.mirror,
+                vendor=self.vendor,
+                )
+
+    @property
+    def apt_suite(self):
+        suite = self['apt_suite']
+
+        if suite is None:
+            return str(self.suite)
+
+        return Template(suite).substitute(
+                base=self.base,
+                suite=self.suite,
+                )
+
 class Vendor(_ConfigLike):
     def __init__(self, name, raw):
         super(Vendor, self).__init__()
@@ -338,29 +420,6 @@ class Suite(_ConfigLike):
     @property
     def suite(self):
         return self
-
-    @property
-    def apt_suite(self):
-        suite = self['apt_suite']
-
-        if suite is not None:
-            return Template(self['apt_suite']).substitute(
-                    RecursiveExpansionMap(
-                        base=self.base,
-                        suite=self,
-                        ),
-                    )
-
-        return self._name
-
-    @property
-    def mirror(self):
-        return Template(self['mirror']).substitute(
-                RecursiveExpansionMap(
-                    archive=self.archive,
-                    vendor=self.vendor,
-                    ),
-                )
 
     def __str__(self):
         return self._name
@@ -537,12 +596,6 @@ class Config(_ConfigLike):
         assert self._relevant_directory is not None
         self._path_based = Directory(self._relevant_directory, self._raw)
 
-    def expand(self, value):
-        if not isinstance(value, str):
-            return value
-
-        return Template(value).substitute(self)
-
     def _get_vendor(self, name):
         if name not in self._vendors:
             self._vendors[name] = Vendor(name, self._raw)
@@ -557,13 +610,13 @@ class Config(_ConfigLike):
             return self._get_vendor(self[which])[name]
 
         if name in self._overrides:
-            return self.expand(self._overrides[name])
+            return self._overrides[name]
 
         if name in self._path_based:
-            return self.expand(self._path_based[name])
+            return self._path_based[name]
 
         if name != 'vendor':
-            return self.expand(self.vendor[name])
+            return self.vendor[name]
 
         for r in self._raw:
             if 'vendor' in r.get('defaults', {}):
