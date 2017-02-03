@@ -71,6 +71,23 @@ class DefaultsTestCase(unittest.TestCase):
             'autopkgtest-virt-qemu {}/{}'.format(self.__config.storage,
                 self.__config.builder_qemu_image))
 
+    def test_substitutions(self):
+        self.__config.architecture = 'm68k'
+        self.__config.suite = 'potato'
+        self.__config.build_suite = 'sarge'
+
+        debian = self.__config._get_vendor('debian')
+
+        self.assertEqual(self.__config.debootstrap_script, 'potato')
+        self.assertEqual(self.__config.qemu_image,
+                'vectis-debian-potato-m68k.qcow2')
+        self.assertEqual(self.__config.suite, 'potato')
+        self.assertEqual(self.__config.builder_qemu_image,
+            'vectis-debian-sarge-m68k.qcow2')
+        self.assertEqual(self.__config.builder,
+            'autopkgtest-virt-qemu {}/vectis-debian-sarge-m68k.qcow2'.format(
+                self.__config.storage))
+
     def test_known_vendors(self):
         debian = self.__config._get_vendor('debian')
         ubuntu = self.__config._get_vendor('ubuntu')
