@@ -235,40 +235,6 @@ class _ConfigLike:
         return value
 
     @property
-    def build_suite(self):
-        value = self['build_suite']
-
-        if value is None:
-            value = self.build_vendor.unstable_suite
-
-        return value
-
-    @property
-    def builder_qemu_image(self):
-        value = self['builder_qemu_image']
-
-        if value is None:
-            value = self.build_vendor['qemu_image']
-
-        value = Template(value).substitute(
-                architecture=self.build_architecture,
-                suite=self.build_suite,
-                vendor=self.build_vendor,
-                )
-
-        if '/' not in value:
-            return os.path.join(self.storage, value)
-
-        return value
-
-    @property
-    def builder(self):
-        return Template(self['builder']).substitute(
-                builder_qemu_image=self.builder_qemu_image,
-                storage=self.storage,
-                )
-
-    @property
     def storage(self):
         return self._get_filename('storage')
 
@@ -667,6 +633,40 @@ class Config(_ConfigLike):
             super(Config, self).__setattr__(name, value)
         else:
             self._overrides[name] = value
+
+    @property
+    def build_suite(self):
+        value = self['build_suite']
+
+        if value is None:
+            value = self.build_vendor.unstable_suite
+
+        return value
+
+    @property
+    def builder_qemu_image(self):
+        value = self['builder_qemu_image']
+
+        if value is None:
+            value = self.build_vendor['qemu_image']
+
+        value = Template(value).substitute(
+                architecture=self.build_architecture,
+                suite=self.build_suite,
+                vendor=self.build_vendor,
+                )
+
+        if '/' not in value:
+            return os.path.join(self.storage, value)
+
+        return value
+
+    @property
+    def builder(self):
+        return Template(self['builder']).substitute(
+                builder_qemu_image=self.builder_qemu_image,
+                storage=self.storage,
+                )
 
 if __name__ == '__main__':
     for args in (
