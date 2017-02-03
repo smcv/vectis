@@ -602,13 +602,6 @@ class Config(_ConfigLike):
         return self._vendors[name]
 
     def __getitem__(self, name):
-        # FIXME: this hack is only here because we need to evaluate
-        # builder_qemu_image, which uses the build vendor's suite,
-        # not the host vendor's
-        if '__' in name:
-            which, name = name.split('__')
-            return self._get_vendor(self[which])[name]
-
         if name in self._overrides:
             return self._overrides[name]
 
