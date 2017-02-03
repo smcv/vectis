@@ -80,7 +80,7 @@ def run(args):
                 '{}/output.raw'.format(machine.scratch),
                 '{}/output.qcow2'.format(machine.scratch),
             ])
-        out = os.path.join(args.storage, args.qemu_image)
+        out = args.qemu_image
         machine.copy_to_host('{}/output.qcow2'.format(machine.scratch),
                 out + '.new')
 

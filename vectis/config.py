@@ -56,7 +56,7 @@ defaults:
     build_vendor: debian
     build_suite: null
     build_architecture: "${architecture}"
-    builder: "autopkgtest-virt-qemu ${storage}/${builder_qemu_image}"
+    builder: "autopkgtest-virt-qemu ${builder_qemu_image}"
     builder_qemu_image: null
 
     bootstrap_mirror: "${mirror}"
@@ -201,11 +201,16 @@ class _ConfigLike:
 
     @property
     def qemu_image(self):
-        return Template(self['qemu_image']).substitute(
+        value = Template(self['qemu_image']).substitute(
                 architecture=self.architecture,
                 suite=self.suite,
                 vendor=self.vendor,
                 )
+
+        if '/' not in value:
+            return os.path.join(self.storage, value)
+
+        return value
 
     @property
     def build_suite(self):
@@ -223,11 +228,16 @@ class _ConfigLike:
         if value is None:
             value = self.build_vendor['qemu_image']
 
-        return Template(value).substitute(
+        value = Template(value).substitute(
                 architecture=self.build_architecture,
                 suite=self.build_suite,
                 vendor=self.build_vendor,
                 )
+
+        if '/' not in value:
+            return os.path.join(self.storage, value)
+
+        return value
 
     @property
     def builder(self):
