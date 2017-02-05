@@ -672,8 +672,11 @@ class Config(_ConfigLike):
     @property
     def builder(self):
         return Template(self['builder']).substitute(
+                architecture=self.build_architecture,
                 builder_qemu_image=self.builder_qemu_image,
                 storage=self.storage,
+                suite=self.build_suite,
+                vendor=self.build_vendor,
                 )
 
 if __name__ == '__main__':
