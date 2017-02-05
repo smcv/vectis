@@ -77,6 +77,7 @@ dist_slow_test_scripts = \
 	t/debian/bootstrap.t \
 	t/debian/new.t \
 	t/debian/sbuild_tarball.t \
+	t/ubuntu/new.t \
 	${NULL}
 
 dist_test_extra_scripts = \
