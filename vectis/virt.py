@@ -130,6 +130,10 @@ class Machine:
         if cache and self.__cached_copies.get(host_path) == guest_path:
             return
 
+        if not os.path.exists(host_path):
+            raise MachineError('Cannot copy host:{!r} to guest: it does '
+                    'not exist'.format(host_path))
+
         self.virt_process.stdin.write('copydown {} {}\n'.format(
             urllib.parse.quote(host_path),
             urllib.parse.quote(guest_path),
@@ -145,6 +149,10 @@ class Machine:
             self.__cached_copies[host_path] = guest_path
 
     def copy_to_host(self, guest_path, host_path):
+        if self.call(['test', '-e', guest_path]) != 0:
+            raise MachineError('Cannot copy guest:{!r} to host: it does '
+                    'not exist'.format(guest_path))
+
         self.virt_process.stdin.write('copyup {} {}\n'.format(
             urllib.parse.quote(guest_path),
             urllib.parse.quote(host_path),
