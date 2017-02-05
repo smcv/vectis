@@ -30,10 +30,14 @@ from vectis.util import AtomicWriter
 logger = logging.getLogger(__name__)
 
 class Build:
-    def __init__(self, buildable, arch, machine,
-            *, output_builds):
-        self.buildable = buildable
+    def __init__(self, buildable, arch, machine, *,
+            dpkg_buildpackage_options,
+            dpkg_source_options,
+            output_builds):
         self.arch = arch
+        self.buildable = buildable
+        self.dpkg_buildpackage_options = dpkg_buildpackage_options
+        self.dpkg_source_options = dpkg_source_options
         self.machine = machine
         self.output_builds = output_builds
 
@@ -99,9 +103,11 @@ class Build:
                 '--no-run-lintian',
         ]
 
-        if args._versions_since:
-            argv.append('--debbuildopt=-v{}'.format(
-                args._versions_since))
+        for x in self.dpkg_buildpackage_options:
+            argv.append('--debbuildopt=' + x)
+
+        for x in self.dpkg_source_options:
+            argv.append('--dpkg-source-opt=' + x)
 
         for child in hierarchy[:-1]:
             argv.append('--extra-repository')
@@ -116,33 +122,6 @@ class Build:
         for x in args._extra_repository:
             argv.append('--extra-repository')
             argv.append(x)
-
-        if args.sbuild_force_parallel > 1:
-            argv.append('--debbuildopt=-j{}'.format(
-                args.sbuild_force_parallel))
-        elif (args.parallel != 1 and
-                not self.buildable.suite.startswith(('jessie', 'wheezy'))):
-            if args.parallel:
-                argv.append('--debbuildopt=-J{}'.format(
-                    args.parallel))
-            else:
-                argv.append('--debbuildopt=-Jauto')
-
-        if args.dpkg_source_diff_ignore is ...:
-            argv.append('--dpkg-source-opt=-i')
-        elif args.dpkg_source_diff_ignore is not None:
-            argv.append('--dpkg-source-opt=-i{}'.format(
-                args.dpkg_source_diff_ignore))
-
-        for pattern in args.dpkg_source_tar_ignore:
-            if pattern is ...:
-                argv.append('--dpkg-source-opt=-I')
-            else:
-                argv.append('--dpkg-source-opt=-I{}'.format(pattern))
-
-        for pattern in args.dpkg_source_extend_diff_ignore:
-            argv.append('--dpkg-source-opt=--extend-diff-ignore={}'.format(
-                pattern))
 
         if self.arch == 'all':
             logger.info('Architecture: all')
@@ -292,6 +271,44 @@ class Build:
             copied_back = os.path.join(self.output_builds, f['name'])
             self.machine.copy_to_host(product, copied_back)
 
+def get_dpkg_buildpackage_options(args, suite):
+    argv = []
+
+    if args._versions_since:
+        argv.append('-v{}'.format(args._versions_since))
+
+    if args.sbuild_force_parallel > 1:
+        argv.append('-j{}'.format(
+            args.sbuild_force_parallel))
+    elif (args.parallel != 1 and not str(suite).startswith(('jessie', 'wheezy'))):
+        if args.parallel:
+            argv.append('-J{}'.format(
+                args.parallel))
+        else:
+            argv.append('-Jauto')
+
+    return argv
+
+def get_dpkg_source_options(args):
+    argv = []
+
+    if args.dpkg_source_diff_ignore is ...:
+        argv.append('-i')
+    elif args.dpkg_source_diff_ignore is not None:
+        argv.append('-i{}'.format(
+            args.dpkg_source_diff_ignore))
+
+    for pattern in args.dpkg_source_tar_ignore:
+        if pattern is ...:
+            argv.append('-I')
+        else:
+            argv.append('-I{}'.format(pattern))
+
+    for pattern in args.dpkg_source_extend_diff_ignore:
+        argv.append('--extend-diff-ignore={}'.format(pattern))
+
+    return argv
+
 def _run(args, machine):
     buildables = []
 
@@ -323,14 +340,22 @@ def _run(args, machine):
         else:
             suite = args.vendor.get_suite(buildable.suite)
 
+        dpkg_buildpackage_options = get_dpkg_buildpackage_options(args, suite)
+        dpkg_source_options = get_dpkg_source_options(args)
+
         if args._rebuild_source or buildable.dsc is None:
             build = Build(buildable, 'source', machine,
+                    dpkg_buildpackage_options=dpkg_buildpackage_options,
+                    dpkg_source_options=dpkg_source_options,
                     output_builds=args.output_builds)
             build.build(suite, args)
         elif buildable.source_from_archive:
             # We need to get some information from the .dsc, which we do by
             # building one and throwing it away.
-            build = Build(buildable, 'source', machine, output_builds=None)
+            build = Build(buildable, 'source', machine,
+                    dpkg_buildpackage_options=dpkg_buildpackage_options,
+                    dpkg_source_options=dpkg_source_options,
+                    output_builds=None)
             build.build(suite, args)
 
         if not args._source_only:
@@ -339,6 +364,8 @@ def _run(args, machine):
 
             for arch in buildable.archs:
                 build = Build(buildable, arch, machine,
+                        dpkg_buildpackage_options=dpkg_buildpackage_options,
+                        dpkg_source_options=dpkg_source_options,
                         output_builds=args.output_builds)
                 build.build(suite, args)
 
