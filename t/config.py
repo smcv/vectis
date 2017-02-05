@@ -166,10 +166,6 @@ class DefaultsTestCase(unittest.TestCase):
                     ubuntu_info.devel())
             self.assertEqual(str(debian.get_suite('unstable')),
                     'sid')
-            self.assertEqual(str(debian.get_suite('stable')),
-                    debian_info.stable())
-            self.assertEqual(str(debian.get_suite('stable-backports')),
-                    debian_info.stable() + '-backports')
             self.assertEqual(str(debian.get_suite('testing')),
                     debian_info.testing())
             self.assertEqual(str(debian.get_suite('oldstable')),
@@ -177,18 +173,29 @@ class DefaultsTestCase(unittest.TestCase):
             self.assertEqual(str(debian.get_suite('rc-buggy')),
                     'experimental')
 
-            self.assertEqual(debian.get_suite('stable').sbuild_resolver,
-                    [])
-            self.assertEqual(debian.get_suite('stable-backports').sbuild_resolver,
-                    ['--build-dep-resolver=aptitude'])
-            self.assertEqual(debian.get_suite('stable-backports').apt_suite,
+            stable = debian.get_suite('stable')
+            self.assertEqual(str(stable), debian_info.stable())
+            self.assertEqual(stable.sbuild_resolver, [])
+
+            backports = debian.get_suite('stable-backports')
+            self.assertEqual(str(backports),
                     debian_info.stable() + '-backports')
-            self.assertEqual(debian.get_suite('stable-backports').mirror,
+            self.assertEqual(backports.sbuild_resolver,
+                    ['--build-dep-resolver=aptitude'])
+            self.assertEqual(backports.apt_suite,
+                    debian_info.stable() + '-backports')
+            self.assertEqual(backports.mirror,
                     'http://192.168.122.1:3142/debian')
-            self.assertEqual(debian.get_suite('stable-security').apt_suite,
+            self.assertEqual(backports.hierarchy[0], backports)
+            self.assertEqual(str(backports.hierarchy[1]), str(stable))
+
+            security = debian.get_suite('stable-security')
+            self.assertEqual(security.apt_suite,
                     '{}/updates'.format(debian_info.stable()))
-            self.assertEqual(debian.get_suite('stable-security').mirror,
+            self.assertEqual(security.mirror,
                     'http://192.168.122.1:3142/security.debian.org')
+            self.assertEqual(security.hierarchy[0], security)
+            self.assertEqual(str(security.hierarchy[1]), str(stable))
 
     def tearDown(self):
         pass
