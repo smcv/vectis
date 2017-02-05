@@ -78,6 +78,10 @@ vendors:
     debian:
         extra_components: contrib non-free
         suites:
+            wheezy:
+                sbuild_force_parallel: 1
+            jessie:
+                sbuild_force_parallel: 1
             sid: {}
             unstable:
                 alias_for: sid
@@ -107,6 +111,10 @@ vendors:
         build_vendor: ubuntu
         extra_components: universe restricted multiverse
         suites:
+            trusty:
+                sbuild_force_parallel: 1
+            precise:
+                sbuild_force_parallel: 1
             "*-backports":
                 null: null
             "*-proposed":

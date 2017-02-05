@@ -25,17 +25,15 @@ def get_dpkg_buildpackage_options(args, suite):
         argv.append('-v{}'.format(args._versions_since))
 
     if args.sbuild_force_parallel > 1:
-        argv.append('-j{}'.format(
-            args.sbuild_force_parallel))
-    elif (args.parallel != 1 and not str(suite).startswith(('jessie', 'wheezy'))):
+        argv.append('-j{}'.format(args.sbuild_force_parallel))
+    elif args.parallel != 1:
         if args.parallel:
-            argv.append('-J{}'.format(
-                args.parallel))
+            argv.append('-J{}'.format(args.parallel))
         else:
             argv.append('-Jauto')
 
     for a in get_dpkg_source_options(args):
-        argv.append('--debbuildopt=--source-option=' + a)
+        argv.append('--source-option=' + a)
 
     return argv
 
