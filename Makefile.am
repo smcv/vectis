@@ -109,10 +109,6 @@ check-local:
 		TESTS='${dist_slow_test_scripts}' \
 		${NULL}
 
-installcheck_tests = \
-	${dist_test_scripts} \
-	${NULL}
-
 installcheck-local:
 	PATH='${DESTDIR}${bindir}'"$${PATH:+":$$PATH"}"; \
 	export PATH; \
