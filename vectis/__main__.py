@@ -189,5 +189,7 @@ except KeyboardInterrupt:
     raise SystemExit(130)
 except subprocess.CalledProcessError as e:
     logger.error('%s', e)
+    raise SystemExit(1)
 except Error as e:
     logger.error('%s', e)
+    raise SystemExit(1)
