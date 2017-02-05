@@ -1,6 +1,7 @@
 /.tarball-version
 /.version
 /ChangeLog
+/DESTDIR
 /INSTALL
 /Makefile
 /Makefile.in
@@ -17,8 +18,10 @@
 /m4/
 /scripts/vectis
 /t/*.log
+/t/*.test
 /t/*.trs
 /t/*/*.log
+/t/*/*.test
 /t/*/*.trs
 /test-suite.log
 /vectis-UNKNOWN.tar.xz
