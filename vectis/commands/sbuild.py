@@ -33,15 +33,23 @@ class Build:
     def __init__(self, buildable, arch, machine, *,
             dpkg_buildpackage_options,
             dpkg_source_options,
-            output_builds):
+            output_builds,
+            storage,
+            suite,
+            components=(),
+            extra_repositories=()):
         self.arch = arch
         self.buildable = buildable
+        self.components = components
         self.dpkg_buildpackage_options = dpkg_buildpackage_options
         self.dpkg_source_options = dpkg_source_options
+        self.extra_repositories = extra_repositories
         self.machine = machine
         self.output_builds = output_builds
+        self.storage = storage
+        self.suite = suite
 
-    def build(self, suite, args):
+    def build(self):
         self.machine.check_call(['install', '-d', '-m755',
             '-osbuild', '-gsbuild',
             '{}/out'.format(self.machine.scratch)])
@@ -54,7 +62,7 @@ class Build:
         else:
             use_arch = self.arch
 
-        hierarchy = suite.hierarchy
+        hierarchy = self.suite.hierarchy
 
         sbuild_tarball = (
                 'sbuild-{vendor}-{base}-{arch}.tar.gz'.format(
@@ -63,10 +71,10 @@ class Build:
                     base=hierarchy[-1],
                     ))
 
-        self.machine.copy_to_guest(os.path.join(args.storage,
+        self.machine.copy_to_guest(os.path.join(self.storage,
                     sbuild_tarball),
                 '{}/in/{}'.format(self.machine.scratch, sbuild_tarball),
-                cache=True)
+                 cache=True)
 
         chroot = '{base}-{arch}-sbuild'.format(base=hierarchy[-1],
                 arch=use_arch)
@@ -114,12 +122,13 @@ class Build:
             argv.append('deb {} {} {}'.format(
                 child.mirror,
                 child.apt_suite,
-                ' '.join(args.components)))
+                ' '.join(set(self.components or child.components) &
+                    child.all_components)))
 
             if child.sbuild_resolver:
                 argv.extend(child.sbuild_resolver)
 
-        for x in args._extra_repository:
+        for x in self.extra_repositories:
             argv.append('--extra-repository')
             argv.append(x)
 
@@ -348,18 +357,26 @@ def _run(args, machine):
 
         if args._rebuild_source or buildable.dsc is None:
             build = Build(buildable, 'source', machine,
+                    components=args.components,
+                    extra_repositories=args._extra_repository,
                     dpkg_buildpackage_options=dpkg_buildpackage_options,
                     dpkg_source_options=dpkg_source_options,
-                    output_builds=args.output_builds)
-            build.build(suite, args)
+                    output_builds=args.output_builds,
+                    storage=args.storage,
+                    suite=suite)
+            build.build()
         elif buildable.source_from_archive:
             # We need to get some information from the .dsc, which we do by
             # building one and throwing it away.
             build = Build(buildable, 'source', machine,
+                    components=args.components,
+                    extra_repositories=args._extra_repository,
                     dpkg_buildpackage_options=dpkg_buildpackage_options,
                     dpkg_source_options=dpkg_source_options,
-                    output_builds=None)
-            build.build(suite, args)
+                    output_builds=None,
+                    storage=args.storage,
+                    suite=suite)
+            build.build()
 
         if not args._source_only:
             buildable.select_archs(machine.dpkg_architecture, args._archs,
@@ -367,10 +384,14 @@ def _run(args, machine):
 
             for arch in buildable.archs:
                 build = Build(buildable, arch, machine,
+                        components=args.components,
+                        extra_repositories=args._extra_repository,
                         dpkg_buildpackage_options=dpkg_buildpackage_options,
                         dpkg_source_options=dpkg_source_options,
-                        output_builds=args.output_builds)
-                build.build(suite, args)
+                        output_builds=args.output_builds,
+                        storage=args.storage,
+                        suite=suite)
+                build.build()
 
         if buildable.sourceful_changes_name:
             c = os.path.join(args.output_builds,
