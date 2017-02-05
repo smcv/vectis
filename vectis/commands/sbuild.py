@@ -37,7 +37,7 @@ class Build:
         self.machine = machine
         self.output_builds = output_builds
 
-    def build(self, suite, args, tmp, tarballs_copied):
+    def build(self, suite, args, tarballs_copied):
         self.machine.check_call(['install', '-d', '-m755',
             '-osbuild', '-gsbuild',
             '{}/out'.format(self.machine.scratch)])
@@ -68,21 +68,23 @@ class Build:
         chroot = '{base}-{arch}-sbuild'.format(base=hierarchy[-1],
                 arch=use_arch)
 
-        with AtomicWriter(os.path.join(tmp, 'sbuild.conf')) as writer:
-            writer.write(textwrap.dedent('''
-            [{chroot}]
-            type=file
-            description=An autobuilder
-            file={scratch}/in/{sbuild_tarball}
-            groups=root,sbuild
-            root-groups=root,sbuild
-            profile=sbuild
-            ''').format(
-                chroot=chroot,
-                sbuild_tarball=sbuild_tarball,
-                scratch=self.machine.scratch))
-        self.machine.copy_to_guest(os.path.join(tmp, 'sbuild.conf'),
-                '/etc/schroot/chroot.d/{}'.format(chroot))
+
+        with TemporaryDirectory() as tmp:
+            with AtomicWriter(os.path.join(tmp, 'sbuild.conf')) as writer:
+                writer.write(textwrap.dedent('''
+                [{chroot}]
+                type=file
+                description=An autobuilder
+                file={scratch}/in/{sbuild_tarball}
+                groups=root,sbuild
+                root-groups=root,sbuild
+                profile=sbuild
+                ''').format(
+                    chroot=chroot,
+                    sbuild_tarball=sbuild_tarball,
+                    scratch=self.machine.scratch))
+            self.machine.copy_to_guest(os.path.join(tmp, 'sbuild.conf'),
+                    '/etc/schroot/chroot.d/{}'.format(chroot))
 
         argv = [
                 self.machine.command_wrapper,
@@ -234,17 +236,19 @@ class Build:
                         '.dsc file from {!r}'.format(self.buildable))
 
             product = dscs[0]
-            copied_back = os.path.join(tmp,
-                    '{}.dsc'.format(self.buildable.buildable))
-            self.machine.copy_to_host(product, copied_back)
 
-            self.buildable.dsc = Dsc(open(copied_back))
-            self.buildable.source_package = self.buildable.dsc['source']
-            self.buildable.version = Version(self.buildable.dsc['version'])
-            self.buildable.arch_wildcards = set(
-                    self.buildable.dsc['architecture'].split())
-            self.buildable.binary_packages = [p.strip()
-                    for p in self.buildable.dsc['binary'].split(',')]
+            with TemporaryDirectory() as tmp:
+                copied_back = os.path.join(tmp,
+                        '{}.dsc'.format(self.buildable.buildable))
+                self.machine.copy_to_host(product, copied_back)
+
+                self.buildable.dsc = Dsc(open(copied_back))
+                self.buildable.source_package = self.buildable.dsc['source']
+                self.buildable.version = Version(self.buildable.dsc['version'])
+                self.buildable.arch_wildcards = set(
+                        self.buildable.dsc['architecture'].split())
+                self.buildable.binary_packages = [p.strip()
+                        for p in self.buildable.dsc['binary'].split(',')]
 
         if self.output_builds is None:
             return
@@ -289,7 +293,7 @@ class Build:
             copied_back = os.path.join(self.output_builds, f['name'])
             self.machine.copy_to_host(product, copied_back)
 
-def _run(args, machine, tmp):
+def _run(args, machine):
     tarballs_copied = set()
     buildables = []
 
@@ -324,12 +328,12 @@ def _run(args, machine, tmp):
         if args._rebuild_source or buildable.dsc is None:
             build = Build(buildable, 'source', machine,
                     output_builds=args.output_builds)
-            build.build(suite, args, tmp, tarballs_copied)
+            build.build(suite, args, tarballs_copied)
         elif buildable.source_from_archive:
             # We need to get some information from the .dsc, which we do by
             # building one and throwing it away.
             build = Build(buildable, 'source', machine, output_builds=None)
-            build.build(suite, args, tmp, tarballs_copied)
+            build.build(suite, args, tarballs_copied)
 
         if not args._source_only:
             buildable.select_archs(machine.dpkg_architecture, args._archs,
@@ -338,7 +342,7 @@ def _run(args, machine, tmp):
             for arch in buildable.archs:
                 build = Build(buildable, arch, machine,
                         output_builds=args.output_builds)
-                build.build(suite, args, tmp, tarballs_copied)
+                build.build(suite, args, tarballs_copied)
 
         if buildable.sourceful_changes_name:
             c = os.path.join(args.output_builds,
@@ -443,5 +447,4 @@ def _run(args, machine, tmp):
 
 def run(args):
     with Machine(args.builder) as machine:
-        with TemporaryDirectory() as tmp:
-            _run(args, machine, tmp)
+        _run(args, machine)
