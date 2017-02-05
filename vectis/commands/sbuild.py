@@ -193,7 +193,8 @@ class Build:
                 product = self.machine.check_output(['readlink', '-f', product],
                         universal_newlines=True).rstrip('\n')
 
-                if self.machine.call(['test', '-e', product]) == 0:
+                if (self.machine.call(['test', '-e', product]) == 0 and
+                        self.output_builds is not None):
                     logger.info('Copying %s back to host as %s_%s.build...',
                             product, self.buildable.product_prefix, self.arch)
                     copied_back = os.path.join(self.output_builds,
@@ -245,12 +246,8 @@ class Build:
             self.buildable.binary_packages = [p.strip()
                     for p in self.buildable.dsc['binary'].split(',')]
 
-            if not args._rebuild_source:
-                # If we are not aiming to rebuild the source, we specifically
-                # don't want to copy back the result here: we only used it
-                # to find the source version, architecture wildcards and
-                # list of binary packages
-                return
+        if self.output_builds is None:
+            return
 
         product = '{}/out/{}_{}.changes'.format(self.machine.scratch,
             self.buildable.product_prefix,
@@ -324,10 +321,14 @@ def _run(args, machine, tmp):
         else:
             suite = args.vendor.get_suite(buildable.suite)
 
-        if (buildable.source_from_archive or args._rebuild_source or
-                buildable.dsc is None):
+        if args._rebuild_source or buildable.dsc is None:
             build = Build(buildable, 'source', machine,
                     output_builds=args.output_builds)
+            build.build(suite, args, tmp, tarballs_copied)
+        elif buildable.source_from_archive:
+            # We need to get some information from the .dsc, which we do by
+            # building one and throwing it away.
+            build = Build(buildable, 'source', machine, output_builds=None)
             build.build(suite, args, tmp, tarballs_copied)
 
         if not args._source_only:
