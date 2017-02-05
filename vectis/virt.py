@@ -23,6 +23,7 @@ class MachineError(Error):
 class Machine:
     def __init__(self, builder):
         self.__command_wrapper_enabled = False
+        self.__dpkg_architecture = None
         self.call_argv = None
         self.capabilities = set()
         self.command_wrapper = None
@@ -149,6 +150,14 @@ class Machine:
         line = self.virt_process.stdout.readline()
         if line != 'ok\n':
             logger.warning('Unable to open a shell in guest: %s', line.strip())
+
+    @property
+    def dpkg_architecture(self):
+        if self.__dpkg_architecture is None:
+            self.__dpkg_architecture = self.check_output(['dpkg',
+                '--print-architecture'], universal_newlines=True).strip()
+
+        return self.__dpkg_architecture
 
     def __exit__(self, et, ev, tb):
         return self.stack.__exit__(et, ev, tb)

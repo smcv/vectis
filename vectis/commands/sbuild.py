@@ -30,12 +30,11 @@ from vectis.util import AtomicWriter
 logger = logging.getLogger(__name__)
 
 class Build:
-    def __init__(self, buildable, arch, machine, machine_arch,
+    def __init__(self, buildable, arch, machine,
             *, output_builds):
         self.buildable = buildable
         self.arch = arch
         self.machine = machine
-        self.machine_arch = machine_arch
         self.output_builds = output_builds
 
     def build(self, suite, args, tmp, tarballs_copied):
@@ -46,8 +45,8 @@ class Build:
         logger.info('Building architecture: %s', self.arch)
 
         if self.arch in ('all', 'source'):
-            logger.info('(on %s)', self.machine_arch)
-            use_arch = self.machine_arch
+            logger.info('(on %s)', self.machine.dpkg_architecture)
+            use_arch = self.machine.dpkg_architecture
         else:
             use_arch = self.arch
 
@@ -294,8 +293,6 @@ class Build:
             self.machine.copy_to_host(product, copied_back)
 
 def _run(args, machine, tmp):
-    machine_arch = machine.check_output(['dpkg', '--print-architecture'],
-            universal_newlines=True).strip()
     tarballs_copied = set()
     buildables = []
 
@@ -329,16 +326,16 @@ def _run(args, machine, tmp):
 
         if (buildable.source_from_archive or args._rebuild_source or
                 buildable.dsc is None):
-            build = Build(buildable, 'source', machine, machine_arch,
+            build = Build(buildable, 'source', machine,
                     output_builds=args.output_builds)
             build.build(suite, args, tmp, tarballs_copied)
 
         if not args._source_only:
-            buildable.select_archs(machine_arch, args._archs, args._indep,
-                    args.sbuild_together)
+            buildable.select_archs(machine.dpkg_architecture, args._archs,
+                    args._indep, args.sbuild_together)
 
             for arch in buildable.archs:
-                build = Build(buildable, arch, machine, machine_arch,
+                build = Build(buildable, arch, machine,
                         output_builds=args.output_builds)
                 build.build(suite, args, tmp, tarballs_copied)
 
