@@ -446,7 +446,7 @@ class Build:
 
         if self.arch == 'source' and self.buildable.source_from_archive:
             dscs = self.machine.check_output(['sh', '-c',
-                'exec ls "$1"/*.dsc',
+                'exec ls "$1"/out/*.dsc',
                 'sh', # argv[0]
                 self.machine.scratch], universal_newlines=True)
 
