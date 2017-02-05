@@ -53,13 +53,13 @@ installed_test_metadir = ${datadir}/installed-tests/${PACKAGE_TARNAME}
 
 dist_test_scripts = \
 	t/config.py \
+	t/debian/bootstrap.t \
+	t/debian/new.t \
+	t/debian/sbuild_tarball.t \
 	${NULL}
 
 dist_test_extra_scripts = \
 	t/__init__.py \
-	t/debian/bootstrap.t \
-	t/debian/new.t \
-	t/debian/sbuild_tarball.t \
 	${NULL}
 
 nobase_dist_installed_test_SCRIPTS = \
