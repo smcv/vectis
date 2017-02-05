@@ -5,14 +5,14 @@ CLEANFILES = \
 	${NULL}
 
 BUILT_SOURCES = \
-	.version \
+	${top_srcdir}/.version \
 	${NULL}
 
 EXTRA_DIST = \
 	${dist_uninstalled_test_scripts} \
 	${nodist_bin_SCRIPTS:=.in} \
+	${top_srcdir}/.version \
 	.gitignore \
-	.version \
 	README.md \
 	autogen.sh \
 	build-aux/COPYING.GPL-3 \
@@ -90,7 +90,7 @@ TESTS = \
 
 @GENERATE_CHANGELOG_RULES@
 
-.version: config.status
+${top_srcdir}/.version:
 	${AM_V_GEN}echo ${VERSION} > $@-t && mv $@-t $@
 
 dist-hook: dist-ChangeLog
