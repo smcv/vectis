@@ -5,11 +5,20 @@ vectis compiles software in a temporary environment, using an
 implementation of the autopkgtest virtualisation service interface
 (currently only autopkgtest-virt-qemu is supported).
 
+Notes for early adopters
+------------------------
+
+vectis is under heavy development. Use it if it is useful to you, but
+please be aware that configuration file formats, command-line options,
+Python interfaces, etc. are all subject to change at any time, at the
+whim of the maintainer. Sorry, but I don't want to commit to any sort
+of stability until I'm happy with the relevant interfaces.
+
 Requirements
 ------------
 
 * At build/install time:
-  - GNU autoconf, automake, make
+  - GNU autoconf, autoconf-archive, automake, make
   - python3
 
 * In the host system:
