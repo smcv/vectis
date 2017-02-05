@@ -90,7 +90,7 @@ TESTS = \
 
 @GENERATE_CHANGELOG_RULES@
 
-.version:
+.version: config.status
 	${AM_V_GEN}echo ${VERSION} > $@-t && mv $@-t $@
 
 dist-hook: dist-ChangeLog
