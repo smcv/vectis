@@ -7,7 +7,8 @@ AC_PREREQ([2.69])
 
 AC_INIT([vectis],
     m4_esyscmd([build-aux/git-version-gen .tarball-version]),
-    [smcv@debian.org])
+    [https://github.com/smcv/vectis/issues], [],
+    [https://git.pseudorandom.co.uk/vectis.git])
 
 AC_CONFIG_SRCDIR([vectis/__main__.py])
 AC_CONFIG_AUX_DIR([build-aux])
