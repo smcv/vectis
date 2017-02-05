@@ -24,8 +24,10 @@ def get_dpkg_buildpackage_options(args, suite):
     if args._versions_since:
         argv.append('-v{}'.format(args._versions_since))
 
-    if args.sbuild_force_parallel:
-        argv.append('-j{}'.format(args.sbuild_force_parallel))
+    force_parallel = args.force_parallel or suite.force_parallel
+
+    if force_parallel:
+        argv.append('-j{}'.format(force_parallel))
     elif args.parallel == 1:
         argv.append('-j1')
     elif args.parallel:
