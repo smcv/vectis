@@ -5,8 +5,9 @@
 # SPDX-License-Identifier: GPL-2.0+
 # (see vectis/__init__.py)
 
+import os
 import runpy
 import sys
 
-sys.path.insert(0, '@pkgdatadir@')
+sys.path.insert(0, os.environ.get('VECTIS_DESTDIR', '') + '@pkgdatadir@')
 runpy.run_module('vectis')

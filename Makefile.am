@@ -53,12 +53,18 @@ scripts/vectis: scripts/vectis.in Makefile
 AM_TESTS_ENVIRONMENT = \
 	export PYFLAKES=${PYFLAKES}; \
 	export PYTHONPATH=$(abs_top_srcdir); \
+	export VECTIS_UNINSTALLED=$(abs_top_srcdir); \
 	${NULL}
+
+TEST_EXTENSIONS = .py .sh .t
 
 LOG_DRIVER = env \
 	AM_TAP_AWK='$(AWK)' \
 	$(SHELL) \
 	$(top_srcdir)/build-aux/tap-driver.sh
+PY_LOG_DRIVER = $(LOG_DRIVER)
+SH_LOG_DRIVER = $(LOG_DRIVER)
+T_LOG_DRIVER = $(LOG_DRIVER)
 
 installed_testdir = ${libexecdir}/installed-tests/${PACKAGE_TARNAME}
 installed_test_metadir = ${datadir}/installed-tests/${PACKAGE_TARNAME}
@@ -83,10 +89,42 @@ dist_uninstalled_test_scripts = \
 	t/pyflakes.sh \
 	${NULL}
 
+installed_test_meta_DATA = \
+	${dist_test_scripts:=.test} \
+	${NULL}
+
 TESTS = \
 	${dist_test_scripts} \
 	${dist_uninstalled_test_scripts} \
 	${NULL}
+
+installcheck_tests = \
+	${dist_test_scripts} \
+	${NULL}
+
+installcheck-local:
+	PATH='${DESTDIR}${bindir}'"$${PATH:+":$$PATH"}"; \
+	export PATH; \
+	PYTHONPATH='${DESTDIR}${pkgdatadir}'"$${PYTHONPATH:+":$$PYTHONPATH"}"; \
+	export PYTHONPATH; \
+	VECTIS_DESTDIR='${DESTDIR}'; \
+	export VECTIS_DESTDIR; \
+	: $${XDG_DATA_DIRS:=/usr/local/share:/usr/share}; \
+	XDG_DATA_DIRS='${DESTDIR}${datadir}:'"$$XDG_DATA_DIRS"; \
+	export XDG_DATA_DIRS; \
+	gnome-desktop-testing-runner \
+		--dir='${DESTDIR}${datadir}' \
+		--parallel=1 \
+		--timeout=1000 \
+		vectis
+
+$(installed_test_meta_DATA): %.test: % Makefile
+	$(AM_V_GEN) ( \
+		echo '[Test]'; \
+		echo 'Type=session'; \
+		echo 'Output=TAP'; \
+		echo 'Exec=sh -c '"'"'$${VECTIS_DESTDIR}$(installed_testdir)/$*'"'"; \
+	) > $@.tmp && mv $@.tmp $@
 
 @GENERATE_CHANGELOG_RULES@
 

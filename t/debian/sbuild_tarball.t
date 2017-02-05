@@ -5,6 +5,12 @@ set -e
 set -u
 set -x
 
+if [ -n "${VECTIS_UNINSTALLED:-}" ]; then
+    VECTIS="${VECTIS_UNINSTALLED}/run"
+else
+    VECTIS=vectis
+fi
+
 storage="$(mktemp -d)"
 arch="$(dpkg --print-architecture)"
 
@@ -22,11 +28,11 @@ fi
 
 echo "1..1"
 
-PYTHONPATH=$(pwd) ./run --vendor=debian --storage="${storage}" sbuild-tarball \
+"$VECTIS" --vendor=debian --storage="${storage}" sbuild-tarball \
     --builder='qemu ${storage}/vectis-debian-sid-${architecture}.qcow2' \
     --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" \
     --suite=sid
-PYTHONPATH=$(pwd) ./run --vendor=debian --storage="${storage}" sbuild \
+"$VECTIS" --vendor=debian --storage="${storage}" sbuild \
     --builder='qemu ${storage}/vectis-debian-sid-${architecture}.qcow2' \
     --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" \
     --suite=sid hello
