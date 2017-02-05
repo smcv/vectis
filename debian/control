@@ -1,0 +1,51 @@
+Source: vectis
+Section: devel
+Priority: optional
+Maintainer: Simon McVittie <smcv@debian.org>
+Build-Depends:
+ autoconf,
+ automake,
+ debhelper (>= 10~),
+ python3-dev,
+ python3-tap,
+Standards-Version: 3.9.8
+Homepage: https://github.com/smcv/vectis
+Vcs-Git: https://github.com/smcv/vectis
+Vcs-Browser: https://github.com/smcv/vectis
+
+Package: vectis
+Architecture: all
+Multi-arch: foreign
+Depends:
+ autopkgtest,
+ devscripts,
+ python3:any,
+ qemu | qemu-system | qemu-system-x86 | qemu-system-arm,
+ qemu-utils,
+ ${misc:Depends},
+ ${shlibs:Depends},
+Recommends:
+ apt-cacher-ng,
+ libvirt-daemon-system,
+ python3-distro-info,
+Suggests:
+ eatmydata,
+ vmdebootstrap,
+Description: build software in a disposable virtual machine
+ vectis compiles software and does other Debian-related tasks in a temporary
+ environment, using an implementation of the autopkgtest virtualisation
+ service interface.
+ .
+ To minimize side-effects on the host system by the built code, and
+ side-effects on the built code by the host system, vectis does all builds
+ in a newly cloned virtual machine (or in theory a container, but that mode
+ has not yet been tested).
+ .
+ To avoid the need to back up large VM or container images, vectis can
+ rebuild its own VM images and sbuild tarballs at any time.
+ .
+ To increase confidence that a package that builds successfully in vectis
+ will also build successfully in real Debian infrastructure, vectis tries
+ to be pedantically correct: builds use a sbuild configuration closely
+ resembling the real buildds, and in particular Architecture:any and
+ Architecture:all binary packages are built separately by default,

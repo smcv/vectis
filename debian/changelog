@@ -1,0 +1,5 @@
+vectis (0~-1) UNRELEASED; urgency=low
+
+  * Initial release. (Closes: #843486)
+
+ -- Simon McVittie <smcv@debian.org>  Sun, 05 Feb 2017 15:29:11 +0000
