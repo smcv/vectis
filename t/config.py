@@ -161,9 +161,14 @@ class DefaultsTestCase(unittest.TestCase):
             self.assertEqual(self.__config.stable_suite, debian_info.stable())
             self.assertEqual(debian.stable_suite, debian_info.stable())
             self.assertEqual(ubuntu.stable_suite, ubuntu_info.lts())
-            self.assertEqual(ubuntu.unstable_suite, ubuntu_info.devel())
-            self.assertEqual(str(ubuntu.get_suite('devel')),
-                    ubuntu_info.devel())
+
+            try:
+                ubuntu_devel = ubuntu_info.devel()
+            except distro_info.DistroDataOutdated:
+                ubuntu_devel = ubuntu_info.stable()
+
+            self.assertEqual(ubuntu.unstable_suite, ubuntu_devel)
+            self.assertEqual(str(ubuntu.get_suite('devel')), ubuntu_devel)
             self.assertEqual(str(debian.get_suite('unstable')),
                     'sid')
             self.assertEqual(str(debian.get_suite('testing')),

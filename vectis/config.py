@@ -539,7 +539,7 @@ class Config(_ConfigLike):
             d['vendors']['debian']['stable_suite'] = debian.stable()
             d['vendors']['ubuntu']['stable_suite'] = ubuntu.lts()
             d['vendors']['debian']['unstable_suite'] = debian.devel()
-            d['vendors']['ubuntu']['unstable_suite'] = ubuntu.devel()
+
             d['vendors']['debian']['suites']['stable'] = {
                     'alias_for': debian.stable(),
             }
@@ -549,8 +549,18 @@ class Config(_ConfigLike):
             d['vendors']['debian']['suites']['oldstable'] = {
                     'alias_for': debian.old(),
             }
+
+            # According to autopkgtest-buildvm-ubuntu-cloud, just after
+            # an Ubuntu release there is briefly no development version
+            # at all.
+            try:
+                ubuntu_devel = ubuntu.devel()
+            except distro_info.DistroDataOutdated:
+                ubuntu_devel = ubuntu.stable()
+
+            d['vendors']['ubuntu']['unstable_suite'] = ubuntu_devel
             d['vendors']['ubuntu']['suites']['devel'] = {
-                    'alias_for': ubuntu.devel(),
+                    'alias_for': ubuntu_devel,
             }
 
             for suite in debian.all:
