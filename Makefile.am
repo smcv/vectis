@@ -7,6 +7,11 @@ CLEANFILES = \
 EXTRA_DIST = \
 	${dist_uninstalled_test_scripts} \
 	${nodist_bin_SCRIPTS:=.in} \
+	.gitignore \
+	README.md \
+	autogen.sh \
+	build-aux/COPYING.GPL-3 \
+	build-aux/git-version-gen \
 	run \
 	${NULL}
 
@@ -16,9 +21,11 @@ nobase_dist_pkgdata_DATA = \
 	vectis/commands/__init__.py \
 	vectis/commands/bootstrap.py \
 	vectis/commands/new.py \
+	vectis/commands/run.py \
 	vectis/commands/sbuild.py \
 	vectis/commands/sbuild_tarball.py \
 	vectis/config.py \
+	vectis/debuild.py \
 	vectis/error.py \
 	vectis/util.py \
 	vectis/virt.py \
