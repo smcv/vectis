@@ -1,4 +1,5 @@
 /.tarball-version
+/.version
 /ChangeLog
 /INSTALL
 /Makefile

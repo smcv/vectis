@@ -4,10 +4,15 @@ CLEANFILES = \
 	${nodist_bin_SCRIPTS} \
 	${NULL}
 
+BUILT_SOURCES = \
+	.version \
+	${NULL}
+
 EXTRA_DIST = \
 	${dist_uninstalled_test_scripts} \
 	${nodist_bin_SCRIPTS:=.in} \
 	.gitignore \
+	.version \
 	README.md \
 	autogen.sh \
 	build-aux/COPYING.GPL-3 \
