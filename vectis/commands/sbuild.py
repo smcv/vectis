@@ -37,7 +37,7 @@ class Build:
         self.machine = machine
         self.output_builds = output_builds
 
-    def build(self, suite, args, tarballs_copied):
+    def build(self, suite, args):
         self.machine.check_call(['install', '-d', '-m755',
             '-osbuild', '-gsbuild',
             '{}/out'.format(self.machine.scratch)])
@@ -59,11 +59,10 @@ class Build:
                     base=hierarchy[-1],
                     ))
 
-        if sbuild_tarball not in tarballs_copied:
-            self.machine.copy_to_guest(os.path.join(args.storage,
-                        sbuild_tarball),
-                    '{}/in/{}'.format(self.machine.scratch, sbuild_tarball))
-            tarballs_copied.add(sbuild_tarball)
+        self.machine.copy_to_guest(os.path.join(args.storage,
+                    sbuild_tarball),
+                '{}/in/{}'.format(self.machine.scratch, sbuild_tarball),
+                cache=True)
 
         chroot = '{base}-{arch}-sbuild'.format(base=hierarchy[-1],
                 arch=use_arch)
@@ -294,7 +293,6 @@ class Build:
             self.machine.copy_to_host(product, copied_back)
 
 def _run(args, machine):
-    tarballs_copied = set()
     buildables = []
 
     for a in (args._buildables or ['.']):
@@ -328,12 +326,12 @@ def _run(args, machine):
         if args._rebuild_source or buildable.dsc is None:
             build = Build(buildable, 'source', machine,
                     output_builds=args.output_builds)
-            build.build(suite, args, tarballs_copied)
+            build.build(suite, args)
         elif buildable.source_from_archive:
             # We need to get some information from the .dsc, which we do by
             # building one and throwing it away.
             build = Build(buildable, 'source', machine, output_builds=None)
-            build.build(suite, args, tarballs_copied)
+            build.build(suite, args)
 
         if not args._source_only:
             buildable.select_archs(machine.dpkg_architecture, args._archs,
@@ -342,7 +340,7 @@ def _run(args, machine):
             for arch in buildable.archs:
                 build = Build(buildable, arch, machine,
                         output_builds=args.output_builds)
-                build.build(suite, args, tarballs_copied)
+                build.build(suite, args)
 
         if buildable.sourceful_changes_name:
             c = os.path.join(args.output_builds,

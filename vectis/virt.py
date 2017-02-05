@@ -22,6 +22,7 @@ class MachineError(Error):
 
 class Machine:
     def __init__(self, builder):
+        self.__cached_copies = {}
         self.__command_wrapper_enabled = False
         self.__dpkg_architecture = None
         self.call_argv = None
@@ -122,16 +123,26 @@ class Machine:
         logger.info('%r', argv)
         return subprocess.check_output(self.call_argv + list(argv), **kwargs)
 
-    def copy_to_guest(self, host_path, guest_path):
+    def copy_to_guest(self, host_path, guest_path, *, cache=False):
+        assert host_path is not None
+        assert guest_path is not None
+
+        if cache and self.__cached_copies.get(host_path) == guest_path:
+            return
+
         self.virt_process.stdin.write('copydown {} {}\n'.format(
             urllib.parse.quote(host_path),
             urllib.parse.quote(guest_path),
             ))
         self.virt_process.stdin.flush()
         line = self.virt_process.stdout.readline()
+
         if line != 'ok\n':
             raise MachineError('Failed to copy host:{!r} to guest:{!r}: '
                     '{}'.format(host_path, guest_path, line.strip()))
+
+        if cache:
+            self.__cached_copies[host_path] = guest_path
 
     def copy_to_host(self, guest_path, host_path):
         self.virt_process.stdin.write('copyup {} {}\n'.format(
