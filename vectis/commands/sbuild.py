@@ -287,6 +287,9 @@ def get_dpkg_buildpackage_options(args, suite):
         else:
             argv.append('-Jauto')
 
+    for a in get_dpkg_source_options(args):
+        argv.append('--debbuildopt=--source-option=' + a)
+
     return argv
 
 def get_dpkg_source_options(args):
