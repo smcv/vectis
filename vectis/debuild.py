@@ -57,7 +57,7 @@ class Buildable:
         self.suite = None
         self.together_with = None
         self.vendor = vendor
-        self.version = None
+        self._version = None
 
         if os.path.exists(self.buildable):
             if os.path.isdir(self.buildable):
@@ -65,7 +65,7 @@ class Buildable:
                 changelog = Changelog(open(changelog))
                 self.source_package = changelog.get_package()
                 self.nominal_suite = changelog.distributions
-                self.version = Version(changelog.version)
+                self._version = Version(changelog.version)
                 control = os.path.join(self.buildable, 'debian', 'control')
 
                 if len(changelog.distributions.split()) != 1:
@@ -123,11 +123,11 @@ class Buildable:
                 version = None
 
             self.source_package = source
-            self.version = Version(version)
+            self._version = Version(version)
 
         if self.dsc is not None:
             self.source_package = self.dsc['source']
-            self.version = Version(self.dsc['version'])
+            self._version = Version(self.dsc['version'])
             self.arch_wildcards = set(self.dsc['architecture'].split())
             self.binary_packages = [p.strip()
                     for p in self.dsc['binary'].split(',')]
@@ -141,6 +141,15 @@ class Buildable:
                     version_no_epoch)
 
         return self._product_prefix
+
+    @property
+    def version(self):
+        return self._version
+
+    @version.setter
+    def version(self, v):
+        self._version = v
+        self._product_prefix = None
 
     def copy_source_to(self, machine):
         machine.check_call(['mkdir', '-p', '-m755',
@@ -162,14 +171,14 @@ class Buildable:
                         self.product_prefix))
             machine.check_call(['chown', '-R', 'sbuild:sbuild',
                     '{}/in/'.format(machine.scratch)])
-            if self.version.debian_revision is not None:
+            if self._version.debian_revision is not None:
                 machine.check_call(['install', '-d', '-m755',
                     '-osbuild', '-gsbuild',
                     '{}/out'.format(machine.scratch)])
 
                 orig_pattern = glob.escape(os.path.join(self.buildable, '..',
                         '{}_{}.orig.tar.'.format(self.source_package,
-                            self.version.upstream_version))) + '*'
+                            self._version.upstream_version))) + '*'
                 logger.info('Looking for original tarballs: {}'.format(
                         orig_pattern))
 
