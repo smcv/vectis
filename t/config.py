@@ -32,7 +32,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(self.__config.bootstrap_mirror,
                 'http://192.168.122.1:3142/debian')
         self.assertEqual(self.__config.archive, 'debian')
-        self.assertEqual(self.__config.sbuild_force_parallel, 0)
+        self.assertEqual(self.__config.force_parallel, 0)
         self.assertIs(self.__config.sbuild_together, False)
         self.assertEqual(self.__config.output_builds, '..')
         self.assertIsNone(self.__config.sbuild_buildables)

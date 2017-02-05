@@ -135,8 +135,8 @@ p.add_argument('--versions-since', '-v', '--since-version',
         help='Populate .changes file with versions since this')
 p.add_argument('--parallel', '-J', type=int, dest='parallel',
         help='Suggest a parallel build')
-p.add_argument('--force-parallel', '-j', type=int, dest='sbuild_force_parallel',
-        help='Force a parallel build')
+p.add_argument('--force-parallel', '-j', type=int, dest='force_parallel',
+        help='Force a parallel build (or with -j1, a serial build)')
 p.add_argument('--extra-repository', action='append', default=[],
         dest='_extra_repository',
         help='Add an apt source')

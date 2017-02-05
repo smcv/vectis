@@ -62,7 +62,7 @@ defaults:
 
     bootstrap_mirror: "${mirror}"
 
-    sbuild_force_parallel: 0
+    force_parallel: 0
     parallel: null
     sbuild_together: false
     output_builds: ".."
@@ -79,9 +79,9 @@ vendors:
         extra_components: contrib non-free
         suites:
             wheezy:
-                sbuild_force_parallel: 1
+                force_parallel: 1
             jessie:
-                sbuild_force_parallel: 1
+                force_parallel: 1
             sid: {}
             unstable:
                 alias_for: sid
@@ -112,9 +112,9 @@ vendors:
         extra_components: universe restricted multiverse
         suites:
             trusty:
-                sbuild_force_parallel: 1
+                force_parallel: 1
             precise:
-                sbuild_force_parallel: 1
+                force_parallel: 1
             "*-backports":
                 null: null
             "*-proposed":
@@ -169,8 +169,8 @@ class _ConfigLike:
         return self._get_string_set('extra_components')
 
     @property
-    def sbuild_force_parallel(self):
-        return self._get_int('sbuild_force_parallel')
+    def force_parallel(self):
+        return self._get_int('force_parallel')
 
     @property
     def parallel(self):
