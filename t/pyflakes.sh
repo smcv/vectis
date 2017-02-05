@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: GPL-2.0+
 # (see vectis/__init__.py)
 
-if [ "x$PYFLAKES" = xfalse ]; then
+if [ "x${PYFLAKES:=pyflakes3}" = xfalse ]; then
     echo "1..0 # SKIP pyflakes3 not found"
 elif "${PYFLAKES}" vectis; then
     echo "1..1"
