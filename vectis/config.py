@@ -109,6 +109,7 @@ vendors:
     ubuntu:
         build_suite: "${stable_suite}"
         build_vendor: ubuntu
+        builder: "autopkgtest-virt-qemu --user=ubuntu --password=ubuntu ${builder_qemu_image}"
         extra_components: universe restricted multiverse
         suites:
             trusty:
