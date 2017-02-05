@@ -30,11 +30,13 @@ from vectis.util import AtomicWriter
 logger = logging.getLogger(__name__)
 
 class Build:
-    def __init__(self, buildable, arch, machine, machine_arch):
+    def __init__(self, buildable, arch, machine, machine_arch,
+            *, output_builds):
         self.buildable = buildable
         self.arch = arch
         self.machine = machine
         self.machine_arch = machine_arch
+        self.output_builds = output_builds
 
     def build(self, suite, args, tmp, tarballs_copied):
         self.machine.check_call(['install', '-d', '-m755',
@@ -195,14 +197,14 @@ class Build:
                 if self.machine.call(['test', '-e', product]) == 0:
                     logger.info('Copying %s back to host as %s_%s.build...',
                             product, self.buildable.product_prefix, self.arch)
-                    copied_back = os.path.join(args.output_builds,
+                    copied_back = os.path.join(self.output_builds,
                             '{}_{}_{}.build'.format(self.buildable.product_prefix,
                                 self.arch,
                                 time.strftime('%Y%m%dt%H%M%S', time.gmtime())))
                     self.machine.copy_to_host(product, copied_back)
                     self.buildable.logs[self.arch] = copied_back
 
-                    symlink = os.path.join(args.output_builds,
+                    symlink = os.path.join(self.output_builds,
                             '{}_{}.build'.format(self.buildable.product_prefix,
                                 self.arch))
                     try:
@@ -256,7 +258,7 @@ class Build:
             self.arch)
 
         logger.info('Copying %s back to host...', product)
-        copied_back = os.path.join(args.output_builds,
+        copied_back = os.path.join(self.output_builds,
                 '{}_{}.changes'.format(self.buildable.product_prefix,
                     self.arch))
         self.machine.copy_to_host(product, copied_back)
@@ -272,7 +274,7 @@ class Build:
                 if f['name'].endswith('.dsc'):
                     # expect to find exactly one .dsc file
                     assert self.buildable.dsc_name is None
-                    self.buildable.dsc_name = os.path.join(args.output_builds,
+                    self.buildable.dsc_name = os.path.join(self.output_builds,
                             f['name'])
 
             assert self.buildable.dsc_name is not None
@@ -288,7 +290,7 @@ class Build:
             logger.info('Additionally copying %s back to host...',
                     f['name'])
             product = '{}/out/{}'.format(self.machine.scratch, f['name'])
-            copied_back = os.path.join(args.output_builds, f['name'])
+            copied_back = os.path.join(self.output_builds, f['name'])
             self.machine.copy_to_host(product, copied_back)
 
 def _run(args, machine, tmp):
@@ -327,7 +329,8 @@ def _run(args, machine, tmp):
 
         if (buildable.source_from_archive or args._rebuild_source or
                 buildable.dsc is None):
-            build = Build(buildable, 'source', machine, machine_arch)
+            build = Build(buildable, 'source', machine, machine_arch,
+                    output_builds=args.output_builds)
             build.build(suite, args, tmp, tarballs_copied)
 
         if not args._source_only:
@@ -335,7 +338,8 @@ def _run(args, machine, tmp):
                     args.sbuild_together)
 
             for arch in buildable.archs:
-                build = Build(buildable, arch, machine, machine_arch)
+                build = Build(buildable, arch, machine, machine_arch,
+                        output_builds=args.output_builds)
                 build.build(suite, args, tmp, tarballs_copied)
 
         if buildable.sourceful_changes_name:
