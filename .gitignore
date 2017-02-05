@@ -1,3 +1,5 @@
+/.tarball-version
+/ChangeLog
 /INSTALL
 /Makefile
 /Makefile.in
