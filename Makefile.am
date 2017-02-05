@@ -71,6 +71,9 @@ installed_test_metadir = ${datadir}/installed-tests/${PACKAGE_TARNAME}
 
 dist_test_scripts = \
 	t/config.py \
+	${NULL}
+
+dist_slow_test_scripts = \
 	t/debian/bootstrap.t \
 	t/debian/new.t \
 	t/debian/sbuild_tarball.t \
@@ -81,6 +84,7 @@ dist_test_extra_scripts = \
 	${NULL}
 
 nobase_dist_installed_test_SCRIPTS = \
+	${dist_slow_test_scripts} \
 	${dist_test_scripts} \
 	${dist_test_extra_scripts} \
 	${NULL}
@@ -90,6 +94,7 @@ dist_uninstalled_test_scripts = \
 	${NULL}
 
 installed_test_meta_DATA = \
+	${dist_slow_test_scripts:=.test} \
 	${dist_test_scripts:=.test} \
 	${NULL}
 
@@ -97,6 +102,12 @@ TESTS = \
 	${dist_test_scripts} \
 	${dist_uninstalled_test_scripts} \
 	${NULL}
+
+check-local:
+	$(MAKE) $(AM_MAKEFLAGS) -j1 \
+		check-TESTS \
+		TESTS='${dist_slow_test_scripts}' \
+		${NULL}
 
 installcheck_tests = \
 	${dist_test_scripts} \
