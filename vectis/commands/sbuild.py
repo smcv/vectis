@@ -55,7 +55,7 @@ class Build:
         sbuild_tarball = (
                 'sbuild-{vendor}-{base}-{arch}.tar.gz'.format(
                     arch=use_arch,
-                    vendor=args.vendor,
+                    vendor=self.buildable.vendor,
                     base=hierarchy[-1],
                     ))
 
@@ -296,7 +296,7 @@ def _run(args, machine):
     buildables = []
 
     for a in (args._buildables or ['.']):
-        buildables.append(Buildable(a))
+        buildables.append(Buildable(a, vendor=args.vendor))
 
     logger.info('Installing sbuild')
     machine.check_call(['apt-get', '-y', 'update'])

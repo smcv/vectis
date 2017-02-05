@@ -29,7 +29,7 @@ from vectis.error import (
 logger = logging.getLogger(__name__)
 
 class Buildable:
-    def __init__(self, buildable):
+    def __init__(self, buildable, *, vendor):
         self.buildable = buildable
 
         self._product_prefix = None
@@ -49,6 +49,7 @@ class Buildable:
         self.sourceful_changes_name = None
         self.suite = None
         self.together_with = None
+        self.vendor = vendor
         self.version = None
 
         if os.path.exists(self.buildable):
