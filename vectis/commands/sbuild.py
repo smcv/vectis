@@ -355,43 +355,29 @@ def _run(args, machine):
         dpkg_buildpackage_options = get_dpkg_buildpackage_options(args, suite)
         dpkg_source_options = get_dpkg_source_options(args)
 
-        if args._rebuild_source or buildable.dsc is None:
-            build = Build(buildable, 'source', machine,
+        def new_build(arch, output_builds=args.output_builds):
+            return Build(buildable, arch, machine,
                     components=args.components,
                     extra_repositories=args._extra_repository,
                     dpkg_buildpackage_options=dpkg_buildpackage_options,
                     dpkg_source_options=dpkg_source_options,
-                    output_builds=args.output_builds,
+                    output_builds=output_builds,
                     storage=args.storage,
                     suite=suite)
-            build.build()
+
+        if args._rebuild_source or buildable.dsc is None:
+            new_build('source').build()
         elif buildable.source_from_archive:
             # We need to get some information from the .dsc, which we do by
             # building one and throwing it away.
-            build = Build(buildable, 'source', machine,
-                    components=args.components,
-                    extra_repositories=args._extra_repository,
-                    dpkg_buildpackage_options=dpkg_buildpackage_options,
-                    dpkg_source_options=dpkg_source_options,
-                    output_builds=None,
-                    storage=args.storage,
-                    suite=suite)
-            build.build()
+            new_build('source', output_builds=None).build()
 
         if not args._source_only:
             buildable.select_archs(machine.dpkg_architecture, args._archs,
                     args._indep, args.sbuild_together)
 
             for arch in buildable.archs:
-                build = Build(buildable, arch, machine,
-                        components=args.components,
-                        extra_repositories=args._extra_repository,
-                        dpkg_buildpackage_options=dpkg_buildpackage_options,
-                        dpkg_source_options=dpkg_source_options,
-                        output_builds=args.output_builds,
-                        storage=args.storage,
-                        suite=suite)
-                build.build()
+                new_build(arch).build()
 
         if buildable.sourceful_changes_name:
             c = os.path.join(args.output_builds,
