@@ -104,18 +104,18 @@ def _run(args, machine):
                     suite=suite)
 
         if args._rebuild_source or buildable.dsc is None:
-            new_build('source').build()
+            new_build('source').sbuild()
         elif buildable.source_from_archive:
             # We need to get some information from the .dsc, which we do by
             # building one and throwing it away.
-            new_build('source', output_builds=None).build()
+            new_build('source', output_builds=None).sbuild()
 
         if not args._source_only:
             buildable.select_archs(machine.dpkg_architecture, args._archs,
                     args._indep, args.sbuild_together)
 
             for arch in buildable.archs:
-                new_build(arch).build()
+                new_build(arch).sbuild()
 
         if buildable.sourceful_changes_name:
             c = os.path.join(args.output_builds,

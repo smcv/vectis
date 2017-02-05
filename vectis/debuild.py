@@ -282,7 +282,7 @@ class Build:
         self.storage = storage
         self.suite = suite
 
-    def build(self):
+    def sbuild(self):
         self.machine.check_call(['install', '-d', '-m755',
             '-osbuild', '-gsbuild',
             '{}/out'.format(self.machine.scratch)])
