@@ -10,7 +10,7 @@ EXTRA_DIST = \
 	run \
 	${NULL}
 
-nobase_python_PYTHON = \
+nobase_dist_pkgdata_DATA = \
 	vectis/__init__.py \
 	vectis/__main__.py \
 	vectis/commands/__init__.py \
@@ -24,7 +24,7 @@ nobase_python_PYTHON = \
 	vectis/virt.py \
 	${NULL}
 
-nobase_dist_python_SCRIPTS = \
+nobase_dist_pkgdata_SCRIPTS = \
 	vectis/vectis-command-wrapper \
 	${NULL}
 
