@@ -517,6 +517,14 @@ class Build:
                 self.buildable.binary_packages = [p.strip()
                         for p in self.buildable.dsc['binary'].split(',')]
 
+        if self.arch == 'source' and self.output_builds is not None:
+            # Make sure the orig.tar.* are in the out directory, because
+            # we will be building from the rebuilt source in future
+            self.worker.check_call(['sh', '-c',
+                'ln -nsf "$1"/in/*.orig.tar.* "$1"/out/',
+                'sh', # argv[0]
+                self.worker.scratch])
+
         if self.output_builds is None:
             return
 
