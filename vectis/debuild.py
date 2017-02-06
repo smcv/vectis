@@ -349,7 +349,7 @@ class Build:
                 '--',
                 'sbuild',
                 '-c', chroot,
-                '-d', self.buildable.nominal_suite,
+                '-d', str(self.buildable.nominal_suite),
                 '--no-run-lintian',
         ]
 

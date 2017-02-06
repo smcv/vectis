@@ -67,6 +67,7 @@ defaults:
 
     sbuild_buildables: null
     sbuild_resolver: []
+    apt_key: null
     apt_suite: "${suite}"
     dpkg_source_tar_ignore: []
     dpkg_source_diff_ignore: null
@@ -225,7 +226,7 @@ class _ConfigLike:
                 RecursiveExpansionMap(
                     architecture=self.architecture,
                     storage=self.storage,
-                    suite=self.suite,
+                    suite=self.suite.hierarchy[-1],
                     vendor=self.vendor,
                     )
                 )
@@ -315,6 +316,9 @@ class Vendor(_ConfigLike):
     def get_suite(self, name, create=True):
         if name is None:
             return None
+
+        if isinstance(name, Suite):
+            return name
 
         s = self._suites.get(name)
 
@@ -423,6 +427,18 @@ class Suite(_ConfigLike):
     @property
     def suite(self):
         return self
+
+    @property
+    def apt_key(self):
+        value = self['apt_key']
+
+        if value is None:
+            return None
+
+        if '/' in value:
+            return value
+
+        return os.path.join(os.path.dirname(__file__), 'keys', value)
 
     def __str__(self):
         return self._name
@@ -633,6 +649,10 @@ class Config(_ConfigLike):
         raise AssertionError('I know the defaults do specify a vendor')
 
     @property
+    def suite(self):
+        return self._get_vendor(self['vendor']).get_suite(self['suite'])
+
+    @property
     def vendor(self):
         return self._get_vendor(self['vendor'])
 
@@ -651,9 +671,15 @@ class Config(_ConfigLike):
         value = self['worker_suite']
 
         if value is None:
+            value = self.worker_vendor.worker_suite
+
+        if value is None:
             value = self.worker_vendor.default_suite
 
-        return value
+        if value is None:
+            return None
+
+        return self.worker_vendor.get_suite(value, True)
 
     @property
     def worker_qemu_image(self):
@@ -666,7 +692,7 @@ class Config(_ConfigLike):
                 RecursiveExpansionMap(
                     architecture=self.worker_architecture,
                     storage=self.storage,
-                    suite=self.worker_suite,
+                    suite=self.worker_suite.hierarchy[-1],
                     vendor=self.worker_vendor,
                     )
                 )

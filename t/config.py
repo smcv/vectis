@@ -62,11 +62,16 @@ class DefaultsTestCase(unittest.TestCase):
         self.__config.worker_suite = 'sarge'
 
         debian = self.__config._get_vendor('debian')
+        potato = debian.get_suite('potato')
+        sarge = debian.get_suite('sarge')
+        self.assertEqual(list(potato.hierarchy), [potato])
+        self.assertEqual(list(sarge.hierarchy), [sarge])
+        self.assertEqual(self.__config.suite, potato)
+        self.assertEqual(self.__config.worker_suite, sarge)
 
         self.assertEqual(self.__config.debootstrap_script, 'potato')
         self.assertEqual(self.__config.qemu_image,
                 '{}/vectis-debian-potato-m68k.qcow2'.format(self.__config.storage))
-        self.assertEqual(self.__config.suite, 'potato')
         self.assertEqual(self.__config.worker_qemu_image,
             '{}/vectis-debian-sarge-m68k.qcow2'.format(self.__config.storage))
         self.assertEqual(self.__config.worker,

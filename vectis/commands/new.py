@@ -29,7 +29,7 @@ def vmdebootstrap_argv(args, setup_script):
         ]
     argv.append('--customize={}'.format(setup_script))
 
-    if args.suite == 'wheezy':
+    if str(args.suite) == 'wheezy':
         # FIXME: this assumes vmdebootstrap from jessie: different
         # options are needed for vmdebootstrap from sid.
         argv.extend([
@@ -71,10 +71,7 @@ def new_ubuntu(args, out):
 
 def new(args, out):
     with Worker(args.worker) as worker:
-        worker.check_call([
-            'env', 'DEBIAN_FRONTEND=noninteractive',
-            'apt-get', '-y', 'update',
-            ])
+        worker.set_up_apt(args.worker_suite)
         worker.check_call([
             'env', 'DEBIAN_FRONTEND=noninteractive',
             'apt-get', '-y', 'upgrade',
@@ -120,6 +117,7 @@ def run(args):
 
     try:
         with Worker('qemu {}'.format(created)) as worker:
+            worker.set_up_apt(args.suite)
             worker.check_call(['apt-get', '-y', 'update'])
             worker.check_call(['apt-get',
                 '-y',

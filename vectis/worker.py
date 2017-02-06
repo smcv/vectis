@@ -6,11 +6,16 @@ import logging
 import os
 import shutil
 import subprocess
+import textwrap
 import urllib.parse
 from contextlib import ExitStack
+from tempfile import TemporaryDirectory
 
 from vectis.error import (
         Error,
+        )
+from vectis.util import (
+        AtomicWriter,
         )
 
 _WRAPPER = os.path.join(os.path.dirname(__file__), 'vectis-command-wrapper')
@@ -43,6 +48,7 @@ class Worker:
         else:
             raise WorkerError('virtualization provider %r not found' % argv[0])
 
+        logger.info('Starting worker: %r', argv)
         self.virt_process = subprocess.Popen(
                 argv,
                 stdin=subprocess.PIPE,
@@ -179,3 +185,34 @@ class Worker:
 
     def __exit__(self, et, ev, tb):
         return self.stack.__exit__(et, ev, tb)
+
+    def set_up_apt(self, suite, components=()):
+        with TemporaryDirectory() as tmp:
+            with AtomicWriter(os.path.join(tmp, 'sources.list')) as writer:
+                for ancestor in suite.hierarchy:
+                    if components:
+                        filtered_components = (set(components) &
+                                set(ancestor.all_components))
+                    else:
+                        filtered_components = ancestor.components
+
+                    writer.write(textwrap.dedent('''
+                    deb {mirror} {suite} {components}
+                    deb-src {mirror} {suite} {components}
+                    ''').format(
+                        components=' '.join(filtered_components),
+                        mirror=ancestor.mirror,
+                        suite=ancestor.apt_suite,
+                    ))
+
+                    if ancestor.apt_key is not None:
+                        self.copy_to_guest(ancestor.apt_key,
+                            '/etc/apt/trusted.gpg.d/' +
+                            os.path.basename(ancestor.apt_key))
+
+            self.copy_to_guest(os.path.join(tmp, 'sources.list'),
+                    '/etc/apt/sources.list')
+            self.check_call([
+                'env', 'DEBIAN_FRONTEND=noninteractive',
+                'apt-get', '-y', 'update',
+                ])

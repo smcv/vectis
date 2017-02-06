@@ -31,7 +31,7 @@ def run(args):
 
         try:
             with Worker('qemu {}.new'.format(out)) as worker:
-                worker.check_call(['apt-get', '-y', 'update'])
+                worker.set_up_apt(args.suite)
                 worker.check_call(['apt-get',
                     '-y',
                     '--no-install-recommends',

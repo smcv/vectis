@@ -67,7 +67,7 @@ def _run(args, worker):
         buildables.append(Buildable(a, vendor=args.vendor))
 
     logger.info('Installing sbuild')
-    worker.check_call(['apt-get', '-y', 'update'])
+    worker.set_up_apt(args.worker_suite)
     worker.check_call([
         'apt-get',
         '-y',
@@ -201,10 +201,12 @@ def _run(args, worker):
 
                 if args._reprepro_dir:
                     subprocess.call(['reprepro', '-b', args._reprepro_dir,
-                        'removesrc', reprepro_suite, buildable.source_package])
+                        'removesrc', str(reprepro_suite),
+                        buildable.source_package])
                     subprocess.call(['reprepro', '--ignore=wrongdistribution',
                         '--ignore=missingfile',
-                        '-b', args._reprepro_dir, 'include', reprepro_suite,
+                        '-b', args._reprepro_dir, 'include',
+                        str(reprepro_suite),
                         os.path.join(args.output_builds,
                             buildable.merged_changes[x])])
 

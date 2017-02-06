@@ -24,10 +24,7 @@ def run(args):
 
     with Worker(args.worker) as worker:
         logger.info('Installing debootstrap and sbuild')
-        worker.check_call([
-            'env', 'DEBIAN_FRONTEND=noninteractive',
-            'apt-get', '-y', 'update',
-            ])
+        worker.set_up_apt(args.worker_suite)
         worker.check_call([
             'apt-get',
             '-y',
@@ -50,7 +47,7 @@ def run(args):
                 '--make-sbuild-tarball={}/output.tar.gz'.format(worker.scratch),
                 '--chroot-prefix=vectis',
                 '--chroot-suffix=',
-                args.suite, '{}/chroot'.format(worker.scratch),
+                str(args.suite), '{}/chroot'.format(worker.scratch),
                 args.mirror,
                 '/usr/share/debootstrap/scripts/{}'.format(args.debootstrap_script),
             ])
