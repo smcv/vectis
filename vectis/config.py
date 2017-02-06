@@ -704,33 +704,3 @@ class Config(_ConfigLike):
                     vendor=self.worker_vendor,
                     )
                 )
-
-if __name__ == '__main__':
-    for args in (
-            {},
-            { 'vendor': 'debian' },
-            { 'vendor': 'ubuntu', 'unstable_suite': 'yakkety' },
-            { 'vendor': 'steamos',
-                'stable_suite': 'alchemist',
-                'unstable_suite': 'brewmaster',
-                'extra_components': 'contrib non-free',
-                'debootstrap_script': 'sid',
-                'mirror': 'http://repo.steampowered.com/${archive}' },
-            { 'vendor': 'xyz',
-                'default_suite': 'whatever',
-                'components': 'main drivers sdk',
-                'debootstrap_script': 'xenial',
-                'mirror': 'http://example.com/${archive}' },
-            ):
-        print(args)
-
-        c = Config()
-        for k, v in args.items():
-            setattr(c, k, v)
-
-        for x in sorted(set(c._raw[-1]['defaults'].keys()) |
-                set('all_components'.split())):
-            try:
-                print('\t{}={!r}'.format(x, getattr(c, x)))
-            except ValueError:
-                print('\t{}=<no default>'.format(x))
