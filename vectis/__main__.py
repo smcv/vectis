@@ -73,6 +73,9 @@ p.add_argument('--qemu-image', dest='write_qemu_image',
 p.add_argument('--worker',
         help='Virtual machine to use to create it '
         '[default: {}]'.format(args.worker))
+p.add_argument('--worker-suite',
+        help='Virtual machine suite to use '
+        '[default: {}]'.format(args.worker_suite))
 p.add_argument('--suite',
         help='Release suite [default: {}]'.format(args.default_suite))
 p.add_argument('--architecture', '--arch',
