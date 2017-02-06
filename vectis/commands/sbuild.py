@@ -104,12 +104,15 @@ def _run(args, worker):
                     storage=args.storage,
                     suite=suite)
 
-        if args._rebuild_source or buildable.dsc is None:
+        if args._rebuild_source:
             new_build('source').sbuild()
         elif buildable.source_from_archive:
             # We need to get some information from the .dsc, which we do by
             # building one and throwing it away.
             new_build('source', output_builds=None).sbuild()
+        elif buildable.dsc is None:
+            # We're building from a directory; get a .dsc
+            new_build('source').sbuild()
 
         if not args._source_only:
             buildable.select_archs(worker.dpkg_architecture, args._archs,
