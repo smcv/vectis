@@ -24,9 +24,9 @@ class DefaultsTestCase(unittest.TestCase):
         ubuntu = self.__config._get_vendor('ubuntu')
 
         self.assertEqual(str(self.__config.vendor), 'debian')
-        self.assertEqual(str(self.__config.build_vendor), 'debian')
+        self.assertEqual(str(self.__config.worker_vendor), 'debian')
         self.assertIs(self.__config.vendor, debian)
-        self.assertIs(self.__config.build_vendor, debian)
+        self.assertIs(self.__config.worker_vendor, debian)
         self.assertEqual(self.__config.mirror,
                 'http://192.168.122.1:3142/debian')
         self.assertEqual(self.__config.bootstrap_mirror,
@@ -53,13 +53,13 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(self.__config.storage,
             '{}/vectis'.format(os.getenv('XDG_CACHE_HOME',
                 os.path.expanduser('~/.cache'))))
-        self.assertEqual(self.__config.builder,
-            'autopkgtest-virt-qemu {}'.format(self.__config.builder_qemu_image))
+        self.assertEqual(self.__config.worker,
+            'autopkgtest-virt-qemu {}'.format(self.__config.worker_qemu_image))
 
     def test_substitutions(self):
         self.__config.architecture = 'm68k'
         self.__config.suite = 'potato'
-        self.__config.build_suite = 'sarge'
+        self.__config.worker_suite = 'sarge'
 
         debian = self.__config._get_vendor('debian')
 
@@ -67,9 +67,9 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(self.__config.qemu_image,
                 '{}/vectis-debian-potato-m68k.qcow2'.format(self.__config.storage))
         self.assertEqual(self.__config.suite, 'potato')
-        self.assertEqual(self.__config.builder_qemu_image,
+        self.assertEqual(self.__config.worker_qemu_image,
             '{}/vectis-debian-sarge-m68k.qcow2'.format(self.__config.storage))
-        self.assertEqual(self.__config.builder,
+        self.assertEqual(self.__config.worker,
             'autopkgtest-virt-qemu {}/vectis-debian-sarge-m68k.qcow2'.format(
                 self.__config.storage))
 
@@ -88,7 +88,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(debian.all_components, {'main', 'contrib',
             'non-free'})
         self.assertEqual(debian.vendor, debian)
-        self.assertEqual(debian.build_vendor, 'debian')
+        self.assertEqual(debian.worker_vendor, 'debian')
         #self.assertEqual(debian.archive, 'debian')
         #self.assertEqual(debian.mirror, 'http://192.168.122.1:3142/debian')
         self.assertIsNone(debian.get_suite('xenial', create=False))
@@ -102,7 +102,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(ubuntu.all_components, {'main', 'universe',
             'restricted', 'multiverse'})
         self.assertEqual(ubuntu.vendor, ubuntu)
-        self.assertEqual(ubuntu.build_vendor, 'ubuntu')
+        self.assertEqual(ubuntu.worker_vendor, 'ubuntu')
         #self.assertEqual(ubuntu.archive, 'ubuntu')
         #self.assertEqual(ubuntu.mirror, 'http://192.168.122.1:3142/ubuntu')
         self.assertIsNone(ubuntu.get_suite('unstable', create=False))
@@ -114,7 +114,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(str(steamos), 'steamos')
         self.assertEqual(steamos.components, {'main'})
         self.assertEqual(steamos.vendor, steamos)
-        self.assertEqual(steamos.build_vendor, 'debian')
+        self.assertEqual(steamos.worker_vendor, 'debian')
         # FIXME: fails: is "${vendor}"
         #self.assertEqual(steamos.archive, 'steamos')
         # FIXME: fails: ends with "${archive}"
@@ -139,7 +139,7 @@ class DefaultsTestCase(unittest.TestCase):
             self.assertEqual(self.__config.architecture,
                     arch.decode('utf-8').strip())
             self.assertEqual(self.__config.architecture,
-                self.__config.build_architecture)
+                self.__config.worker_architecture)
 
     def test_distro_info(self):
         debian = self.__config._get_vendor('debian')

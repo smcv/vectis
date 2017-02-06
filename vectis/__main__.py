@@ -68,9 +68,9 @@ p.add_argument('--size',
 p.add_argument('--qemu-image', dest='write_qemu_image',
         help='Virtual machine image to create '
         '[default: {}]'.format(args.write_qemu_image))
-p.add_argument('--builder',
+p.add_argument('--worker',
         help='Virtual machine to use to create it '
-        '[default: {}]'.format(args.builder))
+        '[default: {}]'.format(args.worker))
 p.add_argument('--suite',
         help='Release suite [default: {}]'.format(args.default_suite))
 p.add_argument('--architecture', '--arch',
@@ -99,12 +99,12 @@ p = subparsers.add_parser('sbuild-tarball',
         argument_default=argparse.SUPPRESS,
         parents=(base,),
         )
-p.add_argument('--builder',
+p.add_argument('--worker',
         help='Virtual machine to use '
-        '[default: {}]'.format(args.builder))
-p.add_argument('--build-suite',
+        '[default: {}]'.format(args.worker))
+p.add_argument('--worker-suite',
         help='Virtual machine suite to use '
-        '[default: {}]'.format(args.build_suite))
+        '[default: {}]'.format(args.worker_suite))
 p.add_argument('--debootstrap-script',
         help='debootstrap script to run '
         '[default: {}]'.format(args.debootstrap_script))
@@ -123,11 +123,11 @@ p = subparsers.add_parser('sbuild',
         conflict_handler='resolve',
         parents=(base,),
         )
-p.add_argument('--builder',
+p.add_argument('--worker',
         help='Virtual machine image to use '
-        '[default: {}]'.format(args.builder))
-p.add_argument('--build-suite',
-        help='Suite to run in virtual machine, [default={}]'.format(args.build_suite))
+        '[default: {}]'.format(args.worker))
+p.add_argument('--worker-suite',
+        help='Suite to run in virtual machine, [default={}]'.format(args.worker_suite))
 p.add_argument('_buildables', metavar='CHANGES_OR_DSC_OR_DIR',
         help='sourceful .changes or .dsc or source directory', nargs='*',
         default=[])

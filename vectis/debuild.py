@@ -151,30 +151,30 @@ class Buildable:
         self._version = v
         self._product_prefix = None
 
-    def copy_source_to(self, machine):
-        machine.check_call(['mkdir', '-p', '-m755',
-            '{}/in'.format(machine.scratch)])
+    def copy_source_to(self, worker):
+        worker.check_call(['mkdir', '-p', '-m755',
+            '{}/in'.format(worker.scratch)])
 
         if self.dsc_name is not None:
             assert self.dsc is not None
 
-            machine.copy_to_guest(self.dsc_name,
-                    '{}/in/{}'.format(machine.scratch,
+            worker.copy_to_guest(self.dsc_name,
+                    '{}/in/{}'.format(worker.scratch,
                         os.path.basename(self.dsc_name)))
 
             for f in self.dsc['files']:
-                machine.copy_to_guest(os.path.join(self.dirname, f['name']),
-                        '{}/in/{}'.format(machine.scratch, f['name']))
+                worker.copy_to_guest(os.path.join(self.dirname, f['name']),
+                        '{}/in/{}'.format(worker.scratch, f['name']))
         elif not self.source_from_archive:
-            machine.copy_to_guest(os.path.join(self.buildable, ''),
-                    '{}/in/{}_source/'.format(machine.scratch,
+            worker.copy_to_guest(os.path.join(self.buildable, ''),
+                    '{}/in/{}_source/'.format(worker.scratch,
                         self.product_prefix))
-            machine.check_call(['chown', '-R', 'sbuild:sbuild',
-                    '{}/in/'.format(machine.scratch)])
+            worker.check_call(['chown', '-R', 'sbuild:sbuild',
+                    '{}/in/'.format(worker.scratch)])
             if self._version.debian_revision is not None:
-                machine.check_call(['install', '-d', '-m755',
+                worker.check_call(['install', '-d', '-m755',
                     '-osbuild', '-gsbuild',
-                    '{}/out'.format(machine.scratch)])
+                    '{}/out'.format(worker.scratch)])
 
                 orig_pattern = glob.escape(os.path.join(self.buildable, '..',
                         '{}_{}.orig.tar.'.format(self.source_package,
@@ -184,23 +184,23 @@ class Buildable:
 
                 for orig in glob.glob(orig_pattern):
                     logger.info('Copying original tarball: {}'.format(orig))
-                    machine.copy_to_guest(orig,
-                            '{}/in/{}'.format(machine.scratch,
+                    worker.copy_to_guest(orig,
+                            '{}/in/{}'.format(worker.scratch,
                                 os.path.basename(orig)))
-                    machine.check_call(['ln', '-s',
-                            '{}/in/{}'.format(machine.scratch,
+                    worker.check_call(['ln', '-s',
+                            '{}/in/{}'.format(worker.scratch,
                                 os.path.basename(orig)),
-                            '{}/out/{}'.format(machine.scratch,
+                            '{}/out/{}'.format(worker.scratch,
                                 os.path.basename(orig))])
 
-    def select_archs(self, machine_arch, archs, indep, together):
+    def select_archs(self, worker_arch, archs, indep, together):
         builds_i386 = False
         builds_natively = False
 
         for wildcard in self.arch_wildcards:
             if subprocess.call(['dpkg-architecture',
-                    '-a' + machine_arch, '--is', wildcard]) == 0:
-                logger.info('Package builds natively on %s', machine_arch)
+                    '-a' + worker_arch, '--is', wildcard]) == 0:
+                logger.info('Package builds natively on %s', worker_arch)
                 builds_natively = True
 
             if subprocess.call(['dpkg-architecture',
@@ -218,7 +218,7 @@ class Buildable:
             self.archs = []
 
             if builds_natively:
-                self.archs.append(machine_arch)
+                self.archs.append(worker_arch)
 
             for line in subprocess.check_output([
                     'sh', '-c', '"$@" || :',
@@ -233,7 +233,7 @@ class Buildable:
                                 arch, line)
                         self.archs.append(arch)
 
-            if (machine_arch == 'amd64' and builds_i386 and
+            if (worker_arch == 'amd64' and builds_i386 and
                     not builds_natively and 'i386' not in self.archs):
                 self.archs.append('i386')
 
@@ -242,8 +242,8 @@ class Buildable:
 
         if indep:
             if together and self.archs:
-                if machine_arch in self.archs:
-                    self.together_with = machine_arch
+                if worker_arch in self.archs:
+                    self.together_with = worker_arch
                 else:
                     self.together_with = self.archs[0]
             else:
@@ -272,7 +272,7 @@ class Buildable:
         return self.buildable
 
 class Build:
-    def __init__(self, buildable, arch, machine, *,
+    def __init__(self, buildable, arch, worker, *,
             dpkg_buildpackage_options,
             dpkg_source_options,
             output_builds,
@@ -286,21 +286,21 @@ class Build:
         self.dpkg_buildpackage_options = dpkg_buildpackage_options
         self.dpkg_source_options = dpkg_source_options
         self.extra_repositories = extra_repositories
-        self.machine = machine
+        self.worker = worker
         self.output_builds = output_builds
         self.storage = storage
         self.suite = suite
 
     def sbuild(self):
-        self.machine.check_call(['install', '-d', '-m755',
+        self.worker.check_call(['install', '-d', '-m755',
             '-osbuild', '-gsbuild',
-            '{}/out'.format(self.machine.scratch)])
+            '{}/out'.format(self.worker.scratch)])
 
         logger.info('Building architecture: %s', self.arch)
 
         if self.arch in ('all', 'source'):
-            logger.info('(on %s)', self.machine.dpkg_architecture)
-            use_arch = self.machine.dpkg_architecture
+            logger.info('(on %s)', self.worker.dpkg_architecture)
+            use_arch = self.worker.dpkg_architecture
         else:
             use_arch = self.arch
 
@@ -313,9 +313,9 @@ class Build:
                     base=hierarchy[-1],
                     ))
 
-        self.machine.copy_to_guest(os.path.join(self.storage,
+        self.worker.copy_to_guest(os.path.join(self.storage,
                     sbuild_tarball),
-                '{}/in/{}'.format(self.machine.scratch, sbuild_tarball),
+                '{}/in/{}'.format(self.worker.scratch, sbuild_tarball),
                 cache=True)
 
         chroot = '{base}-{arch}-sbuild'.format(base=hierarchy[-1],
@@ -335,14 +335,14 @@ class Build:
                 ''').format(
                     chroot=chroot,
                     sbuild_tarball=sbuild_tarball,
-                    scratch=self.machine.scratch))
-            self.machine.copy_to_guest(os.path.join(tmp, 'sbuild.conf'),
+                    scratch=self.worker.scratch))
+            self.worker.copy_to_guest(os.path.join(tmp, 'sbuild.conf'),
                     '/etc/schroot/chroot.d/{}'.format(chroot))
 
         argv = [
-                self.machine.command_wrapper,
+                self.worker.command_wrapper,
                 '--chdir',
-                '{}/out'.format(self.machine.scratch),
+                '{}/out'.format(self.worker.scratch),
                 '--',
                 'runuser',
                 '-u', 'sbuild',
@@ -394,10 +394,10 @@ class Build:
 
         if self.buildable.dsc_name is not None:
             if 'source' in self.buildable.changes_produced:
-                argv.append('{}/out/{}'.format(self.machine.scratch,
+                argv.append('{}/out/{}'.format(self.worker.scratch,
                     os.path.basename(self.buildable.dsc_name)))
             else:
-                argv.append('{}/in/{}'.format(self.machine.scratch,
+                argv.append('{}/in/{}'.format(self.worker.scratch,
                     os.path.basename(self.buildable.dsc_name)))
         elif self.buildable.source_from_archive:
             argv.append(self.buildable.buildable)
@@ -406,12 +406,12 @@ class Build:
             # (in practice this will be the 'source' build)
             argv.append('--no-clean-source')
             argv.append('--source')
-            argv.append('{}/in/{}_source'.format(self.machine.scratch,
+            argv.append('{}/in/{}_source'.format(self.worker.scratch,
                 self.buildable.product_prefix))
 
         logger.info('Running %r', argv)
         try:
-            self.machine.check_call(argv)
+            self.worker.check_call(argv)
         finally:
             # Note that we mix use_arch and arch here: an Architecture: all
             # build produces foo_1.2_amd64.build, which we rename.
@@ -419,12 +419,12 @@ class Build:
             # that's what comes out if we do "vectis sbuild --suite=sid hello".
             for prefix in (self.buildable.source_package,
                     self.buildable.product_prefix):
-                product = '{}/out/{}_{}.build'.format(self.machine.scratch,
+                product = '{}/out/{}_{}.build'.format(self.worker.scratch,
                         prefix, use_arch)
-                product = self.machine.check_output(['readlink', '-f', product],
+                product = self.worker.check_output(['readlink', '-f', product],
                         universal_newlines=True).rstrip('\n')
 
-                if (self.machine.call(['test', '-e', product]) == 0 and
+                if (self.worker.call(['test', '-e', product]) == 0 and
                         self.output_builds is not None):
                     logger.info('Copying %s back to host as %s_%s.build...',
                             product, self.buildable.product_prefix, self.arch)
@@ -432,7 +432,7 @@ class Build:
                             '{}_{}_{}.build'.format(self.buildable.product_prefix,
                                 self.arch,
                                 time.strftime('%Y%m%dt%H%M%S', time.gmtime())))
-                    self.machine.copy_to_host(product, copied_back)
+                    self.worker.copy_to_host(product, copied_back)
                     self.buildable.logs[self.arch] = copied_back
 
                     symlink = os.path.join(self.output_builds,
@@ -448,16 +448,16 @@ class Build:
             else:
                 logger.warning('Did not find build log at %s', product)
                 logger.warning('Possible build logs:\n%s',
-                        self.machine.check_call(['sh', '-c',
+                        self.worker.check_call(['sh', '-c',
                             'cd "$1"; ls -l *.build || :',
                             'sh', # argv[0]
-                            self.machine.scratch]))
+                            self.worker.scratch]))
 
         if self.arch == 'source' and self.buildable.source_from_archive:
-            dscs = self.machine.check_output(['sh', '-c',
+            dscs = self.worker.check_output(['sh', '-c',
                 'exec ls "$1"/out/*.dsc',
                 'sh', # argv[0]
-                self.machine.scratch], universal_newlines=True)
+                self.worker.scratch], universal_newlines=True)
 
             dscs = dscs.splitlines()
             if len(dscs) != 1:
@@ -469,7 +469,7 @@ class Build:
             with TemporaryDirectory() as tmp:
                 copied_back = os.path.join(tmp,
                         '{}.dsc'.format(self.buildable.buildable))
-                self.machine.copy_to_host(product, copied_back)
+                self.worker.copy_to_host(product, copied_back)
 
                 self.buildable.dsc = Dsc(open(copied_back))
                 self.buildable.source_package = self.buildable.dsc['source']
@@ -482,7 +482,7 @@ class Build:
         if self.output_builds is None:
             return
 
-        product = '{}/out/{}_{}.changes'.format(self.machine.scratch,
+        product = '{}/out/{}_{}.changes'.format(self.worker.scratch,
             self.buildable.product_prefix,
             self.arch)
 
@@ -490,7 +490,7 @@ class Build:
         copied_back = os.path.join(self.output_builds,
                 '{}_{}.changes'.format(self.buildable.product_prefix,
                     self.arch))
-        self.machine.copy_to_host(product, copied_back)
+        self.worker.copy_to_host(product, copied_back)
         self.buildable.changes_produced[self.arch] = copied_back
 
         changes_out = Changes(open(copied_back))
@@ -508,8 +508,8 @@ class Build:
 
             assert self.buildable.dsc_name is not None
             # Save some space
-            self.machine.check_call(['rm', '-fr',
-                    '{}/in/{}_source/'.format(self.machine.scratch,
+            self.worker.check_call(['rm', '-fr',
+                    '{}/in/{}_source/'.format(self.worker.scratch,
                         self.buildable.product_prefix)])
 
         for f in changes_out['files']:
@@ -518,6 +518,6 @@ class Build:
 
             logger.info('Additionally copying %s back to host...',
                     f['name'])
-            product = '{}/out/{}'.format(self.machine.scratch, f['name'])
+            product = '{}/out/{}'.format(self.worker.scratch, f['name'])
             copied_back = os.path.join(self.output_builds, f['name'])
-            self.machine.copy_to_host(product, copied_back)
+            self.worker.copy_to_host(product, copied_back)

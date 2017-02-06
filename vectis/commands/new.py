@@ -5,7 +5,7 @@
 import os
 import subprocess
 
-from vectis.virt import Machine
+from vectis.worker import Worker
 
 def vmdebootstrap_argv(args, setup_script):
     argv = ['env',
@@ -70,16 +70,16 @@ def new_ubuntu(args, out):
         return image
 
 def new(args, out):
-    with Machine(args.builder) as machine:
-        machine.check_call([
+    with Worker(args.worker) as worker:
+        worker.check_call([
             'env', 'DEBIAN_FRONTEND=noninteractive',
             'apt-get', '-y', 'update',
             ])
-        machine.check_call([
+        worker.check_call([
             'env', 'DEBIAN_FRONTEND=noninteractive',
             'apt-get', '-y', 'upgrade',
             ])
-        machine.check_call([
+        worker.check_call([
             'apt-get',
             '-y',
             '--no-install-recommends',
@@ -92,19 +92,19 @@ def new(args, out):
             'vmdebootstrap',
             ])
 
-        machine.check_call([
+        worker.check_call([
                 'env', 'DEBIAN_FRONTEND=noninteractive',
-                machine.command_wrapper,
+                worker.command_wrapper,
                 '--',
                 ] + vmdebootstrap_argv(args,
                     '/usr/share/autopkgtest/setup-commands/setup-testbed') + [
-                '--image={}/output.raw'.format(machine.scratch)])
-        machine.check_call(['qemu-img', 'convert', '-f', 'raw', '-O',
+                '--image={}/output.raw'.format(worker.scratch)])
+        worker.check_call(['qemu-img', 'convert', '-f', 'raw', '-O',
                 'qcow2', '-c', '-p',
-                '{}/output.raw'.format(machine.scratch),
-                '{}/output.qcow2'.format(machine.scratch),
+                '{}/output.raw'.format(worker.scratch),
+                '{}/output.qcow2'.format(worker.scratch),
             ])
-        machine.copy_to_host('{}/output.qcow2'.format(machine.scratch),
+        worker.copy_to_host('{}/output.qcow2'.format(worker.scratch),
                 out + '.new')
 
     return out + '.new'
@@ -119,9 +119,9 @@ def run(args):
         created = new(args, out)
 
     try:
-        with Machine('qemu {}'.format(created)) as machine:
-            machine.check_call(['apt-get', '-y', 'update'])
-            machine.check_call(['apt-get',
+        with Worker('qemu {}'.format(created)) as worker:
+            worker.check_call(['apt-get', '-y', 'update'])
+            worker.check_call(['apt-get',
                 '-y',
                 '--no-install-recommends',
                 'install',

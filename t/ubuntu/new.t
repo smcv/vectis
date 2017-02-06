@@ -30,7 +30,7 @@ image="$(cd "${storage}" && ls -1 vectis-ubuntu-*-"${arch}".qcow2)"
 
 "$VECTIS" --vendor=debian --storage="${storage}" sbuild \
     --mirror="${VECTIS_TEST_UBUNTU_MIRROR}" \
-    --builder="qemu $image" \
+    --worker="qemu $image" \
     --suite=devel \
     hello
 

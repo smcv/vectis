@@ -17,32 +17,31 @@ _WRAPPER = os.path.join(os.path.dirname(__file__), 'vectis-command-wrapper')
 
 logger = logging.getLogger(__name__)
 
-class MachineError(Error):
+class WorkerError(Error):
     pass
 
-class Machine:
-    def __init__(self, builder):
+class Worker:
+    def __init__(self, worker):
         self.__cached_copies = {}
         self.__command_wrapper_enabled = False
         self.__dpkg_architecture = None
         self.call_argv = None
         self.capabilities = set()
         self.command_wrapper = None
-        self.builder = builder
+        self.worker = worker
         self.stack = ExitStack()
         self.user = 'user'
         self.virt_process = None
 
     def __enter__(self):
-        argv = list(map(os.path.expanduser, self.builder.split()))
+        argv = list(map(os.path.expanduser, self.worker.split()))
 
         for prefix in ('autopkgtest-virt-', 'adt-virt-', ''):
             if shutil.which(prefix + argv[0]):
                 argv[0] = prefix + argv[0]
                 break
         else:
-            raise MachineError('virtualization provider %r not found' %
-                             argv[0])
+            raise WorkerError('virtualization provider %r not found' % argv[0])
 
         self.virt_process = subprocess.Popen(
                 argv,
@@ -58,7 +57,7 @@ class Machine:
         line = self.virt_process.stdout.readline()
 
         if line != 'ok\n':
-            raise MachineError('Virtual machine {!r} failed to start: '
+            raise WorkerError('Virtual machine {!r} failed to start: '
                     '{}'.format(argv, line.strip()))
 
         self.virt_process.stdin.write('capabilities\n')
@@ -66,7 +65,7 @@ class Machine:
         line = self.virt_process.stdout.readline()
 
         if not line.startswith('ok '):
-            raise MachineError('Virtual machine {!r} failed to report '
+            raise WorkerError('Virtual machine {!r} failed to report '
                 'capabilities: {}'.format(line.strip()))
 
         for word in line.split()[1:]:
@@ -75,19 +74,19 @@ class Machine:
                 self.user = word[len('suggested-normal-user='):]
 
         if 'root-on-testbed' not in self.capabilities:
-            raise MachineError('Virtual machine {!r} does not have '
+            raise WorkerError('Virtual machine {!r} does not have '
                     'root-on-testbed capability: {}'.format(argv, line.strip()))
 
         if ('isolation-machine' not in self.capabilities and
                 'isolation-container' not in self.capabilities):
-            raise MachineError('Virtual machine {!r} does not have '
+            raise WorkerError('Virtual machine {!r} does not have '
                     'sufficient isolation: {}'.format(argv, line.strip()))
 
         self.virt_process.stdin.write('open\n')
         self.virt_process.stdin.flush()
         line = self.virt_process.stdout.readline()
         if not line.startswith('ok '):
-            raise MachineError('Failed to open virtual machine session {!r}: '
+            raise WorkerError('Failed to open virtual machine session {!r}: '
                     '{}'.format(argv, line))
         self.scratch = line[3:].rstrip('\n')
 
@@ -95,13 +94,13 @@ class Machine:
         self.virt_process.stdin.flush()
         line = self.virt_process.stdout.readline()
         if not line.startswith('ok '):
-            raise MachineError('Failed to get virtual machine {!r} command '
+            raise WorkerError('Failed to get virtual machine {!r} command '
                     'wrapper: {}'.format(argv, line.strip()))
 
         wrapper_argv = line.rstrip('\n').split(None, 1)[1].split(',')
         self.call_argv = list(map(urllib.parse.unquote, wrapper_argv))
         if not self.call_argv:
-            raise MachineError('Virtual machine {!r} command wrapper did not '
+            raise WorkerError('Virtual machine {!r} command wrapper did not '
                     'provide any arguments: {}'.format(argv, line.strip()))
 
         wrapper = '{}/vectis-command-wrapper'.format(self.scratch)
@@ -131,7 +130,7 @@ class Machine:
             return
 
         if not os.path.exists(host_path):
-            raise MachineError('Cannot copy host:{!r} to guest: it does '
+            raise WorkerError('Cannot copy host:{!r} to guest: it does '
                     'not exist'.format(host_path))
 
         self.virt_process.stdin.write('copydown {} {}\n'.format(
@@ -142,7 +141,7 @@ class Machine:
         line = self.virt_process.stdout.readline()
 
         if line != 'ok\n':
-            raise MachineError('Failed to copy host:{!r} to guest:{!r}: '
+            raise WorkerError('Failed to copy host:{!r} to guest:{!r}: '
                     '{}'.format(host_path, guest_path, line.strip()))
 
         if cache:
@@ -150,7 +149,7 @@ class Machine:
 
     def copy_to_host(self, guest_path, host_path):
         if self.call(['test', '-e', guest_path]) != 0:
-            raise MachineError('Cannot copy guest:{!r} to host: it does '
+            raise WorkerError('Cannot copy guest:{!r} to host: it does '
                     'not exist'.format(guest_path))
 
         self.virt_process.stdin.write('copyup {} {}\n'.format(
@@ -160,7 +159,7 @@ class Machine:
         self.virt_process.stdin.flush()
         line = self.virt_process.stdout.readline()
         if line != 'ok\n':
-            raise MachineError('Failed to copy guest:{!r} to host:{!r}: '
+            raise WorkerError('Failed to copy guest:{!r} to host:{!r}: '
                     '{}'.format(guest_path, host_path, line.strip()))
 
     def open_shell(self):

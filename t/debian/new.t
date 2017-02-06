@@ -37,12 +37,12 @@ echo "1..1"
 "$VECTIS" --vendor=debian --storage="${storage}" \
     new \
     --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" \
-    --builder='qemu ${storage}/vectis-debian-sid-${architecture}.qcow2' \
+    --worker='qemu ${storage}/vectis-debian-sid-${architecture}.qcow2' \
     --suite=sid
 test ! -L "${storage}/vectis-debian-sid-${arch}.qcow2"
 "$VECTIS" --vendor=debian --storage="${storage}" sbuild \
     --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" \
-    --builder='qemu ${storage}/vectis-debian-sid-${architecture}.qcow2' \
+    --worker='qemu ${storage}/vectis-debian-sid-${architecture}.qcow2' \
     --suite=sid \
     hello
 rm -fr "${storage}"

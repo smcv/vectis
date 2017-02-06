@@ -5,7 +5,7 @@
 import logging
 
 from vectis.error import ArgumentError
-from vectis.virt import Machine
+from vectis.worker import Worker
 
 logger = logging.getLogger(__name__)
 
@@ -14,9 +14,9 @@ def run(args):
         raise ArgumentError('Usage: vectis run -- PROGRAM [$1 [$2...]] '
                 'or vectis run -c "shell one-liner" [$0 [$1 [$2...]]]')
 
-    with Machine('qemu {}'.format(args.qemu_image)) as machine:
+    with Worker('qemu {}'.format(args.qemu_image)) as worker:
         if args._shell_command is not None:
-            machine.check_call(['sh', '-c', args._shell_command] +
+            worker.check_call(['sh', '-c', args._shell_command] +
                     args._argv)
         else:
-            machine.check_call(args._argv)
+            worker.check_call(args._argv)

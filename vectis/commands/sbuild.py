@@ -14,7 +14,7 @@ from vectis.debuild import (
 from vectis.util import (
         AtomicWriter,
         )
-from vectis.virt import Machine
+from vectis.worker import Worker
 
 logger = logging.getLogger(__name__)
 
@@ -60,15 +60,15 @@ def get_dpkg_source_options(args):
 
     return argv
 
-def _run(args, machine):
+def _run(args, worker):
     buildables = []
 
     for a in (args._buildables or ['.']):
         buildables.append(Buildable(a, vendor=args.vendor))
 
     logger.info('Installing sbuild')
-    machine.check_call(['apt-get', '-y', 'update'])
-    machine.check_call([
+    worker.check_call(['apt-get', '-y', 'update'])
+    worker.check_call([
         'apt-get',
         '-y',
         '--no-install-recommends',
@@ -82,7 +82,7 @@ def _run(args, machine):
     for buildable in buildables:
         logger.info('Processing: %s', buildable)
 
-        buildable.copy_source_to(machine)
+        buildable.copy_source_to(worker)
 
         buildable.select_suite(args.suite)
 
@@ -95,7 +95,7 @@ def _run(args, machine):
         dpkg_source_options = get_dpkg_source_options(args)
 
         def new_build(arch, output_builds=args.output_builds):
-            return Build(buildable, arch, machine,
+            return Build(buildable, arch, worker,
                     components=args.components,
                     extra_repositories=args._extra_repository,
                     dpkg_buildpackage_options=dpkg_buildpackage_options,
@@ -112,7 +112,7 @@ def _run(args, machine):
             new_build('source', output_builds=None).sbuild()
 
         if not args._source_only:
-            buildable.select_archs(machine.dpkg_architecture, args._archs,
+            buildable.select_archs(worker.dpkg_architecture, args._archs,
                     args._indep, args.sbuild_together)
 
             for arch in buildable.archs:
@@ -220,5 +220,5 @@ def _run(args, machine):
                 )
 
 def run(args):
-    with Machine(args.builder) as machine:
-        _run(args, machine)
+    with Worker(args.worker) as worker:
+        _run(args, worker)

@@ -33,7 +33,7 @@ nobase_dist_pkgdata_DATA = \
 	vectis/debuild.py \
 	vectis/error.py \
 	vectis/util.py \
-	vectis/virt.py \
+	vectis/worker.py \
 	${NULL}
 
 nobase_dist_pkgdata_SCRIPTS = \

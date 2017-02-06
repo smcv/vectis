@@ -9,7 +9,7 @@ from tempfile import TemporaryDirectory
 
 from vectis.commands.new import vmdebootstrap_argv
 from vectis.error import ArgumentError
-from vectis.virt import Machine
+from vectis.worker import Worker
 
 def run(args):
     if args.suite is None:
@@ -30,9 +30,9 @@ def run(args):
         shutil.move('{}/output.qcow2'.format(scratch), out + '.new')
 
         try:
-            with Machine('qemu {}.new'.format(out)) as machine:
-                machine.check_call(['apt-get', '-y', 'update'])
-                machine.check_call(['apt-get',
+            with Worker('qemu {}.new'.format(out)) as worker:
+                worker.check_call(['apt-get', '-y', 'update'])
+                worker.check_call(['apt-get',
                     '-y',
                     '--no-install-recommends',
                     'install',

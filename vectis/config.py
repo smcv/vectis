@@ -54,11 +54,11 @@ defaults:
     suite: null
     unstable_suite: null
 
-    build_vendor: debian
-    build_suite: null
-    build_architecture: "${architecture}"
-    builder: "autopkgtest-virt-qemu ${builder_qemu_image}"
-    builder_qemu_image: null
+    worker_vendor: debian
+    worker_suite: null
+    worker_architecture: "${architecture}"
+    worker: "autopkgtest-virt-qemu ${worker_qemu_image}"
+    worker_qemu_image: null
 
     bootstrap_mirror: "${mirror}"
 
@@ -107,9 +107,9 @@ vendors:
                 null: null
 
     ubuntu:
-        build_suite: "${stable_suite}"
-        build_vendor: ubuntu
-        builder: "autopkgtest-virt-qemu --user=ubuntu --password=ubuntu ${builder_qemu_image}"
+        worker_suite: "${stable_suite}"
+        worker_vendor: ubuntu
+        worker: "autopkgtest-virt-qemu --user=ubuntu --password=ubuntu ${worker_qemu_image}"
         extra_components: universe restricted multiverse
         suites:
             trusty:
@@ -260,8 +260,8 @@ class _ConfigLike:
         return self._get_filename('output_builds')
 
     @property
-    def build_architecture(self):
-        return Template(self['build_architecture']).substitute(
+    def worker_architecture(self):
+        return Template(self['worker_architecture']).substitute(
                 architecture=self.architecture,
                 )
 
@@ -652,8 +652,8 @@ class Config(_ConfigLike):
         return self._get_vendor(self['vendor'])
 
     @property
-    def build_vendor(self):
-        return self._get_vendor(self['build_vendor'])
+    def worker_vendor(self):
+        return self._get_vendor(self['worker_vendor'])
 
     def __setattr__(self, name, value):
         if name.startswith('_'):
@@ -662,28 +662,28 @@ class Config(_ConfigLike):
             self._overrides[name] = value
 
     @property
-    def build_suite(self):
-        value = self['build_suite']
+    def worker_suite(self):
+        value = self['worker_suite']
 
         if value is None:
-            value = self.build_vendor.unstable_suite
+            value = self.worker_vendor.unstable_suite
 
         return value
 
     @property
-    def builder_qemu_image(self):
-        value = self['builder_qemu_image']
+    def worker_qemu_image(self):
+        value = self['worker_qemu_image']
 
         if value is None:
-            value = self.build_vendor['qemu_image']
+            value = self.worker_vendor['qemu_image']
 
         value = Template(value).substitute(
                 RecursiveExpansionMap(
-                    architecture=self.build_architecture,
-                    stable_suite=self.build_vendor.stable_suite,
-                    suite=self.build_suite,
-                    unstable_suite=self.build_vendor.unstable_suite,
-                    vendor=self.build_vendor,
+                    architecture=self.worker_architecture,
+                    stable_suite=self.worker_vendor.stable_suite,
+                    suite=self.worker_suite,
+                    unstable_suite=self.worker_vendor.unstable_suite,
+                    vendor=self.worker_vendor,
                     )
                 )
 
@@ -693,15 +693,15 @@ class Config(_ConfigLike):
         return value
 
     @property
-    def builder(self):
-        return Template(self['builder']).substitute(
+    def worker(self):
+        return Template(self['worker']).substitute(
                 RecursiveExpansionMap(
-                    architecture=self.build_architecture,
-                    builder_qemu_image=self.builder_qemu_image,
-                    stable_suite=self.build_vendor.stable_suite,
-                    suite=self.build_suite,
-                    unstable_suite=self.build_vendor.unstable_suite,
-                    vendor=self.build_vendor,
+                    architecture=self.worker_architecture,
+                    worker_qemu_image=self.worker_qemu_image,
+                    stable_suite=self.worker_vendor.stable_suite,
+                    suite=self.worker_suite,
+                    unstable_suite=self.worker_vendor.unstable_suite,
+                    vendor=self.worker_vendor,
                     )
                 )
 

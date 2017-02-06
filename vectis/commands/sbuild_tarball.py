@@ -5,7 +5,7 @@
 import logging
 import os
 
-from vectis.virt import Machine
+from vectis.worker import Worker
 
 logger = logging.getLogger(__name__)
 
@@ -22,13 +22,13 @@ def run(args):
             )
     logger.info('Creating tarball %s...', sbuild_tarball)
 
-    with Machine(args.builder) as machine:
+    with Worker(args.worker) as worker:
         logger.info('Installing debootstrap and sbuild')
-        machine.check_call([
+        worker.check_call([
             'env', 'DEBIAN_FRONTEND=noninteractive',
             'apt-get', '-y', 'update',
             ])
-        machine.check_call([
+        worker.check_call([
             'apt-get',
             '-y',
             '--no-install-recommends',
@@ -39,28 +39,28 @@ def run(args):
             'sbuild',
             'schroot',
             ])
-        machine.check_call([
+        worker.check_call([
                 'env', 'DEBIAN_FRONTEND=noninteractive',
-                machine.command_wrapper,
+                worker.command_wrapper,
                 '--',
                 'sbuild-createchroot',
                 '--arch={}'.format(args.architecture),
                 '--include=fakeroot,sudo,vim',
                 '--components={}'.format(','.join(args.components)),
-                '--make-sbuild-tarball={}/output.tar.gz'.format(machine.scratch),
+                '--make-sbuild-tarball={}/output.tar.gz'.format(worker.scratch),
                 '--chroot-prefix=vectis',
                 '--chroot-suffix=',
-                args.suite, '{}/chroot'.format(machine.scratch),
+                args.suite, '{}/chroot'.format(worker.scratch),
                 args.mirror,
                 '/usr/share/debootstrap/scripts/{}'.format(args.debootstrap_script),
             ])
 
         # Smoke-test the new tarball before being prepared to use it.
         if args._test_package:
-            machine.check_call([
-                machine.command_wrapper,
+            worker.check_call([
+                worker.command_wrapper,
                 '--chdir',
-                machine.scratch,
+                worker.scratch,
                 '--',
                 'runuser',
                 '-u', 'sbuild',
@@ -73,7 +73,7 @@ def run(args):
                 ])
 
         out = os.path.join(args.storage, sbuild_tarball)
-        machine.copy_to_host('{}/output.tar.gz'.format(machine.scratch), out + '.new')
+        worker.copy_to_host('{}/output.tar.gz'.format(worker.scratch), out + '.new')
         os.rename(out + '.new', out)
 
     logger.info('Created tarball %s', sbuild_tarball)
