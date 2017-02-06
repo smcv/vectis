@@ -13,8 +13,8 @@ from vectis.worker import Worker
 
 def run(args):
     if args.suite is None:
-        if args.unstable_suite is not None:
-            args.suite = args.unstable_suite
+        if args.worker_suite is not None:
+            args.suite = args.worker_suite
         else:
             raise ArgumentError('--suite must be specified')
 

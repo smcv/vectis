@@ -47,12 +47,10 @@ defaults:
     qemu_image: "vectis-${vendor}-${suite}-${architecture}.qcow2"
     write_qemu_image: "${qemu_image}"
     debootstrap_script: "${suite}"
-    default_suite: "${unstable_suite}"
+    default_suite: null
     aliases: {}
     architecture: null
-    stable_suite: null
     suite: null
-    unstable_suite: null
 
     worker_vendor: debian
     worker_suite: null
@@ -107,7 +105,6 @@ vendors:
                 null: null
 
     ubuntu:
-        worker_suite: "${stable_suite}"
         worker_vendor: ubuntu
         worker: "autopkgtest-virt-qemu --user=ubuntu --password=ubuntu ${worker_qemu_image}"
         extra_components: universe restricted multiverse
@@ -199,17 +196,6 @@ class _ConfigLike:
         raise ConfigError('{!r} key {!r} has no default and must be '
                 'configured'.format(self, name))
 
-    # FIXME: architecture and suite can't be mandatory like this because
-    # we have to be able to say they're None as a way to mean "please guess"
-
-    @property
-    def unstable_suite(self):
-        return self._get_mandatory_string('unstable_suite')
-
-    @property
-    def stable_suite(self):
-        return self._get_mandatory_string('stable_suite')
-
     def __getattr__(self, name):
         try:
             return self[name]
@@ -222,9 +208,7 @@ class _ConfigLike:
                 RecursiveExpansionMap(
                     architecture=self.architecture,
                     qemu_image=self.qemu_image,
-                    stable_suite=self.stable_suite,
                     suite=self.suite,
-                    unstable_suite=self.unstable_suite,
                     vendor=self.vendor,
                     ),
                 )
@@ -239,9 +223,7 @@ class _ConfigLike:
         value = Template(self['qemu_image']).substitute(
                 RecursiveExpansionMap(
                     architecture=self.architecture,
-                    stable_suite=self.stable_suite,
                     suite=self.suite,
-                    unstable_suite=self.unstable_suite,
                     vendor=self.vendor,
                     )
                 )
@@ -545,10 +527,10 @@ class Config(_ConfigLike):
         else:
             debian = distro_info.DebianDistroInfo()
             ubuntu = distro_info.UbuntuDistroInfo()
-            d['vendors']['debian']['stable_suite'] = debian.stable()
-            d['vendors']['ubuntu']['stable_suite'] = ubuntu.lts()
-            d['vendors']['debian']['unstable_suite'] = debian.devel()
-
+            d['vendors']['debian']['default_suite'] = 'sid'
+            # FIXME: should be stable, when we use buildd.debian.org sbuild
+            # (Github #2, #4)
+            d['vendors']['debian']['worker_suite'] = 'sid'
             d['vendors']['debian']['suites']['stable'] = {
                     'alias_for': debian.stable(),
             }
@@ -567,7 +549,8 @@ class Config(_ConfigLike):
             except distro_info.DistroDataOutdated:
                 ubuntu_devel = ubuntu.stable()
 
-            d['vendors']['ubuntu']['unstable_suite'] = ubuntu_devel
+            d['vendors']['ubuntu']['default_suite'] = ubuntu.devel()
+            d['vendors']['ubuntu']['worker_suite'] = ubuntu.lts()
             d['vendors']['ubuntu']['suites']['devel'] = {
                     'alias_for': ubuntu_devel,
             }
@@ -666,7 +649,7 @@ class Config(_ConfigLike):
         value = self['worker_suite']
 
         if value is None:
-            value = self.worker_vendor.unstable_suite
+            value = self.worker_vendor.default_suite
 
         return value
 
@@ -680,9 +663,7 @@ class Config(_ConfigLike):
         value = Template(value).substitute(
                 RecursiveExpansionMap(
                     architecture=self.worker_architecture,
-                    stable_suite=self.worker_vendor.stable_suite,
                     suite=self.worker_suite,
-                    unstable_suite=self.worker_vendor.unstable_suite,
                     vendor=self.worker_vendor,
                     )
                 )
@@ -698,9 +679,7 @@ class Config(_ConfigLike):
                 RecursiveExpansionMap(
                     architecture=self.worker_architecture,
                     worker_qemu_image=self.worker_qemu_image,
-                    stable_suite=self.worker_vendor.stable_suite,
                     suite=self.worker_suite,
-                    unstable_suite=self.worker_vendor.unstable_suite,
                     vendor=self.worker_vendor,
                     )
                 )

@@ -43,7 +43,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIsNotNone(self.__config.qemu_image)
         self.__config.suite
 
-        self.assertEqual(self.__config.unstable_suite, 'sid')
+        self.assertEqual(self.__config.default_suite, 'sid')
         self.assertEqual(self.__config.components, {'main'})
         self.assertEqual(self.__config.extra_components,
                 {'contrib', 'non-free'})
@@ -78,7 +78,7 @@ class DefaultsTestCase(unittest.TestCase):
         ubuntu = self.__config._get_vendor('ubuntu')
 
         self.assertEqual(str(debian), 'debian')
-        self.assertEqual(debian.unstable_suite, 'sid')
+        self.assertEqual(debian.default_suite, 'sid')
         self.assertEqual(str(debian.get_suite('unstable')), 'sid')
         self.assertIs(debian.get_suite('unstable'), debian.get_suite('sid'))
         self.assertEqual(str(debian.get_suite('rc-buggy')), 'experimental')
@@ -120,12 +120,6 @@ class DefaultsTestCase(unittest.TestCase):
         # FIXME: fails: ends with "${archive}"
         #self.assertEqual(steamos.mirror, 'http://192.168.122.1:3142/steamos')
 
-        with self.assertRaises(ConfigError):
-            steamos.stable_suite
-
-        with self.assertRaises(ConfigError):
-            steamos.unstable_suite
-
         self.assertIsNone(steamos.get_suite('xyzzy', create=False))
         self.assertIsNotNone(steamos.get_suite('xyzzy'))
         self.assertIs(steamos.get_suite('xyzzy'), steamos.get_suite('xyzzy'))
@@ -148,26 +142,16 @@ class DefaultsTestCase(unittest.TestCase):
         try:
             import distro_info
         except ImportError:
-            self.assertIsNone(debian.stable_suite)
-            self.assertIsNone(ubuntu.stable_suite)
-            self.assertIsNone(ubuntu.unstable_suite)
-
-            with self.assertRaises(ValueError):
-                print(self.__config.stable_suite)
+            pass
         else:
             debian_info = distro_info.DebianDistroInfo()
             ubuntu_info = distro_info.UbuntuDistroInfo()
-
-            self.assertEqual(self.__config.stable_suite, debian_info.stable())
-            self.assertEqual(debian.stable_suite, debian_info.stable())
-            self.assertEqual(ubuntu.stable_suite, ubuntu_info.lts())
 
             try:
                 ubuntu_devel = ubuntu_info.devel()
             except distro_info.DistroDataOutdated:
                 ubuntu_devel = ubuntu_info.stable()
 
-            self.assertEqual(ubuntu.unstable_suite, ubuntu_devel)
             self.assertEqual(str(ubuntu.get_suite('devel')), ubuntu_devel)
             self.assertEqual(str(debian.get_suite('unstable')),
                     'sid')

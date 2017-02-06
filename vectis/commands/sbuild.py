@@ -87,7 +87,7 @@ def _run(args, worker):
         buildable.select_suite(args.suite)
 
         if buildable.suite == 'UNRELEASED':
-            suite = args.vendor.get_suite(args.vendor.unstable_suite)
+            suite = args.vendor.get_suite(args.vendor.default_suite)
         else:
             suite = args.vendor.get_suite(buildable.suite)
 
