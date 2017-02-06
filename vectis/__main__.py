@@ -99,6 +99,8 @@ p.add_argument('-c', '--shell-command', dest='_shell_command',
 p.add_argument('_argv', metavar='ARGV',
         help='Argument vector', nargs='*',
         default=[])
+p.add_argument('--suite',
+        help='Release suite [default: {}]'.format(args.default_suite))
 
 help = 'Create a schroot tarball with sbuild-createchroot'
 p = subparsers.add_parser('sbuild-tarball',
