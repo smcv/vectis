@@ -102,6 +102,9 @@ p = subparsers.add_parser('sbuild-tarball',
 p.add_argument('--builder',
         help='Virtual machine to use '
         '[default: {}]'.format(args.builder))
+p.add_argument('--build-suite',
+        help='Virtual machine suite to use '
+        '[default: {}]'.format(args.build_suite))
 p.add_argument('--debootstrap-script',
         help='debootstrap script to run '
         '[default: {}]'.format(args.debootstrap_script))
@@ -123,6 +126,8 @@ p = subparsers.add_parser('sbuild',
 p.add_argument('--builder',
         help='Virtual machine image to use '
         '[default: {}]'.format(args.builder))
+p.add_argument('--build-suite',
+        help='Suite to run in virtual machine, [default={}]'.format(args.build_suite))
 p.add_argument('_buildables', metavar='CHANGES_OR_DSC_OR_DIR',
         help='sourceful .changes or .dsc or source directory', nargs='*',
         default=[])
