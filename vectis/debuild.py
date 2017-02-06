@@ -378,7 +378,15 @@ class Build:
         if self.arch == 'all':
             logger.info('Architecture: all')
             argv.append('-A')
-            argv.append('--no-arch-any')
+
+            # Backwards compatibility goo for Debian jessie buildd backport
+            if self.worker.call(['sh', '-c',
+                    'dpkg --compare-versions ' +
+                    '"$(dpkg-query -W -f\'${Version}\' sbuild)"' +
+                    ' lt 0.69.0']) == 0:
+                argv.append('--arch-all-only')
+            else:
+                argv.append('--no-arch-any')
         elif self.arch == self.buildable.together_with:
             logger.info('Architecture: %s + all', self.arch)
             argv.append('-A')
@@ -386,7 +394,36 @@ class Build:
             argv.append(self.arch)
         elif self.arch == 'source':
             logger.info('Source-only')
-            argv.append('--no-arch-any')
+
+            # Backwards compatibility goo for Debian jessie buildd backport
+            if self.worker.call(['sh', '-c',
+                    'dpkg --compare-versions ' +
+                    '"$(dpkg-query -W -f\'${Version}\' sbuild)"' +
+                    ' lt 0.69.0']) == 0:
+                # If we only build 'all', and we don't build 'all',
+                # then logically we build nothing (except source).
+                argv.append('--arch-all-only')
+                argv.append('--no-arch-all')
+                # Urgh. This sbuild expects to find foo_1_amd64.changes
+                # even for a source-only build (because it doesn't really
+                # support source-only builds), so we have to cheat.
+                # sbuild splits the command on spaces so we need to have
+                # a one-liner that doesn't contain embedded whitespace.
+                # Luckily, Perl can be written as line-noise.
+                argv.append('--finished-build-commands=perl -e ' +
+                        '$arch=qx(dpkg\\x20--print-architecture);' +
+                        'chomp($arch);' +
+                        'chdir(shift);' +
+                        'foreach(glob("../*_source.changes")){' +
+                             '$orig=$_;' +
+                             's/_source\\.changes$/_${arch}.changes/;' +
+                             'print("Renaming\\x20$orig\\x20to\\x20$_\\n");' +
+                             'rename($orig,$_)||die("$!");' +
+                        '}' +
+                        ' %p')
+            else:
+                argv.append('--no-arch-any')
+
             argv.append('--source')
         else:
             logger.info('Architecture: %s only', self.arch)
@@ -483,9 +520,15 @@ class Build:
         if self.output_builds is None:
             return
 
-        product = '{}/out/{}_{}.changes'.format(self.worker.scratch,
-            self.buildable.product_prefix,
-            self.arch)
+        for product_arch in (self.arch, self.worker.dpkg_architecture):
+            product = '{}/out/{}_{}.changes'.format(self.worker.scratch,
+                self.buildable.product_prefix,
+                product_arch)
+            if self.worker.call(['test', '-e', product]) == 0:
+                break
+        else:
+            raise CannotHappen('sbuild produced no .changes file from '
+                    '{!r}'.format(self.buildable))
 
         logger.info('Copying %s back to host...', product)
         copied_back = os.path.join(self.output_builds,

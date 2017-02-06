@@ -76,6 +76,8 @@ defaults:
 vendors:
     debian:
         extra_components: contrib non-free
+        worker_suite: jessie-apt.buildd.debian.org
+        worker_vendor: debian
         suites:
             wheezy:
                 force_parallel: 1
@@ -104,7 +106,12 @@ vendors:
                 apt_suite: "${base}/updates"
             "*-updates":
                 null: null
-
+            "*-apt.buildd.debian.org":
+                mirror: "http://192.168.122.1:3142/apt.buildd.debian.org"
+                # https://anonscm.debian.org/cgit/mirror/dsa-puppet.git/tree/modules/buildd/
+                apt_key: "buildd.debian.org_archive_key_2015_2016.gpg"
+                apt_suite: "${base}"
+                components: main
     ubuntu:
         worker_vendor: ubuntu
         worker: "autopkgtest-virt-qemu --user=ubuntu --password=ubuntu ${worker_qemu_image}"
@@ -546,9 +553,6 @@ class Config(_ConfigLike):
             debian = distro_info.DebianDistroInfo()
             ubuntu = distro_info.UbuntuDistroInfo()
             d['vendors']['debian']['default_suite'] = 'sid'
-            # FIXME: should be stable, when we use buildd.debian.org sbuild
-            # (Github #2, #4)
-            d['vendors']['debian']['worker_suite'] = 'sid'
             d['vendors']['debian']['suites']['stable'] = {
                     'alias_for': debian.stable(),
             }
