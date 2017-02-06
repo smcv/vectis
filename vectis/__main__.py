@@ -56,6 +56,8 @@ p.add_argument('--suite',
         help='Release suite [default: {}]'.format(args.default_suite))
 p.add_argument('--architecture', '--arch',
         help='dpkg architecture [default: {}]'.format(args.architecture))
+p.add_argument('--keep', action='store_true', default=False, dest='_keep',
+        help='Keep the new image even if testing fails')
 
 help = 'Create an autopkgtest virtual machine'
 p = subparsers.add_parser('new',
@@ -75,6 +77,8 @@ p.add_argument('--suite',
         help='Release suite [default: {}]'.format(args.default_suite))
 p.add_argument('--architecture', '--arch',
         help='dpkg architecture [default: {}]'.format(args.architecture))
+p.add_argument('--keep', action='store_true', default=False, dest='_keep',
+        help='Keep the new image even if testing fails')
 
 help = 'Run a script or command'
 p = subparsers.add_parser('run',
@@ -115,6 +119,8 @@ p.add_argument('--architecture', '--arch',
 p.add_argument('--test-package', dest='_test_package',
         help='An architecture-dependent test package to build as a smoke-test',
         default='sed')
+p.add_argument('--keep', action='store_true', default=False, dest='_keep',
+        help='Keep the new tarball even if testing fails')
 
 help = 'Build a Debian package with sbuild'
 p = subparsers.add_parser('sbuild',

@@ -131,7 +131,12 @@ def run(args):
                 'schroot',
                 ])
     except:
-        os.remove(created)
+        if args._keep:
+            if created != out + '.new':
+                os.rename(created, out + '.new')
+        else:
+            os.remove(created)
+
         raise
     else:
         os.rename(created, out)

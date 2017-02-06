@@ -55,24 +55,33 @@ def run(args):
                 '/usr/share/debootstrap/scripts/{}'.format(args.debootstrap_script),
             ])
 
+        out = os.path.join(args.storage, sbuild_tarball)
+
         # Smoke-test the new tarball before being prepared to use it.
         if args._test_package:
-            worker.check_call([
-                worker.command_wrapper,
-                '--chdir',
-                worker.scratch,
-                '--',
-                'runuser',
-                '-u', 'sbuild',
-                '--',
-                'sbuild',
-                '-c', 'vectis-{}'.format(args.architecture),
-                '-d', 'whatever',
-                '--no-run-lintian',
-                args._test_package,
-                ])
+            try:
+                worker.check_call([
+                    worker.command_wrapper,
+                    '--chdir',
+                    worker.scratch,
+                    '--',
+                    'runuser',
+                    '-u', 'sbuild',
+                    '--',
+                    'sbuild',
+                    '-c', 'vectis-{}'.format(args.architecture),
+                    '-d', 'whatever',
+                    '--no-run-lintian',
+                    args._test_package,
+                    ])
+            except:
+                if args._keep:
+                    worker.copy_to_host(
+                            '{}/output.tar.gz'.format(worker.scratch),
+                            out + '.new')
 
-        out = os.path.join(args.storage, sbuild_tarball)
+                raise
+
         worker.copy_to_host('{}/output.tar.gz'.format(worker.scratch), out + '.new')
         os.rename(out + '.new', out)
 
