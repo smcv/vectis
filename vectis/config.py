@@ -219,10 +219,14 @@ class _ConfigLike:
     @property
     def write_qemu_image(self):
         value = Template(self['write_qemu_image']).substitute(
-                architecture=self.architecture,
-                qemu_image=self.qemu_image,
-                suite=self.suite,
-                vendor=self.vendor,
+                RecursiveExpansionMap(
+                    architecture=self.architecture,
+                    qemu_image=self.qemu_image,
+                    stable_suite=self.stable_suite,
+                    suite=self.suite,
+                    unstable_suite=self.unstable_suite,
+                    vendor=self.vendor,
+                    ),
                 )
 
         if '/' not in value:
@@ -233,9 +237,13 @@ class _ConfigLike:
     @property
     def qemu_image(self):
         value = Template(self['qemu_image']).substitute(
-                architecture=self.architecture,
-                suite=self.suite,
-                vendor=self.vendor,
+                RecursiveExpansionMap(
+                    architecture=self.architecture,
+                    stable_suite=self.stable_suite,
+                    suite=self.suite,
+                    unstable_suite=self.unstable_suite,
+                    vendor=self.vendor,
+                    )
                 )
 
         if '/' not in value:
@@ -670,9 +678,13 @@ class Config(_ConfigLike):
             value = self.build_vendor['qemu_image']
 
         value = Template(value).substitute(
-                architecture=self.build_architecture,
-                suite=self.build_suite,
-                vendor=self.build_vendor,
+                RecursiveExpansionMap(
+                    architecture=self.build_architecture,
+                    stable_suite=self.build_vendor.stable_suite,
+                    suite=self.build_suite,
+                    unstable_suite=self.build_vendor.unstable_suite,
+                    vendor=self.build_vendor,
+                    )
                 )
 
         if '/' not in value:
@@ -683,11 +695,14 @@ class Config(_ConfigLike):
     @property
     def builder(self):
         return Template(self['builder']).substitute(
-                architecture=self.build_architecture,
-                builder_qemu_image=self.builder_qemu_image,
-                storage=self.storage,
-                suite=self.build_suite,
-                vendor=self.build_vendor,
+                RecursiveExpansionMap(
+                    architecture=self.build_architecture,
+                    builder_qemu_image=self.builder_qemu_image,
+                    stable_suite=self.build_vendor.stable_suite,
+                    suite=self.build_suite,
+                    unstable_suite=self.build_vendor.unstable_suite,
+                    vendor=self.build_vendor,
+                    )
                 )
 
 if __name__ == '__main__':
