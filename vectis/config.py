@@ -208,6 +208,7 @@ class _ConfigLike:
                 RecursiveExpansionMap(
                     architecture=self.architecture,
                     qemu_image=self.qemu_image,
+                    storage=self.storage,
                     suite=self.suite,
                     vendor=self.vendor,
                     ),
@@ -223,6 +224,7 @@ class _ConfigLike:
         value = Template(self['qemu_image']).substitute(
                 RecursiveExpansionMap(
                     architecture=self.architecture,
+                    storage=self.storage,
                     suite=self.suite,
                     vendor=self.vendor,
                     )
@@ -663,6 +665,7 @@ class Config(_ConfigLike):
         value = Template(value).substitute(
                 RecursiveExpansionMap(
                     architecture=self.worker_architecture,
+                    storage=self.storage,
                     suite=self.worker_suite,
                     vendor=self.worker_vendor,
                     )
@@ -679,6 +682,7 @@ class Config(_ConfigLike):
                 RecursiveExpansionMap(
                     architecture=self.worker_architecture,
                     worker_qemu_image=self.worker_qemu_image,
+                    storage=self.storage,
                     suite=self.worker_suite,
                     vendor=self.worker_vendor,
                     )
