@@ -123,7 +123,8 @@ class Buildable:
                 version = None
 
             self.source_package = source
-            self._version = Version(version)
+            if version is not None:
+                self._version = Version(version)
 
         if self.dsc is not None:
             self.source_package = self.dsc['source']
