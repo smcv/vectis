@@ -322,7 +322,6 @@ class Build:
         chroot = '{base}-{arch}-sbuild'.format(base=hierarchy[-1],
                 arch=use_arch)
 
-
         with TemporaryDirectory() as tmp:
             with AtomicWriter(os.path.join(tmp, 'sbuild.conf')) as writer:
                 writer.write(textwrap.dedent('''
@@ -339,6 +338,30 @@ class Build:
                     scratch=self.worker.scratch))
             self.worker.copy_to_guest(os.path.join(tmp, 'sbuild.conf'),
                     '/etc/schroot/chroot.d/{}'.format(chroot))
+
+        # Backwards compatibility goo for Debian jessie buildd backport:
+        # it can't do "sbuild hello", only "sbuild hello_2.10-1"
+        if (self.buildable.source_from_archive and
+                self.buildable.version is None and
+                self.worker.call(['sh', '-c',
+                        'dpkg --compare-versions ' +
+                        '"$(dpkg-query -W -f\'${Version}\' sbuild)"' +
+                        ' lt 0.69.0']) == 0):
+            lines = self.worker.check_output([
+                        'schroot', '-c', chroot,
+                        '--',
+                        'sh', '-c',
+                        'apt-get update >&2 && '
+                        'apt-cache showsrc --only-source "$1" | '
+                        'sed -ne "s/^Version: *//p"',
+                        'sh', # argv[0]
+                        self.buildable.source_package],
+                    universal_newlines=True).strip().splitlines()
+            self.buildable.version = sorted(map(Version, lines))[-1]
+            self.buildable.buildable = '{}_{}'.format(
+                    self.buildable.source_package,
+                    self.buildable.version,
+                    )
 
         argv = [
                 self.worker.command_wrapper,
