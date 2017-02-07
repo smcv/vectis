@@ -127,6 +127,26 @@ p.add_argument('--test-package', dest='_test_package',
 p.add_argument('--keep', action='store_true', default=False, dest='_keep',
         help='Keep the new tarball even if testing fails')
 
+help = 'Create a minbase tarball suitable for piuparts'
+p = subparsers.add_parser('minbase-tarball',
+        help=help, description=help,
+        argument_default=argparse.SUPPRESS,
+        parents=(base,),
+        )
+p.add_argument('--worker',
+        help='Virtual machine to use '
+        '[default: {}]'.format(args.worker))
+p.add_argument('--worker-suite',
+        help='Virtual machine suite to use '
+        '[default: {}]'.format(args.worker_suite))
+p.add_argument('--debootstrap-script',
+        help='debootstrap script to run '
+        '[default: {}]'.format(args.debootstrap_script))
+p.add_argument('--suite',
+        help='Release suite [default: {}]'.format(args.default_suite))
+p.add_argument('--architecture', '--arch',
+        help='dpkg architecture [default: {}]'.format(args.architecture))
+
 help = 'Build a Debian package with sbuild'
 p = subparsers.add_parser('sbuild',
         help=help, description=help,

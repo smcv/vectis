@@ -72,6 +72,10 @@ Usage
 
     Build Debian packages from source.
 
+- `vectis minbase-tarball`
+
+    Create a minimal base tarball for piuparts.
+
 - `vectis run`
 
     Run an executable or shell command in the virtual machine.

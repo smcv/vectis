@@ -25,6 +25,7 @@ nobase_dist_pkgdata_DATA = \
 	vectis/__main__.py \
 	vectis/commands/__init__.py \
 	vectis/commands/bootstrap.py \
+	vectis/commands/minbase_tarball.py \
 	vectis/commands/new.py \
 	vectis/commands/run.py \
 	vectis/commands/sbuild.py \
