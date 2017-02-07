@@ -58,6 +58,9 @@ defaults:
     worker: "autopkgtest-virt-qemu ${worker_qemu_image}"
     worker_qemu_image: null
 
+    autopkgtest: true
+    autopkgtest_qemu_image: "${qemu_image}"
+
     bootstrap_mirror: "${mirror}"
 
     force_parallel: 0
@@ -684,6 +687,25 @@ class Config(_ConfigLike):
             return None
 
         return self.worker_vendor.get_suite(value, True)
+
+    @property
+    def autopkgtest_qemu_image(self):
+        value = self['autopkgtest_qemu_image']
+
+        value = Template(value).substitute(
+                RecursiveExpansionMap(
+                    architecture=self.architecture,
+                    qemu_image=self['qemu_image'],
+                    storage=self.storage,
+                    suite=self.suite.hierarchy[-1],
+                    vendor=self.vendor,
+                    )
+                )
+
+        if '/' not in value:
+            return os.path.join(self.storage, value)
+
+        return value
 
     @property
     def worker_qemu_image(self):

@@ -195,6 +195,10 @@ p.add_argument('--diff-ignore', '-i', nargs='?', metavar='PATTERN',
 p.add_argument('--extend-diff-ignore', metavar='PATTERN',
         dest='dpkg_source_extend_diff_ignore', action='append',
         help='Build with --dpkg-source-opt=--extend-diff-ignore=PATTERN')
+p.add_argument('--autopkgtest', action='store_true',
+        help='Run autopkgtest after building')
+p.add_argument('--no-autopkgtest', dest='autopkgtest', action='store_false',
+        help='Do not run autopkgtest after building')
 
 parser.parse_args(namespace=args)
 

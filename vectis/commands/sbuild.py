@@ -174,6 +174,34 @@ def _run(args, buildables, worker):
                     stdout=writer)
 
     for buildable in buildables:
+        if 'source' in buildable.merged_changes:
+            source = buildable.merged_changes['source']
+        elif buildable.source_from_archive:
+            source = buildable.source_package
+        else:
+            logger.warning('Unable to run autopkgtest on %s',
+                    buildable.buildable)
+            continue
+
+        # TODO: backends other than qemu
+        image = args.autopkgtest_qemu_image
+
+        if args.autopkgtest and image and os.path.exists(image):
+            # Run this in the host system, to avoid nested virtualization.
+            status = subprocess.call(['autopkgtest',
+                    '--apt-upgrade',
+                    '--no-built-binaries',
+                    # TODO: --output-dir
+                    # TODO: --setup-commands
+                    buildable.merged_changes['binary'],
+                    source,
+                    '--',
+                    'qemu', args.autopkgtest_qemu_image])
+
+            if (status & ~2) != 0:
+                logger.error('autopkgtest failed: status %d', status)
+
+    for buildable in buildables:
         logger.info('Built changes files from %s:\n\t%s',
                 buildable,
                 '\n\t'.join(sorted(buildable.changes_produced.values())),
