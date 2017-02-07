@@ -60,12 +60,7 @@ def get_dpkg_source_options(args):
 
     return argv
 
-def _run(args, worker):
-    buildables = []
-
-    for a in (args._buildables or ['.']):
-        buildables.append(Buildable(a, vendor=args.vendor))
-
+def _run(args, buildables, worker):
     logger.info('Installing sbuild')
     worker.set_up_apt(args.worker_suite)
     worker.check_call([
@@ -83,8 +78,6 @@ def _run(args, worker):
         logger.info('Processing: %s', buildable)
 
         buildable.copy_source_to(worker)
-
-        buildable.select_suite(args.suite)
 
         if buildable.suite == 'UNRELEASED':
             suite = args.vendor.get_suite(args.vendor.default_suite)
@@ -215,6 +208,17 @@ def _run(args, worker):
 
                 break
 
+def run(args):
+    buildables = []
+
+    for a in (args._buildables or ['.']):
+        buildable = Buildable(a, vendor=args.vendor)
+        buildable.select_suite(args.suite)
+        buildables.append(buildable)
+
+    with Worker(args.worker) as worker:
+        _run(args, buildables, worker)
+
     # We print these separately, right at the end, so that if you built more
     # than one thing, the last screenful of information is the really
     # important bit for testing/signing/upload
@@ -223,7 +227,3 @@ def _run(args, worker):
                 buildable,
                 '\n\t'.join(buildable.merged_changes.values()),
                 )
-
-def run(args):
-    with Worker(args.worker) as worker:
-        _run(args, worker)
