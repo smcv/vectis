@@ -297,6 +297,11 @@ class Build:
             '-osbuild', '-gsbuild',
             '{}/out'.format(self.worker.scratch)])
 
+        sbuild_version = Version(
+                self.worker.check_output(
+                    ['dpkg-query', '-W', '-f${Version}', 'sbuild'],
+                    universal_newlines=True).rstrip('\n'))
+
         logger.info('Building architecture: %s', self.arch)
 
         if self.arch in ('all', 'source'):
@@ -343,10 +348,7 @@ class Build:
         # it can't do "sbuild hello", only "sbuild hello_2.10-1"
         if (self.buildable.source_from_archive and
                 self.buildable.version is None and
-                self.worker.call(['sh', '-c',
-                        'dpkg --compare-versions ' +
-                        '"$(dpkg-query -W -f\'${Version}\' sbuild)"' +
-                        ' lt 0.69.0']) == 0):
+                sbuild_version < Version('0.69.0')):
             lines = self.worker.check_output([
                         'schroot', '-c', chroot,
                         '--',
@@ -403,10 +405,7 @@ class Build:
             argv.append('-A')
 
             # Backwards compatibility goo for Debian jessie buildd backport
-            if self.worker.call(['sh', '-c',
-                    'dpkg --compare-versions ' +
-                    '"$(dpkg-query -W -f\'${Version}\' sbuild)"' +
-                    ' lt 0.69.0']) == 0:
+            if sbuild_version < Version('0.69.0'):
                 argv.append('--arch-all-only')
             else:
                 argv.append('--no-arch-any')
@@ -419,10 +418,7 @@ class Build:
             logger.info('Source-only')
 
             # Backwards compatibility goo for Debian jessie buildd backport
-            if self.worker.call(['sh', '-c',
-                    'dpkg --compare-versions ' +
-                    '"$(dpkg-query -W -f\'${Version}\' sbuild)"' +
-                    ' lt 0.69.0']) == 0:
+            if sbuild_version < Version('0.69.0'):
                 # If we only build 'all', and we don't build 'all',
                 # then logically we build nothing (except source).
                 argv.append('--arch-all-only')
