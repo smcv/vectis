@@ -157,8 +157,9 @@ p = subparsers.add_parser('sbuild',
 p.add_argument('--worker',
         help='Virtual machine image to use '
         '[default: {}]'.format(args.worker))
-p.add_argument('--worker-suite',
-        help='Suite to run in virtual machine, [default={}]'.format(args.worker_suite))
+p.add_argument('--worker-suite', dest='sbuild_worker_suite',
+        help='Suite to run in virtual machine, [default={}]'.format(
+            args.sbuild_worker_suite))
 p.add_argument('_buildables', metavar='CHANGES_OR_DSC_OR_DIR',
         help='sourceful .changes or .dsc or source directory', nargs='*',
         default=[])

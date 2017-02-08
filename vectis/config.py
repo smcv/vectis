@@ -58,6 +58,9 @@ defaults:
     worker: "autopkgtest-virt-qemu ${worker_qemu_image}"
     worker_qemu_image: null
 
+    sbuild_worker_suite: null
+    sbuild_worker: "${worker}"
+
     autopkgtest: true
     autopkgtest_qemu_image: "${qemu_image}"
 
@@ -79,7 +82,7 @@ defaults:
 vendors:
     debian:
         extra_components: contrib non-free
-        worker_suite: jessie-apt.buildd.debian.org
+        sbuild_worker_suite: jessie-apt.buildd.debian.org
         worker_vendor: debian
         suites:
             wheezy:
@@ -689,6 +692,15 @@ class Config(_ConfigLike):
         return self.worker_vendor.get_suite(value, True)
 
     @property
+    def sbuild_worker_suite(self):
+        suite = self['sbuild_worker_suite']
+
+        if suite is None:
+            suite = self.worker_suite
+
+        return suite
+
+    @property
     def autopkgtest_qemu_image(self):
         value = self['autopkgtest_qemu_image']
 
@@ -737,5 +749,18 @@ class Config(_ConfigLike):
                     storage=self.storage,
                     suite=self.worker_suite,
                     vendor=self.worker_vendor,
+                    )
+                )
+
+    @property
+    def sbuild_worker(self):
+        return Template(self['sbuild_worker']).substitute(
+                RecursiveExpansionMap(
+                    architecture=self.worker_architecture,
+                    worker_qemu_image=self.worker_qemu_image,
+                    storage=self.storage,
+                    suite=self.sbuild_worker_suite,
+                    vendor=self.worker_vendor,
+                    worker=self.worker,
                     )
                 )
