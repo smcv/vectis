@@ -177,22 +177,26 @@ class Buildable:
                     '-osbuild', '-gsbuild',
                     '{}/out'.format(worker.scratch)])
 
-                orig_pattern = glob.escape(os.path.join(self.buildable, '..',
-                        '{}_{}.orig.tar.'.format(self.source_package,
-                            self._version.upstream_version))) + '*'
-                logger.info('Looking for original tarballs: {}'.format(
-                        orig_pattern))
+                orig_glob_prefix = glob.escape(os.path.join(self.buildable,
+                    '..',
+                    '{}_{}'.format(self.source_package,
+                        self._version.upstream_version)))
 
-                for orig in glob.glob(orig_pattern):
-                    logger.info('Copying original tarball: {}'.format(orig))
-                    worker.copy_to_guest(orig,
-                            '{}/in/{}'.format(worker.scratch,
-                                os.path.basename(orig)))
-                    worker.check_call(['ln', '-s',
-                            '{}/in/{}'.format(worker.scratch,
-                                os.path.basename(orig)),
-                            '{}/out/{}'.format(worker.scratch,
-                                os.path.basename(orig))])
+                for orig_pattern in (orig_glob_prefix + '.orig.tar.*',
+                        orig_glob_prefix + '.orig-*.tar.*'):
+                    logger.info('Looking for original tarballs: {}'.format(
+                            orig_pattern))
+
+                    for orig in glob.glob(orig_pattern):
+                        logger.info('Copying original tarball: {}'.format(orig))
+                        worker.copy_to_guest(orig,
+                                '{}/in/{}'.format(worker.scratch,
+                                    os.path.basename(orig)))
+                        worker.check_call(['ln', '-s',
+                                '{}/in/{}'.format(worker.scratch,
+                                    os.path.basename(orig)),
+                                '{}/out/{}'.format(worker.scratch,
+                                    os.path.basename(orig))])
 
     def select_archs(self, worker_arch, archs, indep, together):
         builds_i386 = False
