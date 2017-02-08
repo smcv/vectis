@@ -463,11 +463,22 @@ class Build:
         elif self.buildable.source_from_archive:
             argv.append(self.buildable.buildable)
         else:
-            # build a source package as a side-effect of the first build
-            # (in practice this will be the 'source' build)
-            argv.append('--no-clean-source')
-            argv.append('--source')
-            argv.append('{}/in/{}_source'.format(self.worker.scratch,
+            # Build a clean source package as a side-effect of the first
+            # build (in practice this will be the 'source' build).
+            if '--source' not in argv:
+                argv.append('--source')
+
+            # jessie sbuild doesn't support --no-clean-source so build
+            # the temporary source package ourselves.
+            self.worker.check_call([
+                self.worker.command_wrapper,
+                '--chdir',
+                '{}/in/{}_source'.format(self.worker.scratch,
+                    self.buildable.product_prefix),
+                '--',
+                'dpkg-source', '-b', '.'])
+
+            argv.append('{}/in/{}.dsc'.format(self.worker.scratch,
                 self.buildable.product_prefix))
 
         logger.info('Running %r', argv)
