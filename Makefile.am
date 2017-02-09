@@ -96,7 +96,7 @@ dist_uninstalled_test_scripts = \
 	t/pyflakes.sh \
 	${NULL}
 
-installed_test_meta_DATA = \
+nobase_installed_test_meta_DATA = \
 	${dist_slow_test_scripts:=.test} \
 	${dist_test_scripts:=.test} \
 	${NULL}
