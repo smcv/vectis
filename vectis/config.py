@@ -4,7 +4,6 @@
 
 import os
 import subprocess
-from string import Template
 from weakref import WeakValueDictionary
 
 from vectis.error import Error
@@ -14,39 +13,20 @@ import yaml
 class ConfigError(Error):
     pass
 
-class RecursiveExpansionMap(dict):
-    def __getitem__(self, k):
-        v = super(RecursiveExpansionMap, self).__getitem__(k)
-        return self.__expand(v)
-
-    def __expand(self, v):
-        if isinstance(v, str):
-            return Template(v).substitute(self)
-        elif isinstance(v, set):
-            return set([self.__expand(x) for x in v])
-        elif isinstance(v, list):
-            return list([self.__expand(x) for x in v])
-        elif isinstance(v, dict):
-            ret = {}
-            for k, x in v.items():
-                ret[k] = self.__expand(x)
-            return ret
-        else:
-            return v
-
 DEFAULTS = '''
 ---
 defaults:
-    storage: "${XDG_CACHE_HOME}/vectis"
     vendor: debian
+    storage: null
     size: 42G
     components: main
     extra_components: []
-    archive: "${vendor}"
-    mirror: "http://192.168.122.1:3142/${archive}"
-    qemu_image: "vectis-${vendor}-${suite}-${architecture}.qcow2"
-    write_qemu_image: "${qemu_image}"
-    debootstrap_script: "${suite}"
+    archive: null
+    apt_cacher_ng: "http://192.168.122.1:3142"
+    mirror: null
+    qemu_image: null
+    write_qemu_image: null
+    debootstrap_script: null
     default_suite: null
     aliases: {}
     architecture: null
@@ -54,17 +34,17 @@ defaults:
 
     worker_vendor: debian
     worker_suite: null
-    worker_architecture: "${architecture}"
-    worker: "autopkgtest-virt-qemu ${worker_qemu_image}"
+    worker_architecture: null
+    worker: null
     worker_qemu_image: null
 
     sbuild_worker_suite: null
-    sbuild_worker: "${worker}"
+    sbuild_worker: null
 
     autopkgtest: true
-    autopkgtest_qemu_image: "${qemu_image}"
+    autopkgtest_qemu_image: null
 
-    bootstrap_mirror: "${mirror}"
+    bootstrap_mirror: null
 
     force_parallel: 0
     parallel: null
@@ -74,7 +54,7 @@ defaults:
     sbuild_buildables: null
     sbuild_resolver: []
     apt_key: null
-    apt_suite: "${suite}"
+    apt_suite: null
     dpkg_source_tar_ignore: []
     dpkg_source_diff_ignore: null
     dpkg_source_extend_diff_ignore: []
@@ -108,19 +88,18 @@ vendors:
             # *-proposed-updates intentionally omitted because nobody is
             # meant to upload to it
             "*-security":
-                mirror: "http://192.168.122.1:3142/security.debian.org"
-                apt_suite: "${base}/updates"
+                archive: "security.debian.org"
+                apt_suite: "*/updates"
             "*-updates":
                 null: null
             "*-apt.buildd.debian.org":
-                mirror: "http://192.168.122.1:3142/apt.buildd.debian.org"
+                archive: "apt.buildd.debian.org"
                 # https://anonscm.debian.org/cgit/mirror/dsa-puppet.git/tree/modules/buildd/
                 apt_key: "buildd.debian.org_archive_key_2015_2016.gpg"
-                apt_suite: "${base}"
+                apt_suite: "*"
                 components: main
     ubuntu:
         worker_vendor: ubuntu
-        worker: "autopkgtest-virt-qemu --user=ubuntu --password=ubuntu ${worker_qemu_image}"
         extra_components: universe restricted multiverse
         suites:
             trusty:
@@ -144,6 +123,13 @@ directories:
         null: null
 '''
 
+HOME = os.path.expanduser('~')
+XDG_CACHE_HOME = os.getenv('XDG_CACHE_HOME', os.path.expanduser('~/.cache'))
+XDG_CONFIG_HOME = os.getenv('XDG_CONFIG_HOME', os.path.expanduser('~/.config'))
+XDG_CONFIG_DIRS = os.getenv('XDG_CONFIG_DIRS', '/etc/xdg')
+XDG_DATA_HOME = os.getenv('XDG_DATA_HOME', os.path.expanduser('~/.local/share'))
+XDG_DATA_DIRS = os.getenv('XDG_DATA_DIRS', os.path.expanduser('~/.local/share'))
+
 class _ConfigLike:
     def __init__(self):
         self._raw = None
@@ -161,11 +147,14 @@ class _ConfigLike:
     def _get_int(self, name):
         return int(self[name])
 
-    def _get_filename(self, name):
+    def _get_filename(self, name, default=None):
         value = self[name]
+
+        if value is None:
+            value = default
+
         value = os.path.expandvars(value)
         value = os.path.expanduser(value)
-        value = Template(value).substitute(self._env)
         return value
 
     @property
@@ -218,31 +207,10 @@ class _ConfigLike:
 
     @property
     def write_qemu_image(self):
-        value = Template(self['write_qemu_image']).substitute(
-                RecursiveExpansionMap(
-                    architecture=self.architecture,
-                    qemu_image=self.qemu_image,
-                    storage=self.storage,
-                    suite=self.suite,
-                    vendor=self.vendor,
-                    ),
-                )
+        value = self['write_qemu_image']
 
-        if '/' not in value:
-            return os.path.join(self.storage, value)
-
-        return value
-
-    @property
-    def qemu_image(self):
-        value = Template(self['qemu_image']).substitute(
-                RecursiveExpansionMap(
-                    architecture=self.architecture,
-                    storage=self.storage,
-                    suite=self.suite.hierarchy[-1],
-                    vendor=self.vendor,
-                    )
-                )
+        if value is None:
+            value = self.qemu_image
 
         if '/' not in value:
             return os.path.join(self.storage, value)
@@ -251,7 +219,8 @@ class _ConfigLike:
 
     @property
     def storage(self):
-        return self._get_filename('storage')
+        return self._get_filename('storage',
+                os.path.join(XDG_CACHE_HOME, 'vectis'))
 
     @property
     def output_builds(self):
@@ -259,48 +228,46 @@ class _ConfigLike:
 
     @property
     def worker_architecture(self):
-        return Template(self['worker_architecture']).substitute(
-                architecture=self.architecture,
-                )
+        value = self['worker_architecture']
+
+        if value is None:
+            value = self.architecture
+
+        return value
 
     @property
     def archive(self):
-        return Template(self['archive']).substitute(
-                vendor=self.vendor,
-                )
+        value = self['archive']
+
+        if value is None:
+            value = str(self.vendor)
+
+        return value
 
     @property
     def debootstrap_script(self):
-        return Template(self['debootstrap_script']).substitute(
-                suite=self.suite,
-                )
+        return str(self.suite)
 
     @property
     def mirror(self):
-        return Template(self['mirror']).substitute(
-                archive=self.archive,
-                vendor=self.vendor,
-                )
+        value = self['mirror']
+
+        if value is None and self.apt_cacher_ng is not None:
+            value = self.apt_cacher_ng + '/' + self.archive
+
+        if value is None:
+            raise ConfigError('Either mirror or apt_cacher_ng must be set')
+
+        return value
 
     @property
     def bootstrap_mirror(self):
-        return Template(self['bootstrap_mirror']).substitute(
-                archive=self.archive,
-                mirror=self.mirror,
-                vendor=self.vendor,
-                )
+        value = self['bootstrap_mirror']
 
-    @property
-    def apt_suite(self):
-        suite = self['apt_suite']
+        if value is None:
+            value = self.mirror
 
-        if suite is None:
-            return str(self.suite)
-
-        return Template(suite).substitute(
-                base=self.base,
-                suite=self.suite,
-                )
+        return value
 
 class Vendor(_ConfigLike):
     def __init__(self, name, raw):
@@ -485,6 +452,18 @@ class Suite(_ConfigLike):
 
         return None
 
+    @property
+    def apt_suite(self):
+        suite = self['apt_suite']
+
+        if suite is None:
+            return str(self.suite)
+
+        if '*' in suite and self.base is not None:
+            return suite.replace('*', str(self.base))
+
+        return suite
+
 class Directory(_ConfigLike):
     def __init__(self, path, raw):
         super(Directory, self).__init__()
@@ -526,20 +505,6 @@ class Config(_ConfigLike):
         self._relevant_directory = None
 
         d = yaml.safe_load(DEFAULTS)
-
-        self._env = {
-                'HOME': os.path.expanduser('~'),
-                'XDG_CACHE_HOME': os.getenv('XDG_CACHE_HOME',
-                    os.path.expanduser('~/.cache')),
-                'XDG_CONFIG_HOME': os.getenv('XDG_CONFIG_HOME',
-                    os.path.expanduser('~/.config')),
-                'XDG_CONFIG_DIRS': os.getenv('XDG_CONFIG_DIRS',
-                    '/etc/xdg'),
-                'XDG_DATA_HOME': os.getenv('XDG_DATA_HOME',
-                    os.path.expanduser('~/.local/share')),
-                'XDG_DATA_DIRS': os.getenv('XDG_DATA_DIRS',
-                    os.path.expanduser('~/.local/share')),
-                }
 
         # Some things can have better defaults that can't be hard-coded
         d['defaults']['parallel'] = str(os.cpu_count())
@@ -595,9 +560,9 @@ class Config(_ConfigLike):
         if config_layers:
             self._raw[:0] = list(config_layers)
         else:
-            config_dirs = self._env['XDG_CONFIG_DIRS'].split(':')
+            config_dirs = XDG_CONFIG_DIRS.split(':')
             config_dirs = list(reversed(config_dirs))
-            config_dirs.append(self._env['XDG_CONFIG_HOME'])
+            config_dirs.append(XDG_CONFIG_HOME)
             for p in config_dirs:
                 conffile = os.path.join(p, 'vectis', 'vectis.yaml')
 
@@ -660,7 +625,12 @@ class Config(_ConfigLike):
 
     @property
     def suite(self):
-        return self._get_vendor(self['vendor']).get_suite(self['suite'])
+        suite = self['suite']
+
+        if suite is None:
+            suite = self.vendor.default_suite
+
+        return self.vendor.get_suite(suite)
 
     @property
     def vendor(self):
@@ -704,15 +674,21 @@ class Config(_ConfigLike):
     def autopkgtest_qemu_image(self):
         value = self['autopkgtest_qemu_image']
 
-        value = Template(value).substitute(
-                RecursiveExpansionMap(
-                    architecture=self.architecture,
-                    qemu_image=self['qemu_image'],
-                    storage=self.storage,
-                    suite=self.suite.hierarchy[-1],
-                    vendor=self.vendor,
-                    )
-                )
+        if value is None:
+            value = self.qemu_image
+
+        if '/' not in value:
+            return os.path.join(self.storage, value)
+
+        return value
+
+    @property
+    def qemu_image(self):
+        value = self['qemu_image']
+
+        if value is None:
+            value = 'vectis-{}-{}-{}.qcow2'.format(self.vendor,
+                    self.suite.hierarchy[-1], self.architecture)
 
         if '/' not in value:
             return os.path.join(self.storage, value)
@@ -724,16 +700,12 @@ class Config(_ConfigLike):
         value = self['worker_qemu_image']
 
         if value is None:
-            value = self.worker_vendor['qemu_image']
+            value = self.worker_vendor.qemu_image
 
-        value = Template(value).substitute(
-                RecursiveExpansionMap(
-                    architecture=self.worker_architecture,
-                    storage=self.storage,
-                    suite=self.worker_suite.hierarchy[-1],
-                    vendor=self.worker_vendor,
-                    )
-                )
+        if value is None:
+            value = 'vectis-{}-{}-{}.qcow2'.format(self.worker_vendor,
+                    self.worker_suite.hierarchy[-1],
+                    self.worker_architecture)
 
         if '/' not in value:
             return os.path.join(self.storage, value)
@@ -742,25 +714,22 @@ class Config(_ConfigLike):
 
     @property
     def worker(self):
-        return Template(self['worker']).substitute(
-                RecursiveExpansionMap(
-                    architecture=self.worker_architecture,
-                    worker_qemu_image=self.worker_qemu_image,
-                    storage=self.storage,
-                    suite=self.worker_suite,
-                    vendor=self.worker_vendor,
-                    )
-                )
+        value = self['worker']
+
+        if value is None:
+            if str(self.worker_vendor) == 'ubuntu':
+                value = ('qemu --username=ubuntu --password=ubuntu ' +
+                        self.worker_qemu_image)
+            else:
+                value = 'qemu ' + self.worker_qemu_image
+
+        return value
 
     @property
     def sbuild_worker(self):
-        return Template(self['sbuild_worker']).substitute(
-                RecursiveExpansionMap(
-                    architecture=self.worker_architecture,
-                    worker_qemu_image=self.worker_qemu_image,
-                    storage=self.storage,
-                    suite=self.sbuild_worker_suite,
-                    vendor=self.worker_vendor,
-                    worker=self.worker,
-                    )
-                )
+        value = self['worker']
+
+        if value is None:
+            value = self.worker
+
+        return value

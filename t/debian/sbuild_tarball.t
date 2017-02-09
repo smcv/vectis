@@ -29,11 +29,11 @@ fi
 echo "1..1"
 
 "$VECTIS" --vendor=debian --storage="${storage}" sbuild-tarball \
-    --worker='qemu ${storage}/vectis-debian-sid-${architecture}.qcow2' \
+    --worker="qemu ${storage}/vectis-debian-sid-${arch}.qcow2" \
     --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" \
     --suite=sid
 "$VECTIS" --vendor=debian --storage="${storage}" sbuild \
-    --worker='qemu ${storage}/vectis-debian-sid-${architecture}.qcow2' \
+    --worker="qemu ${storage}/vectis-debian-sid-${arch}.qcow2" \
     --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" \
     --suite=sid hello
 rm -fr "${storage}"

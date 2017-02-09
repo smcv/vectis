@@ -54,7 +54,7 @@ class DefaultsTestCase(unittest.TestCase):
             '{}/vectis'.format(os.getenv('XDG_CACHE_HOME',
                 os.path.expanduser('~/.cache'))))
         self.assertEqual(self.__config.worker,
-            'autopkgtest-virt-qemu {}'.format(self.__config.worker_qemu_image))
+            'qemu {}'.format(self.__config.worker_qemu_image))
 
     def test_substitutions(self):
         self.__config.architecture = 'm68k'
@@ -75,7 +75,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(self.__config.worker_qemu_image,
             '{}/vectis-debian-sarge-m68k.qcow2'.format(self.__config.storage))
         self.assertEqual(self.__config.worker,
-            'autopkgtest-virt-qemu {}/vectis-debian-sarge-m68k.qcow2'.format(
+            'qemu {}/vectis-debian-sarge-m68k.qcow2'.format(
                 self.__config.storage))
 
     def test_known_vendors(self):
