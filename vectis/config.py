@@ -724,7 +724,7 @@ class Config(_ConfigLike):
 
     @property
     def sbuild_worker(self):
-        value = self['worker']
+        value = self['sbuild_worker']
 
         if value is None:
             value = self.worker
