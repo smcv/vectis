@@ -28,7 +28,6 @@ defaults:
     write_qemu_image: null
     debootstrap_script: null
     default_suite: null
-    aliases: {}
     architecture: null
     suite: null
 
