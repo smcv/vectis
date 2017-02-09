@@ -23,7 +23,7 @@ def vmdebootstrap_argv(args, setup_script):
             '--user=user',
             '--hostname=host',
             '--sparse',
-            '--size={}'.format(args.size),
+            '--size={}'.format(args.qemu_image_size),
             '--mirror={}'.format(args.bootstrap_mirror),
             '--arch={}'.format(args.architecture),
         ]
@@ -50,7 +50,7 @@ def new_ubuntu(args, out):
     suite = str(args.vendor.get_suite(args.suite))
 
     argv.append('--arch={}'.format(args.architecture))
-    argv.append('--disk-size={}'.format(args.size))
+    argv.append('--disk-size={}'.format(args.qemu_image_size))
     argv.append('--mirror={}'.format(args.mirror))
     argv.append('--proxy=DIRECT')
     argv.append('--release={}'.format(suite))

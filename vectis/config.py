@@ -18,7 +18,7 @@ DEFAULTS = '''
 defaults:
     vendor: debian
     storage: null
-    size: 42G
+    qemu_image_size: 42G
     components: main
     extra_components: []
     archive: null
