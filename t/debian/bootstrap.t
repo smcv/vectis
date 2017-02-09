@@ -6,7 +6,7 @@ set -u
 set -x
 
 if [ -n "${VECTIS_UNINSTALLED:-}" ]; then
-    VECTIS="${VECTIS_UNINSTALLED}/run"
+    VECTIS="${PYTHON:-python3} ${VECTIS_UNINSTALLED}/run"
 else
     VECTIS=vectis
 fi
@@ -27,11 +27,11 @@ storage="$(mktemp -d)"
 
 ( cd "$storage"; apt-get --download-only source hello )
 
-"$VECTIS_TEST_SUDO" "$VECTIS" --storage="${storage}" bootstrap \
+"$VECTIS_TEST_SUDO" $VECTIS --storage="${storage}" bootstrap \
     --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" --size=23G
-"$VECTIS" --storage="${storage}" sbuild-tarball \
+$VECTIS --storage="${storage}" sbuild-tarball \
     --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" --suite=sid
-"$VECTIS" --storage="${storage}" sbuild \
+$VECTIS --storage="${storage}" sbuild \
     --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" --suite=sid "${storage}/"hello*.dsc
 rm -fr "${storage}"
 

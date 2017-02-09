@@ -52,12 +52,13 @@ scripts/vectis: scripts/vectis.in Makefile
 		< $< > $@-t && chmod 0755 $@-t && mv $@-t $@
 
 AM_TESTS_ENVIRONMENT = \
-	export PYFLAKES=${PYFLAKES}; \
 	export PYTHONPATH=$(abs_top_srcdir); \
 	export VECTIS_UNINSTALLED=$(abs_top_srcdir); \
 	${NULL}
 
 TEST_EXTENSIONS = .py .sh .t
+
+PY_LOG_COMPILER = ${PYTHON}
 
 LOG_DRIVER = env \
 	AM_TAP_AWK='$(AWK)' \

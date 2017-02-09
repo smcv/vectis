@@ -6,7 +6,7 @@ set -u
 set -x
 
 if [ -n "${VECTIS_UNINSTALLED:-}" ]; then
-    VECTIS="${VECTIS_UNINSTALLED}/run"
+    VECTIS="${PYTHON:-python3} ${VECTIS_UNINSTALLED}/run"
 else
     VECTIS=vectis
 fi
@@ -34,13 +34,13 @@ fi
 
 echo "1..1"
 
-"$VECTIS" --vendor=debian --storage="${storage}" \
+$VECTIS --vendor=debian --storage="${storage}" \
     new \
     --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" \
     --worker="qemu ${storage}/vectis-debian-sid-${arch}.qcow2" \
     --suite=sid
 test ! -L "${storage}/vectis-debian-sid-${arch}.qcow2"
-"$VECTIS" --vendor=debian --storage="${storage}" sbuild \
+$VECTIS --vendor=debian --storage="${storage}" sbuild \
     --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" \
     --worker="qemu ${storage}/vectis-debian-sid-${arch}.qcow2" \
     --suite=sid \
