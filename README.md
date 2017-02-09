@@ -29,9 +29,9 @@ Requirements
   - qemu-utils
   - lots of RAM, to be able to do the entire build in a tmpfs
 
-* Encouraged on the host system, and assumed by the default configuration:
-  - apt-cacher-ng on port 3142
-  - libvirt-bin's default virtual network (host is 192.168.122.1)
+* Recommended to have on the host system:
+  - apt-cacher-ng
+  - libvirt-daemon-system's default virtual network (host is 192.168.122.1)
   - python3-distro-info
 
 * In the host system, but only once (to bootstrap an autopkgtest VM):
@@ -45,6 +45,25 @@ Requirements
 * In the apt archive used by the guest virtual machine:
   - python3
   - sbuild
+
+Recommended configuration
+-------------------------
+
+Install apt-cacher-ng.
+
+Install libvirt-daemon-system and enable its default virtual network (this
+will make the host accessible to all guests as 192.168.122.1).
+
+Create `XDG_CONFIG_DIRS/vectis/vectis.yaml` containing:
+
+```
+---
+defaults:
+    apt_cacher_ng: "http://192.168.122.1"
+...
+```
+
+If you don't do this, you will have to add `--mirror` to most commands.
 
 Usage
 -----

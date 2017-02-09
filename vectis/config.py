@@ -22,7 +22,7 @@ defaults:
     components: main
     extra_components: []
     archive: null
-    apt_cacher_ng: "http://192.168.122.1:3142"
+    apt_cacher_ng: null
     mirror: null
     qemu_image: null
     write_qemu_image: null
@@ -256,7 +256,8 @@ class _ConfigLike:
             value = self.apt_cacher_ng + '/' + self.archive
 
         if value is None:
-            raise ConfigError('Either mirror or apt_cacher_ng must be set')
+            raise ConfigError('{!r}: Either mirror or apt_cacher_ng must '
+                    'be set'.format(self))
 
         return value
 

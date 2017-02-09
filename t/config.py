@@ -15,9 +15,15 @@ from vectis.config import (
 
 class DefaultsTestCase(unittest.TestCase):
     def setUp(self):
-        self.__config = Config(config_layers=({},), current_directory='/')
+        self.__config = Config(config_layers=(dict(
+                    defaults=dict(
+                        apt_cacher_ng='http://192.168.122.1:3142',
+                        )),),
+                current_directory='/')
 
     def test_defaults(self):
+        self.__config = Config(config_layers=({},), current_directory='/')
+
         self.assertGreaterEqual(self.__config.parallel, 1)
 
         debian = self.__config._get_vendor('debian')
@@ -27,10 +33,6 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(str(self.__config.worker_vendor), 'debian')
         self.assertIs(self.__config.vendor, debian)
         self.assertIs(self.__config.worker_vendor, debian)
-        self.assertEqual(self.__config.mirror,
-                'http://192.168.122.1:3142/debian')
-        self.assertEqual(self.__config.bootstrap_mirror,
-                'http://192.168.122.1:3142/debian')
         self.assertEqual(self.__config.archive, 'debian')
         self.assertEqual(self.__config.force_parallel, 0)
         self.assertIs(self.__config.sbuild_together, False)
@@ -56,6 +58,12 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(self.__config.worker,
             'qemu {}'.format(self.__config.worker_qemu_image))
 
+        with self.assertRaises(ConfigError):
+            self.__config.mirror
+
+        with self.assertRaises(ConfigError):
+            self.__config.bootstrap_mirror
+
     def test_substitutions(self):
         self.__config.architecture = 'm68k'
         self.__config.suite = 'potato'
@@ -77,6 +85,11 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(self.__config.worker,
             'qemu {}/vectis-debian-sarge-m68k.qcow2'.format(
                 self.__config.storage))
+
+        self.assertEqual(self.__config.mirror,
+                'http://192.168.122.1:3142/debian')
+        self.assertEqual(self.__config.bootstrap_mirror,
+                'http://192.168.122.1:3142/debian')
 
     def test_known_vendors(self):
         debian = self.__config._get_vendor('debian')
