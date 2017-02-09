@@ -26,6 +26,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.__config = Config(config_layers=(dict(
                     defaults=dict(
                         apt_cacher_ng='http://192.168.122.1:3142',
+                        architecture='mips',
                         )),),
                 current_directory='/')
 
@@ -97,11 +98,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(self.__config.storage,
             '{}/vectis'.format(XDG_CACHE_HOME))
 
-        with self.assertRaises(ConfigError):
-            self.__config.mirror
-
-        with self.assertRaises(ConfigError):
-            self.__config.bootstrap_mirror
+        with self.assertRaises(ConfigError): self.__config.mirror
+        with self.assertRaises(ConfigError): self.__config.bootstrap_mirror
 
     def test_substitutions(self):
         self.__config.architecture = 'm68k'
@@ -135,6 +133,7 @@ class DefaultsTestCase(unittest.TestCase):
         ubuntu = self.__config._get_vendor('ubuntu')
 
         self.assertEqual(str(debian), 'debian')
+        self.assertIs(debian.autopkgtest, True)
         self.assertEqual(debian.default_suite, 'sid')
         self.assertEqual(str(debian.get_suite('unstable')), 'sid')
         self.assertIs(debian.get_suite('unstable'), debian.get_suite('sid'))
@@ -144,19 +143,100 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(debian.extra_components, {'contrib', 'non-free'})
         self.assertEqual(debian.all_components, {'main', 'contrib',
             'non-free'})
-        self.assertEqual(debian.vendor, debian)
+        self.assertIs(debian.vendor, debian)
+        # FIXME: should be a Vendor?
         self.assertEqual(debian.worker_vendor, 'debian')
+        # FIXME: should be a Suite? or 'sid'?
+        self.assertEqual(debian.worker_suite, None)
+        # FIXME: should be a Suite?
         self.assertEqual(debian.sbuild_worker_suite, 'jessie-apt.buildd.debian.org')
         self.assertEqual(debian.archive, 'debian')
+        self.assertEqual(debian.apt_cacher_ng, 'http://192.168.122.1:3142')
         self.assertEqual(debian.mirror, 'http://192.168.122.1:3142/debian')
+        self.assertEqual(debian.bootstrap_mirror, 'http://192.168.122.1:3142/debian')
         self.assertIsNone(debian.get_suite('xenial', create=False))
         self.assertEqual(debian.get_suite('experimental').sbuild_resolver[0],
                 '--build-dep-resolver=aspcud')
+        self.assertEqual(debian.size, '42G')
+        self.assertEqual(debian.force_parallel, 0)
+        self.assertGreaterEqual(debian.parallel, 1)
+        self.assertIs(debian.sbuild_together, False)
+        self.assertEqual(debian.sbuild_resolver, [])
+        self.assertIsNone(debian.apt_key)
+        self.assertIsNone(debian.apt_suite)
+        self.assertIsNone(debian.dpkg_source_diff_ignore)
+        self.assertEqual(debian.dpkg_source_tar_ignore, [])
+        self.assertEqual(debian.dpkg_source_extend_diff_ignore, [])
+        self.assertEqual(debian.output_builds, '..')
 
-        potato = debian.get_suite('potato', True)
-        sec = debian.get_suite('potato-security', True)
-        self.assertEqual(list(potato.hierarchy), [potato])
-        self.assertEqual(list(sec.hierarchy), [sec, potato])
+        # FIXME: should all be AttributeError because a vendor doesn't imply
+        # an architecture
+        #with self.assertRaises(AttributeError): debian.architecture
+        #with self.assertRaises(AttributeError): debian.worker_architecture
+        #with self.assertRaises(AttributeError): debian.qemu_image
+        #with self.assertRaises(AttributeError): debian.sbuild_worker
+        with self.assertRaises(AttributeError): debian.sbuild_worker_qemu_image
+        #with self.assertRaises(AttributeError): debian.worker
+        #with self.assertRaises(AttributeError): debian.worker_qemu_image
+        #with self.assertRaises(AttributeError): debian.write_qemu_image
+        #with self.assertRaises(AttributeError): debian.debootstrap_script
+        #with self.assertRaises(AttributeError): debian.suite
+        # FIXME: this only makes sense as a global?
+        #with self.assertRaises(AttributeError): debian.storage
+        #with self.assertRaises(AttributeError): debian.sbuild_buildables
+
+        jessie = debian.get_suite('jessie', True)
+        sec = debian.get_suite('jessie-security', True)
+        self.assertEqual(list(jessie.hierarchy), [jessie])
+        self.assertEqual(list(sec.hierarchy), [sec, jessie])
+
+        self.assertIs(jessie.autopkgtest, True)
+        self.assertEqual(jessie.default_suite, 'sid')
+        self.assertEqual(jessie.components, {'main'})
+        self.assertEqual(jessie.extra_components, {'contrib', 'non-free'})
+        self.assertEqual(jessie.all_components, {'main', 'contrib',
+            'non-free'})
+        self.assertIs(jessie.vendor, debian)
+        # FIXME: should be a Vendor?
+        self.assertEqual(jessie.worker_vendor, 'debian')
+        # FIXME: should be a Suite? or 'sid'?
+        self.assertEqual(jessie.worker_suite, None)
+        # FIXME: should be a Suite?
+        self.assertEqual(jessie.sbuild_worker_suite, 'jessie-apt.buildd.debian.org')
+        self.assertEqual(jessie.archive, 'debian')
+        self.assertEqual(jessie.apt_cacher_ng, 'http://192.168.122.1:3142')
+        self.assertEqual(jessie.mirror, 'http://192.168.122.1:3142/debian')
+        self.assertEqual(jessie.bootstrap_mirror, 'http://192.168.122.1:3142/debian')
+        self.assertEqual(jessie.size, '42G')
+        self.assertEqual(jessie.force_parallel, 1)
+        self.assertEqual(sec.force_parallel, 1)
+        self.assertGreaterEqual(jessie.parallel, 1)
+        self.assertIs(jessie.sbuild_together, False)
+        self.assertEqual(jessie.sbuild_resolver, [])
+        self.assertIsNone(jessie.apt_key)
+        self.assertEqual(jessie.apt_suite, 'jessie')
+        self.assertIsNone(jessie.dpkg_source_diff_ignore)
+        self.assertEqual(jessie.dpkg_source_tar_ignore, [])
+        self.assertEqual(jessie.dpkg_source_extend_diff_ignore, [])
+        self.assertEqual(jessie.output_builds, '..')
+        self.assertEqual(jessie.debootstrap_script, 'jessie')
+        self.assertIs(jessie.suite, jessie)
+
+        # FIXME: should all be AttributeError because a suite doesn't imply
+        # an architecture either
+        #with self.assertRaises(AttributeError): jessie.architecture
+        #with self.assertRaises(AttributeError): jessie.worker_architecture
+        #with self.assertRaises(AttributeError): jessie.qemu_image
+        #with self.assertRaises(AttributeError): jessie.sbuild_worker
+        with self.assertRaises(AttributeError): jessie.sbuild_worker_qemu_image
+        #with self.assertRaises(AttributeError): jessie.worker
+        #with self.assertRaises(AttributeError): jessie.worker_qemu_image
+        #with self.assertRaises(AttributeError): jessie.write_qemu_image
+        #with self.assertRaises(AttributeError): jessie.debootstrap_script
+        #with self.assertRaises(AttributeError): jessie.suite
+        # FIXME: this only makes sense as a global?
+        #with self.assertRaises(AttributeError): jessie.storage
+        #with self.assertRaises(AttributeError): jessie.sbuild_buildables
 
         self.assertEqual(str(ubuntu), 'ubuntu')
         self.assertEqual(ubuntu.components, {'main'})
@@ -184,17 +264,6 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIsNone(steamos.get_suite('xyzzy', create=False))
         self.assertIsNotNone(steamos.get_suite('xyzzy'))
         self.assertIs(steamos.get_suite('xyzzy'), steamos.get_suite('xyzzy'))
-
-    def test_architecture(self):
-        try:
-            arch = subprocess.check_output(['dpkg', '--print-architecture'])
-        except subprocess.CalledProcessError:
-            pass
-        else:
-            self.assertEqual(self.__config.architecture,
-                    arch.decode('utf-8').strip())
-            self.assertEqual(self.__config.architecture,
-                self.__config.worker_architecture)
 
     def test_distro_info(self):
         debian = self.__config._get_vendor('debian')
