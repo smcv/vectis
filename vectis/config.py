@@ -651,9 +651,6 @@ class Config(_ConfigLike):
         value = self['worker_suite']
 
         if value is None:
-            value = self.worker_vendor.worker_suite
-
-        if value is None:
             value = self.worker_vendor.default_suite
 
         if value is None:
