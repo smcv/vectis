@@ -94,7 +94,7 @@ class DefaultsTestCase(unittest.TestCase):
             'non-free'})
         self.assertEqual(debian.vendor, debian)
         self.assertEqual(debian.worker_vendor, 'debian')
-        self.assertEqual(debian.worker_suite, 'jessie-apt.buildd.debian.org')
+        self.assertEqual(debian.sbuild_worker_suite, 'jessie-apt.buildd.debian.org')
         #self.assertEqual(debian.archive, 'debian')
         #self.assertEqual(debian.mirror, 'http://192.168.122.1:3142/debian')
         self.assertIsNone(debian.get_suite('xenial', create=False))
