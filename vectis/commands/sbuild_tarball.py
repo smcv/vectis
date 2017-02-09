@@ -22,7 +22,7 @@ def run(args):
             )
     logger.info('Creating tarball %s...', sbuild_tarball)
 
-    with Worker(args.worker) as worker:
+    with Worker(args.worker.split()) as worker:
         logger.info('Installing debootstrap and sbuild')
         worker.set_up_apt(args.worker_suite)
         worker.check_call([

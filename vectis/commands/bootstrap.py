@@ -30,7 +30,7 @@ def run(args):
         shutil.move('{}/output.qcow2'.format(scratch), out + '.new')
 
         try:
-            with Worker('qemu {}.new'.format(out)) as worker:
+            with Worker(['qemu', '{}.new'.format(out)]) as worker:
                 worker.set_up_apt(args.suite)
                 worker.check_call(['apt-get',
                     '-y',

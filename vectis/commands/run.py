@@ -14,7 +14,7 @@ def run(args):
         raise ArgumentError('Usage: vectis run -- PROGRAM [$1 [$2...]] '
                 'or vectis run -c "shell one-liner" [$0 [$1 [$2...]]]')
 
-    with Worker('qemu {}'.format(args.qemu_image)) as worker:
+    with Worker(['qemu', args.qemu_image]) as worker:
         worker.set_up_apt(args.suite)
         if args._shell_command is not None:
             worker.check_call(['sh', '-c', args._shell_command] +

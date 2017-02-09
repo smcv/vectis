@@ -244,7 +244,7 @@ def run(args):
         buildable.select_suite(args.suite)
         buildables.append(buildable)
 
-    with Worker(args.sbuild_worker) as worker:
+    with Worker(args.sbuild_worker.split()) as worker:
         _run(args, buildables, worker)
 
     # We print these separately, right at the end, so that if you built more

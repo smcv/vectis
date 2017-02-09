@@ -26,20 +26,20 @@ class WorkerError(Error):
     pass
 
 class Worker:
-    def __init__(self, worker):
+    def __init__(self, argv):
         self.__cached_copies = {}
         self.__command_wrapper_enabled = False
         self.__dpkg_architecture = None
         self.call_argv = None
         self.capabilities = set()
         self.command_wrapper = None
-        self.worker = worker
+        self.argv = argv
         self.stack = ExitStack()
         self.user = 'user'
         self.virt_process = None
 
     def __enter__(self):
-        argv = list(map(os.path.expanduser, self.worker.split()))
+        argv = list(map(os.path.expanduser, self.argv))
 
         for prefix in ('autopkgtest-virt-', 'adt-virt-', ''):
             if shutil.which(prefix + argv[0]):

@@ -70,7 +70,7 @@ def new_ubuntu(args, out):
         return image
 
 def new(args, out):
-    with Worker(args.worker) as worker:
+    with Worker(args.worker.split()) as worker:
         worker.set_up_apt(args.worker_suite)
         worker.check_call([
             'env', 'DEBIAN_FRONTEND=noninteractive',
@@ -116,7 +116,7 @@ def run(args):
         created = new(args, out)
 
     try:
-        with Worker('qemu {}'.format(created)) as worker:
+        with Worker(['qemu', created]) as worker:
             worker.set_up_apt(args.suite)
             worker.check_call(['apt-get', '-y', 'update'])
             worker.check_call(['apt-get',
