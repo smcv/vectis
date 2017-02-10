@@ -26,21 +26,13 @@ def vmdebootstrap_argv(args, setup_script):
             '--size={}'.format(args.qemu_image_size),
             '--mirror={}'.format(args.bootstrap_mirror),
             '--arch={}'.format(args.architecture),
-        ]
-    argv.append('--customize={}'.format(setup_script))
-
-    if str(args.suite) == 'wheezy':
-        # FIXME: this assumes vmdebootstrap from jessie: different
-        # options are needed for vmdebootstrap from sid.
-        argv.extend([
-            '--boottype=ext2',
-            ])
-    else:
-        argv.extend([
             '--grub',
             '--no-mbr',
             '--no-extlinux',
-            ])
+        ]
+    argv.append('--customize={}'.format(setup_script))
+
+    argv.extend(args.vmdebootstrap_options)
 
     return argv
 
@@ -70,8 +62,8 @@ def new_ubuntu_cloud(args, out):
         return image
 
 def new(args, out):
-    with Worker(args.worker.split()) as worker:
-        worker.set_up_apt(args.worker_suite)
+    with Worker(args.vmdebootstrap_worker.split()) as worker:
+        worker.set_up_apt(args.vmdebootstrap_worker_suite)
         worker.check_call([
             'env', 'DEBIAN_FRONTEND=noninteractive',
             'apt-get', '-y', 'upgrade',

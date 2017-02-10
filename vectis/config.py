@@ -40,6 +40,10 @@ defaults:
     sbuild_worker_suite: null
     sbuild_worker: null
 
+    vmdebootstrap_worker_suite: null
+    vmdebootstrap_worker: null
+    vmdebootstrap_options: []
+
     autopkgtest: true
     autopkgtest_qemu_image: null
 
@@ -66,6 +70,8 @@ vendors:
         suites:
             wheezy:
                 force_parallel: 1
+                vmdebootstrap_options:
+                    - "--roottype=ext3"
             jessie:
                 force_parallel: 1
             sid: {}
@@ -668,6 +674,15 @@ class Config(_ConfigLike):
         return self.worker_vendor.get_suite(suite, True)
 
     @property
+    def vmdebootstrap_worker_suite(self):
+        suite = self['vmdebootstrap_worker_suite']
+
+        if suite is None:
+            suite = self.worker_suite
+
+        return self.worker_vendor.get_suite(suite, True)
+
+    @property
     def autopkgtest_qemu_image(self):
         value = self['autopkgtest_qemu_image']
 
@@ -726,3 +741,16 @@ class Config(_ConfigLike):
             value = self.worker
 
         return value
+
+    @property
+    def vmdebootstrap_worker(self):
+        value = self['vmdebootstrap_worker']
+
+        if value is None:
+            value = self.worker
+
+        return value
+
+    @property
+    def vmdebootstrap_options(self):
+        return self.suite.vmdebootstrap_options
