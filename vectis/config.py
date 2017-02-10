@@ -663,9 +663,9 @@ class Config(_ConfigLike):
         suite = self['sbuild_worker_suite']
 
         if suite is None:
-            suite = self.worker_suite
+            return self.worker_suite
 
-        return suite
+        return self.worker_vendor.get_suite(suite, True)
 
     @property
     def autopkgtest_qemu_image(self):

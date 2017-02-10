@@ -86,8 +86,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(self.__config.suite, sid)
         self.assertEqual(self.__config.worker_suite, sid)
         jb = self.__config.vendor.get_suite('jessie-apt.buildd.debian.org')
-        # FIXME: should be a Suite?
-        self.assertEqual(self.__config.sbuild_worker_suite, str(jb))
+        self.assertEqual(self.__config.sbuild_worker_suite, jb)
         self.assertEqual(self.__config.default_suite, 'sid')
         self.assertEqual(self.__config.components, {'main'})
         self.assertEqual(self.__config.extra_components,
