@@ -301,10 +301,7 @@ class Build:
             '-osbuild', '-gsbuild',
             '{}/out'.format(self.worker.scratch)])
 
-        sbuild_version = Version(
-                self.worker.check_output(
-                    ['dpkg-query', '-W', '-f${Version}', 'sbuild'],
-                    universal_newlines=True).rstrip('\n'))
+        sbuild_version = self.worker.dpkg_version('sbuild')
 
         logger.info('Building architecture: %s', self.arch)
 

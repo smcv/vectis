@@ -11,6 +11,10 @@ import urllib.parse
 from contextlib import ExitStack
 from tempfile import TemporaryDirectory
 
+from debian.debian_support import (
+        Version,
+        )
+
 from vectis.error import (
         Error,
         )
@@ -127,6 +131,11 @@ class Worker:
     def check_output(self, argv, **kwargs):
         logger.info('%r', argv)
         return subprocess.check_output(self.call_argv + list(argv), **kwargs)
+
+    def dpkg_version(self, package):
+        v = self.check_output(['dpkg-query', '-W', '-f${Version}', package],
+                universal_newlines=True).rstrip('\n')
+        return Version(v)
 
     def copy_to_guest(self, host_path, guest_path, *, cache=False):
         assert host_path is not None
