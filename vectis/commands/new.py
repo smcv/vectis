@@ -44,7 +44,7 @@ def vmdebootstrap_argv(args, setup_script):
 
     return argv
 
-def new_ubuntu(args, out):
+def new_ubuntu_cloud(args, out):
     out_dir = os.path.dirname(out)
     argv = ['autopkgtest-buildvm-ubuntu-cloud']
     suite = str(args.vendor.get_suite(args.suite))
@@ -111,7 +111,7 @@ def run(args):
     out = args.write_qemu_image
 
     if str(args.vendor) == 'ubuntu':
-        created = new_ubuntu(args, out)
+        created = new_ubuntu_cloud(args, out)
     else:
         created = new(args, out)
 
