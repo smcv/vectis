@@ -714,11 +714,7 @@ class Config(_ConfigLike):
         value = self['worker']
 
         if value is None:
-            if str(self.worker_vendor) == 'ubuntu':
-                value = ('qemu --username=ubuntu --password=ubuntu ' +
-                        self.worker_qemu_image)
-            else:
-                value = 'qemu ' + self.worker_qemu_image
+            value = 'qemu ' + self.worker_qemu_image
 
         return value
 
