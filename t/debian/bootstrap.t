@@ -23,7 +23,7 @@ fi
 
 echo "1..1"
 
-storage="$(mktemp -d)"
+storage="$(mktemp --tmpdir -d vectis-test-XXXXXXXXXX)"
 
 ( cd "$storage"; apt-get --download-only source hello )
 

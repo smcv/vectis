@@ -196,7 +196,7 @@ class Worker:
         return self.stack.__exit__(et, ev, tb)
 
     def set_up_apt(self, suite, components=()):
-        with TemporaryDirectory() as tmp:
+        with TemporaryDirectory(prefix='vectis-worker-') as tmp:
             with AtomicWriter(os.path.join(tmp, 'sources.list')) as writer:
                 for ancestor in suite.hierarchy:
                     if components:

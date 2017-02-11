@@ -328,7 +328,7 @@ class Build:
         chroot = '{base}-{arch}-sbuild'.format(base=hierarchy[-1],
                 arch=use_arch)
 
-        with TemporaryDirectory() as tmp:
+        with TemporaryDirectory(prefix='vectis-sbuild-') as tmp:
             with AtomicWriter(os.path.join(tmp, 'sbuild.conf')) as writer:
                 writer.write(textwrap.dedent('''
                 [{chroot}]
@@ -535,7 +535,7 @@ class Build:
 
             product = dscs[0]
 
-            with TemporaryDirectory() as tmp:
+            with TemporaryDirectory(prefix='vectis-sbuild-') as tmp:
                 copied_back = os.path.join(tmp,
                         '{}.dsc'.format(self.buildable.buildable))
                 self.worker.copy_to_host(product, copied_back)

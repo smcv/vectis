@@ -32,7 +32,7 @@ def run(args):
     else:
         version = Version(version)
 
-    with TemporaryDirectory() as scratch:
+    with TemporaryDirectory(prefix='vectis-bootstrap-') as scratch:
         subprocess.check_call(vmdebootstrap_argv(version, args,
             '/usr/share/autopkgtest/setup-commands/setup-testbed') +
                 ['--image={}/output.raw'.format(scratch)])

@@ -11,7 +11,7 @@ else
     VECTIS=vectis
 fi
 
-storage="$(mktemp -d)"
+storage="$(mktemp --tmpdir -d vectis-test-XXXXXXXXXX)"
 arch="$(dpkg --print-architecture)"
 
 ln -s "${XDG_CACHE_HOME:-"${HOME}/.cache"}"/vectis/vectis-debian-sid-${arch}.qcow2 "${storage}"

@@ -11,7 +11,7 @@ else
     VECTIS=vectis
 fi
 
-storage="$(mktemp -d)"
+storage="$(mktemp --tmpdir -d vectis-test-XXXXXXXXXX)"
 arch="$(dpkg --print-architecture)"
 
 if [ -z "${VECTIS_TEST_UBUNTU_MIRROR:-}" ]; then
