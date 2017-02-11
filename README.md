@@ -72,8 +72,9 @@ Usage
 
     Create a Debian virtual machine image in which to do builds.
 
-    This command requires root access (via sudo), but you only have to run
-    it once. You can run it in a virtual machine by hand if you want.
+    This command must be run as an ordinary user, and escalates its
+    privileges to root via sudo. You only have to run it once, and
+    you can run it in a virtual machine by hand if you want.
 
 - `vectis new`
 

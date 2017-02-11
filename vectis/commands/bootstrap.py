@@ -3,6 +3,7 @@
 # (see vectis/__init__.py)
 
 import os
+import pwd
 import shutil
 import subprocess
 from tempfile import TemporaryDirectory
@@ -33,9 +34,12 @@ def run(args):
         version = Version(version)
 
     with TemporaryDirectory(prefix='vectis-bootstrap-') as scratch:
-        subprocess.check_call(vmdebootstrap_argv(version, args,
-            '/usr/share/autopkgtest/setup-commands/setup-testbed') +
-                ['--image={}/output.raw'.format(scratch)])
+        subprocess.check_call(['sudo',
+                ] + vmdebootstrap_argv(version, args,
+                    '/usr/share/autopkgtest/setup-commands/setup-testbed') + [
+                '--owner={}'.format(pwd.getpwuid(os.getuid())[0]),
+                '--image={}/output.raw'.format(scratch),
+                ])
         subprocess.check_call(['qemu-img', 'convert', '-f', 'raw',
             '-O', 'qcow2', '-c', '-p',
             '{}/output.raw'.format(scratch),
