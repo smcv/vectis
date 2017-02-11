@@ -315,6 +315,109 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(security.hierarchy[0], security)
         self.assertEqual(str(security.hierarchy[1]), str(stable))
 
+        self.assertEqual(str(ubuntu), 'ubuntu')
+        self.assertIs(ubuntu.autopkgtest, True)
+        self.assertEqual(ubuntu.default_suite, ubuntu_devel)
+        self.assertEqual(ubuntu.components, {'main'})
+        self.assertEqual(ubuntu.extra_components, {'universe', 'restricted',
+            'multiverse'})
+        self.assertEqual(ubuntu.all_components, {'main', 'universe',
+            'restricted', 'multiverse'})
+        self.assertIs(ubuntu.vendor, ubuntu)
+        # FIXME: should be a Vendor?
+        self.assertEqual(ubuntu.worker_vendor, 'ubuntu')
+        # FIXME: should be a Suite?
+        self.assertEqual(ubuntu.worker_suite, ubuntu_info.lts())
+        # FIXME: should be a Suite? or ubuntu_info.lts()?
+        self.assertEqual(ubuntu.sbuild_worker_suite, None)
+        self.assertEqual(ubuntu.archive, 'ubuntu')
+        self.assertEqual(ubuntu.apt_cacher_ng, 'http://192.168.122.1:3142')
+        self.assertEqual(ubuntu.mirror, 'http://192.168.122.1:3142/ubuntu')
+        self.assertEqual(ubuntu.bootstrap_mirror, 'http://192.168.122.1:3142/ubuntu')
+        self.assertIsNone(ubuntu.get_suite('sid', create=False))
+        self.assertEqual(ubuntu.qemu_image_size, '42G')
+        self.assertEqual(ubuntu.force_parallel, 0)
+        self.assertGreaterEqual(ubuntu.parallel, 1)
+        self.assertIs(ubuntu.sbuild_together, False)
+        self.assertEqual(ubuntu.sbuild_resolver, [])
+        self.assertIsNone(ubuntu.apt_key)
+        self.assertIsNone(ubuntu.apt_suite)
+        self.assertIsNone(ubuntu.dpkg_source_diff_ignore)
+        self.assertEqual(ubuntu.dpkg_source_tar_ignore, [])
+        self.assertEqual(ubuntu.dpkg_source_extend_diff_ignore, [])
+        self.assertEqual(ubuntu.output_builds, '..')
+
+        # FIXME: should all be AttributeError because a vendor doesn't imply
+        # an architecture
+        #with self.assertRaises(AttributeError): ubuntu.architecture
+        #with self.assertRaises(AttributeError): ubuntu.worker_architecture
+        #with self.assertRaises(AttributeError): ubuntu.qemu_image
+        #with self.assertRaises(AttributeError): ubuntu.sbuild_worker
+        with self.assertRaises(AttributeError): ubuntu.sbuild_worker_qemu_image
+        #with self.assertRaises(AttributeError): ubuntu.worker
+        #with self.assertRaises(AttributeError): ubuntu.worker_qemu_image
+        #with self.assertRaises(AttributeError): ubuntu.write_qemu_image
+        #with self.assertRaises(AttributeError): ubuntu.debootstrap_script
+        #with self.assertRaises(AttributeError): ubuntu.suite
+        # FIXME: this only makes sense as a global?
+        #with self.assertRaises(AttributeError): ubuntu.storage
+        #with self.assertRaises(AttributeError): ubuntu.sbuild_buildables
+
+        xenial = ubuntu.get_suite('xenial', True)
+        sec = ubuntu.get_suite('xenial-security', True)
+        self.assertEqual(list(xenial.hierarchy), [xenial])
+        self.assertEqual(list(sec.hierarchy), [sec, xenial])
+
+        self.assertIs(xenial.autopkgtest, True)
+        # FIXME: this seems wrong
+        self.assertEqual(xenial.default_suite, ubuntu_devel)
+        self.assertEqual(xenial.components, {'main'})
+        self.assertEqual(xenial.extra_components, {'universe', 'multiverse',
+            'restricted'})
+        self.assertEqual(xenial.all_components, {'main', 'universe',
+            'multiverse', 'restricted'})
+        self.assertIs(xenial.vendor, ubuntu)
+        # FIXME: should be a Vendor?
+        self.assertEqual(xenial.worker_vendor, 'ubuntu')
+        # FIXME: should be a Suite?
+        self.assertEqual(xenial.worker_suite, ubuntu_info.lts())
+        # FIXME: should be a Suite? or ubuntu_info.lts()?
+        self.assertEqual(xenial.sbuild_worker_suite, None)
+        self.assertEqual(xenial.archive, 'ubuntu')
+        self.assertEqual(xenial.apt_cacher_ng, 'http://192.168.122.1:3142')
+        self.assertEqual(xenial.mirror, 'http://192.168.122.1:3142/ubuntu')
+        self.assertEqual(xenial.bootstrap_mirror, 'http://192.168.122.1:3142/ubuntu')
+        self.assertEqual(xenial.qemu_image_size, '42G')
+        self.assertEqual(xenial.force_parallel, 0)
+        self.assertEqual(sec.force_parallel, 0)
+        self.assertGreaterEqual(xenial.parallel, 1)
+        self.assertIs(xenial.sbuild_together, False)
+        self.assertEqual(xenial.sbuild_resolver, [])
+        self.assertIsNone(xenial.apt_key)
+        self.assertEqual(xenial.apt_suite, 'xenial')
+        self.assertIsNone(xenial.dpkg_source_diff_ignore)
+        self.assertEqual(xenial.dpkg_source_tar_ignore, [])
+        self.assertEqual(xenial.dpkg_source_extend_diff_ignore, [])
+        self.assertEqual(xenial.output_builds, '..')
+        self.assertEqual(xenial.debootstrap_script, 'xenial')
+        self.assertIs(xenial.suite, xenial)
+
+        # FIXME: should all be AttributeError because a suite doesn't imply
+        # an architecture either
+        #with self.assertRaises(AttributeError): xenial.architecture
+        #with self.assertRaises(AttributeError): xenial.worker_architecture
+        #with self.assertRaises(AttributeError): xenial.qemu_image
+        #with self.assertRaises(AttributeError): xenial.sbuild_worker
+        with self.assertRaises(AttributeError): xenial.sbuild_worker_qemu_image
+        #with self.assertRaises(AttributeError): xenial.worker
+        #with self.assertRaises(AttributeError): xenial.worker_qemu_image
+        #with self.assertRaises(AttributeError): xenial.write_qemu_image
+        #with self.assertRaises(AttributeError): xenial.debootstrap_script
+        #with self.assertRaises(AttributeError): xenial.suite
+        # FIXME: this only makes sense as a global?
+        #with self.assertRaises(AttributeError): xenial.storage
+        #with self.assertRaises(AttributeError): xenial.sbuild_buildables
+
     def tearDown(self):
         pass
 
