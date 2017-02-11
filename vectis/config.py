@@ -13,125 +13,6 @@ import yaml
 class ConfigError(Error):
     pass
 
-DEFAULTS = '''
----
-defaults:
-    vendor: debian
-    storage: null
-    qemu_image_size: 42G
-    components: main
-    extra_components: []
-    archive: null
-    apt_cacher_ng: null
-    mirror: null
-    qemu_image: null
-    write_qemu_image: null
-    debootstrap_script: null
-    default_suite: null
-    architecture: null
-    suite: null
-    kernel_package: null
-
-    worker_vendor: debian
-    worker_suite: null
-    worker_architecture: null
-    worker: null
-    worker_qemu_image: null
-
-    sbuild_worker_suite: null
-    sbuild_worker: null
-
-    vmdebootstrap_worker_suite: null
-    vmdebootstrap_worker: null
-    vmdebootstrap_options: []
-
-    autopkgtest: true
-    autopkgtest_qemu_image: null
-
-    bootstrap_mirror: null
-
-    force_parallel: 0
-    parallel: null
-    sbuild_together: false
-    output_builds: ".."
-
-    sbuild_buildables: null
-    sbuild_resolver: []
-    apt_key: null
-    apt_suite: null
-    dpkg_source_tar_ignore: []
-    dpkg_source_diff_ignore: null
-    dpkg_source_extend_diff_ignore: []
-
-vendors:
-    debian:
-        extra_components: contrib non-free
-        sbuild_worker_suite: jessie-apt.buildd.debian.org
-        worker_vendor: debian
-        suites:
-            wheezy:
-                force_parallel: 1
-                vmdebootstrap_options:
-                    - "--roottype=ext3"
-            jessie:
-                force_parallel: 1
-            sid: {}
-            unstable:
-                alias_for: sid
-            experimental:
-                base: sid
-                sbuild_resolver:
-                    - "--build-dep-resolver=aspcud"
-                    - "--aspcud-criteria=-removed,-changed,-new,-count(solution,APT-Release:=/experimental/)"
-            rc-buggy:
-                alias_for: experimental
-            "*-backports":
-                sbuild_resolver:
-                    - "--build-dep-resolver=aptitude"
-            "*-backports-sloppy":
-                sbuild_resolver:
-                    - "--build-dep-resolver=aptitude"
-            # *-proposed-updates intentionally omitted because nobody is
-            # meant to upload to it
-            "*-security":
-                archive: "security.debian.org"
-                apt_suite: "*/updates"
-            "*-updates":
-                null: null
-            "*-apt.buildd.debian.org":
-                archive: "apt.buildd.debian.org"
-                # https://anonscm.debian.org/cgit/mirror/dsa-puppet.git/tree/modules/buildd/
-                apt_key: "buildd.debian.org_archive_key_2015_2016.gpg"
-                apt_suite: "*"
-                components: main
-    ubuntu:
-        worker_vendor: ubuntu
-        components: main universe
-        extra_components: restricted multiverse
-        kernel_package:
-            null: linux-image-generic
-        suites:
-            trusty:
-                force_parallel: 1
-            precise:
-                force_parallel: 1
-            "*-backports":
-                null: null
-            "*-proposed":
-                null: null
-            "*-security":
-                null: null
-            "*-updates":
-                null: null
-
-directories:
-    /:
-        # Directory-specific configuration has highest priority, do not put
-        # anything in here by default. We configure '/' so that path search
-        # always terminates.
-        null: null
-'''
-
 HOME = os.path.expanduser('~')
 XDG_CACHE_HOME = os.getenv('XDG_CACHE_HOME', os.path.expanduser('~/.cache'))
 XDG_CONFIG_HOME = os.getenv('XDG_CONFIG_HOME', os.path.expanduser('~/.config'))
@@ -527,7 +408,8 @@ class Config(_ConfigLike):
         self._overrides = {}
         self._relevant_directory = None
 
-        d = yaml.safe_load(DEFAULTS)
+        d = yaml.safe_load(open(os.path.join(os.path.dirname(__file__),
+            'defaults.yaml')))
 
         # Some things can have better defaults that can't be hard-coded
         d['defaults']['parallel'] = str(os.cpu_count())
