@@ -5,9 +5,13 @@
 import os
 import subprocess
 
+from debian.debian_support import (
+        Version,
+        )
+
 from vectis.worker import Worker
 
-def vmdebootstrap_argv(args, setup_script):
+def vmdebootstrap_argv(version, args, setup_script):
     argv = ['env',
             # We use apt-cacher-ng in non-proxy mode, to make it easier to
             # add extra apt sources later that can't go via this proxy.
@@ -81,11 +85,13 @@ def new(args, out):
             'vmdebootstrap',
             ])
 
+        version = worker.dpkg_version('vmdebootstrap')
+
         worker.check_call([
                 'env', 'DEBIAN_FRONTEND=noninteractive',
                 worker.command_wrapper,
                 '--',
-                ] + vmdebootstrap_argv(args,
+                ] + vmdebootstrap_argv(version, args,
                     '/usr/share/autopkgtest/setup-commands/setup-testbed') + [
                 '--image={}/output.raw'.format(worker.scratch)])
         worker.check_call(['qemu-img', 'convert', '-f', 'raw', '-O',

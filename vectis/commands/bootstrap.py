@@ -7,6 +7,10 @@ import shutil
 import subprocess
 from tempfile import TemporaryDirectory
 
+from debian.debian_support import (
+        Version,
+        )
+
 from vectis.commands.new import vmdebootstrap_argv
 from vectis.error import ArgumentError
 from vectis.worker import Worker
@@ -18,8 +22,18 @@ def run(args):
         else:
             raise ArgumentError('--suite must be specified')
 
+    try:
+        version = subprocess.check_output(
+                ['dpkg-query', '-W', '-f${Version}', 'vmdebootstrap'],
+                universal_newlines=True).rstrip('\n')
+    except:
+        # non-dpkg host, guess a recent version
+        version = Version('1.7')
+    else:
+        version = Version(version)
+
     with TemporaryDirectory() as scratch:
-        subprocess.check_call(vmdebootstrap_argv(args,
+        subprocess.check_call(vmdebootstrap_argv(version, args,
             '/usr/share/autopkgtest/setup-commands/setup-testbed') +
                 ['--image={}/output.raw'.format(scratch)])
         subprocess.check_call(['qemu-img', 'convert', '-f', 'raw',
