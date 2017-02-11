@@ -30,6 +30,7 @@ defaults:
     default_suite: null
     architecture: null
     suite: null
+    kernel_package: null
 
     worker_vendor: debian
     worker_suite: null
@@ -106,6 +107,8 @@ vendors:
     ubuntu:
         worker_vendor: ubuntu
         extra_components: universe restricted multiverse
+        kernel_package:
+            null: linux-image-generic
         suites:
             trusty:
                 force_parallel: 1
@@ -272,6 +275,19 @@ class _ConfigLike:
 
         if value is None:
             value = self.mirror
+
+        return value
+
+    def get_kernel_package(self, architecture):
+        mapping = self['kernel_package']
+
+        if not isinstance(mapping, dict):
+            mapping = { None: mapping }
+
+        value = mapping.get(architecture)
+
+        if value is None:
+            value = mapping.get(None)
 
         return value
 

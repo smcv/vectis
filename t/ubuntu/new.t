@@ -19,6 +19,24 @@ if [ -z "${VECTIS_TEST_UBUNTU_MIRROR:-}" ]; then
     exit 0
 fi
 
+if ! lts="$(ubuntu-distro-info --lts)"; then
+    echo "1..0 # SKIP Could not determine current Ubuntu LTS suite"
+    exit 0
+fi
+
+ln -s "${XDG_CACHE_HOME:-"${HOME}/.cache"}/vectis/vectis-ubuntu-${lts}-${arch}.qcow2" "${storage}"
+ln -s "${XDG_CACHE_HOME:-"${HOME}/.cache"}/vectis/sbuild-ubuntu-${lts}-${arch}.tar.gz" "${storage}"
+
+if ! [ -f "${storage}/vectis-ubuntu-${lts}-${arch}.qcow2" ]; then
+    echo "1..0 # SKIP XDG_CACHE_HOME/vectis/vectis-ubuntu-${lts}-${arch}.qcow2 not found"
+    exit 0
+fi
+
+if ! [ -f "${storage}/sbuild-ubuntu-${lts}-${arch}.tar.gz" ]; then
+    echo "1..0 # SKIP XDG_CACHE_HOME/vectis/sbuild-ubuntu-${lts}-${arch}.tar.gz not found"
+    exit 0
+fi
+
 echo "1..1"
 
 $VECTIS --vendor=ubuntu --storage="${storage}" \
@@ -31,7 +49,7 @@ image="$(cd "${storage}" && ls -1 vectis-ubuntu-*-"${arch}".qcow2)"
 $VECTIS --vendor=debian --storage="${storage}" sbuild \
     --mirror="${VECTIS_TEST_UBUNTU_MIRROR}" \
     --worker="qemu $image" \
-    --suite=devel \
+    --suite="${lts}" \
     hello
 
 rm -fr "${storage}"

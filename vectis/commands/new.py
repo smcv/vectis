@@ -36,6 +36,15 @@ def vmdebootstrap_argv(version, args, setup_script):
         ]
     argv.append('--customize={}'.format(setup_script))
 
+    kernel = args.get_kernel_package(args.architecture)
+
+    if kernel is not None:
+        if version >= Version('1.4'):
+            argv.append('--kernel-package={}'.format(kernel))
+        else:
+            argv.append('--no-kernel')
+            argv.append('--package={}'.format(kernel))
+
     argv.extend(args.vmdebootstrap_options)
 
     return argv
@@ -108,7 +117,7 @@ def run(args):
     os.makedirs(args.storage, exist_ok=True)
     out = args.write_qemu_image
 
-    if str(args.vendor) == 'ubuntu':
+    if False:
         created = new_ubuntu_cloud(args, out)
     else:
         created = new(args, out)
