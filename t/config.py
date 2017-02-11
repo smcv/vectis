@@ -61,24 +61,24 @@ class DefaultsTestCase(unittest.TestCase):
         if ARCHITECTURE is not None:
             self.assertEqual(self.__config.architecture, ARCHITECTURE)
             self.assertEqual(self.__config.qemu_image,
-                    '{}/vectis/vectis-debian-sid-{}.qcow2'.format(
+                    '{}/vectis/{}/debian/sid/autopkgtest.qcow2'.format(
                         XDG_CACHE_HOME, ARCHITECTURE))
             self.assertEqual(self.__config.autopkgtest_qemu_image,
-                    '{}/vectis/vectis-debian-sid-{}.qcow2'.format(
+                    '{}/vectis/{}/debian/sid/autopkgtest.qcow2'.format(
                         XDG_CACHE_HOME, ARCHITECTURE))
             self.assertEqual(self.__config.write_qemu_image,
-                    '{}/vectis/vectis-debian-sid-{}.qcow2'.format(
+                    '{}/vectis/{}/debian/sid/autopkgtest.qcow2'.format(
                         XDG_CACHE_HOME, ARCHITECTURE))
             self.assertEqual(self.__config.worker_architecture, ARCHITECTURE)
             self.assertEqual(self.__config.worker,
                     'qemu {}'.format(self.__config.worker_qemu_image))
             self.assertEqual(self.__config.worker_qemu_image,
-                    '{}/vectis/vectis-debian-sid-{}.qcow2'.format(
+                    '{}/vectis/{}/debian/sid/autopkgtest.qcow2'.format(
                         XDG_CACHE_HOME, ARCHITECTURE))
             self.assertEqual(self.__config.sbuild_worker,
                     'qemu {}'.format(self.__config.sbuild_worker_qemu_image))
             self.assertEqual(self.__config.sbuild_worker_qemu_image,
-                    '{}/vectis/vectis-debian-sid-{}.qcow2'.format(
+                    '{}/vectis/{}/debian/sid/autopkgtest.qcow2'.format(
                         XDG_CACHE_HOME, ARCHITECTURE))
 
         sid = self.__config.vendor.get_suite('sid')
@@ -115,12 +115,14 @@ class DefaultsTestCase(unittest.TestCase):
 
         self.assertEqual(self.__config.debootstrap_script, 'potato')
         self.assertEqual(self.__config.qemu_image,
-                '{}/vectis-debian-potato-m68k.qcow2'.format(self.__config.storage))
+                '{}/m68k/debian/potato/autopkgtest.qcow2'.format(
+                    self.__config.storage))
         self.assertEqual(self.__config.worker_qemu_image,
-            '{}/vectis-debian-sarge-m68k.qcow2'.format(self.__config.storage))
+                '{}/m68k/debian/sarge/autopkgtest.qcow2'.format(
+                    self.__config.storage))
         self.assertEqual(self.__config.worker,
-            'qemu {}/vectis-debian-sarge-m68k.qcow2'.format(
-                self.__config.storage))
+                'qemu {}/m68k/debian/sarge/autopkgtest.qcow2'.format(
+                    self.__config.storage))
 
         self.assertEqual(self.__config.mirror,
                 'http://192.168.122.1:3142/debian')
@@ -167,17 +169,17 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(debian.dpkg_source_tar_ignore, [])
         self.assertEqual(debian.dpkg_source_extend_diff_ignore, [])
         self.assertEqual(debian.output_builds, '..')
+        self.assertEqual(debian.qemu_image, 'autopkgtest.qcow2')
+        self.assertEqual(debian.worker_qemu_image, None)
+        self.assertEqual(debian.sbuild_worker_qemu_image, None)
+        self.assertEqual(debian.write_qemu_image, None)
 
         # FIXME: should all be AttributeError because a vendor doesn't imply
         # an architecture
         #with self.assertRaises(AttributeError): debian.architecture
         #with self.assertRaises(AttributeError): debian.worker_architecture
-        #with self.assertRaises(AttributeError): debian.qemu_image
         #with self.assertRaises(AttributeError): debian.sbuild_worker
-        with self.assertRaises(AttributeError): debian.sbuild_worker_qemu_image
         #with self.assertRaises(AttributeError): debian.worker
-        #with self.assertRaises(AttributeError): debian.worker_qemu_image
-        #with self.assertRaises(AttributeError): debian.write_qemu_image
         #with self.assertRaises(AttributeError): debian.debootstrap_script
         #with self.assertRaises(AttributeError): debian.suite
         # FIXME: this only makes sense as a global?
@@ -220,17 +222,17 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(jessie.output_builds, '..')
         self.assertEqual(jessie.debootstrap_script, 'jessie')
         self.assertIs(jessie.suite, jessie)
+        self.assertEqual(jessie.qemu_image, 'autopkgtest.qcow2')
+        self.assertEqual(jessie.worker_qemu_image, None)
+        self.assertEqual(jessie.sbuild_worker_qemu_image, None)
+        self.assertEqual(jessie.write_qemu_image, None)
 
         # FIXME: should all be AttributeError because a suite doesn't imply
         # an architecture either
         #with self.assertRaises(AttributeError): jessie.architecture
         #with self.assertRaises(AttributeError): jessie.worker_architecture
-        #with self.assertRaises(AttributeError): jessie.qemu_image
         #with self.assertRaises(AttributeError): jessie.sbuild_worker
-        with self.assertRaises(AttributeError): jessie.sbuild_worker_qemu_image
         #with self.assertRaises(AttributeError): jessie.worker
-        #with self.assertRaises(AttributeError): jessie.worker_qemu_image
-        #with self.assertRaises(AttributeError): jessie.write_qemu_image
         #with self.assertRaises(AttributeError): jessie.debootstrap_script
         #with self.assertRaises(AttributeError): jessie.suite
         # FIXME: this only makes sense as a global?
@@ -346,17 +348,17 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(ubuntu.dpkg_source_tar_ignore, [])
         self.assertEqual(ubuntu.dpkg_source_extend_diff_ignore, [])
         self.assertEqual(ubuntu.output_builds, '..')
+        self.assertEqual(ubuntu.qemu_image, 'autopkgtest.qcow2')
+        self.assertEqual(ubuntu.worker_qemu_image, None)
+        self.assertEqual(ubuntu.sbuild_worker_qemu_image, None)
+        self.assertEqual(ubuntu.write_qemu_image, None)
 
         # FIXME: should all be AttributeError because a vendor doesn't imply
         # an architecture
         #with self.assertRaises(AttributeError): ubuntu.architecture
         #with self.assertRaises(AttributeError): ubuntu.worker_architecture
-        #with self.assertRaises(AttributeError): ubuntu.qemu_image
         #with self.assertRaises(AttributeError): ubuntu.sbuild_worker
-        with self.assertRaises(AttributeError): ubuntu.sbuild_worker_qemu_image
         #with self.assertRaises(AttributeError): ubuntu.worker
-        #with self.assertRaises(AttributeError): ubuntu.worker_qemu_image
-        #with self.assertRaises(AttributeError): ubuntu.write_qemu_image
         #with self.assertRaises(AttributeError): ubuntu.debootstrap_script
         #with self.assertRaises(AttributeError): ubuntu.suite
         # FIXME: this only makes sense as a global?
@@ -401,17 +403,17 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(xenial.output_builds, '..')
         self.assertEqual(xenial.debootstrap_script, 'xenial')
         self.assertIs(xenial.suite, xenial)
+        self.assertEqual(xenial.qemu_image, 'autopkgtest.qcow2')
+        self.assertEqual(xenial.worker_qemu_image, None)
+        self.assertEqual(xenial.sbuild_worker_qemu_image, None)
+        self.assertEqual(xenial.write_qemu_image, None)
 
         # FIXME: should all be AttributeError because a suite doesn't imply
         # an architecture either
         #with self.assertRaises(AttributeError): xenial.architecture
         #with self.assertRaises(AttributeError): xenial.worker_architecture
-        #with self.assertRaises(AttributeError): xenial.qemu_image
         #with self.assertRaises(AttributeError): xenial.sbuild_worker
-        with self.assertRaises(AttributeError): xenial.sbuild_worker_qemu_image
         #with self.assertRaises(AttributeError): xenial.worker
-        #with self.assertRaises(AttributeError): xenial.worker_qemu_image
-        #with self.assertRaises(AttributeError): xenial.write_qemu_image
         #with self.assertRaises(AttributeError): xenial.debootstrap_script
         #with self.assertRaises(AttributeError): xenial.suite
         # FIXME: this only makes sense as a global?

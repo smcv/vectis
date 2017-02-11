@@ -96,18 +96,6 @@ class _ConfigLike:
             raise AttributeError('No configuration item {!r}'.format(name))
 
     @property
-    def write_qemu_image(self):
-        value = self['write_qemu_image']
-
-        if value is None:
-            value = self.qemu_image
-
-        if '/' not in value:
-            return os.path.join(self.storage, value)
-
-        return value
-
-    @property
     def storage(self):
         return self._get_filename('storage',
                 os.path.join(XDG_CACHE_HOME, 'vectis'))
@@ -597,12 +585,11 @@ class Config(_ConfigLike):
     def qemu_image(self):
         value = self['qemu_image']
 
-        if value is None:
-            value = 'vectis-{}-{}-{}.qcow2'.format(self.vendor,
-                    self.suite.hierarchy[-1], self.architecture)
+        assert value is not None
 
         if '/' not in value:
-            return os.path.join(self.storage, value)
+            return os.path.join(self.storage, self.architecture,
+                    str(self.vendor), str(self.suite.hierarchy[-1]), value)
 
         return value
 
@@ -611,15 +598,44 @@ class Config(_ConfigLike):
         value = self['worker_qemu_image']
 
         if value is None:
-            value = self.worker_vendor.qemu_image
+            value = self.worker_vendor['qemu_image']
 
-        if value is None:
-            value = 'vectis-{}-{}-{}.qcow2'.format(self.worker_vendor,
-                    self.worker_suite.hierarchy[-1],
-                    self.worker_architecture)
+        assert value is not None
 
         if '/' not in value:
-            return os.path.join(self.storage, value)
+            return os.path.join(self.storage, self.worker_architecture,
+                    str(self.worker_vendor),
+                    str(self.worker_suite.hierarchy[-1]), value)
+
+        return value
+
+    @property
+    def sbuild_worker_qemu_image(self):
+        value = self['sbuild_worker_qemu_image']
+
+        if value is None:
+            value = self.worker_vendor['qemu_image']
+
+        assert value is not None
+
+        if '/' not in value:
+            return os.path.join(self.storage, self.worker_architecture,
+                    str(self.worker_vendor),
+                    str(self.sbuild_worker_suite.hierarchy[-1]),
+                    value)
+
+        return value
+
+    @property
+    def write_qemu_image(self):
+        value = self['write_qemu_image']
+
+        if value is None:
+            value = self['qemu_image']
+
+        if '/' not in value:
+            return os.path.join(self.storage, self.architecture,
+                    str(self.vendor), str(self.suite.hierarchy[-1]), value)
 
         return value
 
@@ -637,7 +653,7 @@ class Config(_ConfigLike):
         value = self['sbuild_worker']
 
         if value is None:
-            value = self.worker
+            value = 'qemu ' + self.sbuild_worker_qemu_image
 
         return value
 

@@ -14,10 +14,11 @@ fi
 storage="$(mktemp --tmpdir -d vectis-test-XXXXXXXXXX)"
 arch="$(dpkg --print-architecture)"
 
-ln -s "${XDG_CACHE_HOME:-"${HOME}/.cache"}"/vectis/vectis-debian-sid-${arch}.qcow2 "${storage}"
+mkdir -p "${storage}/${arch}/debian/sid"
+ln -s "${XDG_CACHE_HOME:-"${HOME}/.cache"}/vectis/${arch}/debian/sid/autopkgtest.qcow2" "${storage}/${arch}/debian/sid/"
 
-if ! [ -f "${storage}/vectis-debian-sid-${arch}.qcow2" ]; then
-    echo "1..0 # SKIP vectis-debian-sid-${arch}.qcow2 not found"
+if ! [ -f "${storage}/${arch}/debian/sid/autopkgtest.qcow2" ]; then
+    echo "1..0 # SKIP ${arch}/debian/sid/autopkgtest.qcow2 not found"
     exit 0
 fi
 
@@ -29,11 +30,11 @@ fi
 echo "1..1"
 
 $VECTIS --vendor=debian --storage="${storage}" sbuild-tarball \
-    --worker="qemu ${storage}/vectis-debian-sid-${arch}.qcow2" \
+    --worker="qemu ${storage}/${arch}/debian/sid/autopkgtest.qcow2" \
     --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" \
     --suite=sid
 $VECTIS --vendor=debian --storage="${storage}" sbuild \
-    --worker="qemu ${storage}/vectis-debian-sid-${arch}.qcow2" \
+    --worker="qemu ${storage}/${arch}/debian/sid/autopkgtest.qcow2" \
     --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" \
     --suite=sid hello
 rm -fr "${storage}"

@@ -45,6 +45,7 @@ def run(args):
             '{}/output.raw'.format(scratch),
             '{}/output.qcow2'.format(scratch)])
         out = args.write_qemu_image
+        os.makedirs(os.path.dirname(out), exist_ok=True)
         shutil.move('{}/output.qcow2'.format(scratch), out + '.new')
 
         try:

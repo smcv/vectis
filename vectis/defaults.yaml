@@ -13,7 +13,7 @@ defaults:
     archive: null
     apt_cacher_ng: null
     mirror: null
-    qemu_image: null
+    qemu_image: autopkgtest.qcow2
     write_qemu_image: null
     debootstrap_script: null
     default_suite: null
@@ -27,6 +27,7 @@ defaults:
     worker: null
     worker_qemu_image: null
 
+    sbuild_worker_qemu_image: null
     sbuild_worker_suite: null
     sbuild_worker: null
 

@@ -114,8 +114,8 @@ def new(args, out):
     return out + '.new'
 
 def run(args):
-    os.makedirs(args.storage, exist_ok=True)
     out = args.write_qemu_image
+    os.makedirs(os.path.dirname(out), exist_ok=True)
 
     if False:
         created = new_ubuntu_cloud(args, out)
