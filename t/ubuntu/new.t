@@ -44,11 +44,9 @@ $VECTIS --vendor=ubuntu --storage="${storage}" \
     --mirror="${VECTIS_TEST_UBUNTU_MIRROR}" \
     --suite="${lts}"
 
-image="$(cd "${storage}" && ls -1 vectis-ubuntu-*-"${arch}".qcow2)"
-
-$VECTIS --vendor=debian --storage="${storage}" sbuild \
+$VECTIS --vendor=ubuntu --storage="${storage}" sbuild \
     --mirror="${VECTIS_TEST_UBUNTU_MIRROR}" \
-    --worker="qemu $image" \
+    --worker-suite="${lts}" \
     --suite="${lts}" \
     hello
 
