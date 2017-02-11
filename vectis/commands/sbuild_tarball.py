@@ -5,6 +5,10 @@
 import logging
 import os
 
+from debian.debian_support import (
+        Version,
+        )
+
 from vectis.worker import Worker
 
 logger = logging.getLogger(__name__)
@@ -55,6 +59,21 @@ def run(args):
         # Smoke-test the new tarball before being prepared to use it.
         if args._test_package:
             try:
+                lines = worker.check_output([
+                            'schroot',
+                            '-c', '{}-{}-sbuild'.format(args.suite,
+                                args.architecture),
+                            '--',
+                            'sh', '-c',
+                            'apt-get update >&2 && '
+                            'apt-cache showsrc --only-source "$1" | '
+                            'sed -ne "s/^Version: *//p"',
+                            'sh', # argv[0]
+                            args._test_package],
+                        universal_newlines=True).strip().splitlines()
+                version = sorted(map(Version, lines))[-1]
+                buildable = '{}_{}'.format(args._test_package, version)
+
                 worker.check_call([
                     worker.command_wrapper,
                     '--chdir',
@@ -67,7 +86,7 @@ def run(args):
                     '-c', '{}-{}-sbuild'.format(args.suite, args.architecture),
                     '-d', 'whatever',
                     '--no-run-lintian',
-                    args._test_package,
+                    buildable,
                     ])
             except:
                 if args._keep:
