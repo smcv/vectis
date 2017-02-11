@@ -238,8 +238,8 @@ class DefaultsTestCase(unittest.TestCase):
         #with self.assertRaises(AttributeError): jessie.sbuild_buildables
 
         self.assertEqual(str(ubuntu), 'ubuntu')
-        self.assertEqual(ubuntu.components, {'main'})
-        self.assertEqual(ubuntu.extra_components, {'universe', 'restricted',
+        self.assertEqual(ubuntu.components, {'main', 'universe'})
+        self.assertEqual(ubuntu.extra_components, {'restricted',
             'multiverse'})
         self.assertEqual(ubuntu.all_components, {'main', 'universe',
             'restricted', 'multiverse'})
@@ -318,8 +318,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(str(ubuntu), 'ubuntu')
         self.assertIs(ubuntu.autopkgtest, True)
         self.assertEqual(ubuntu.default_suite, ubuntu_devel)
-        self.assertEqual(ubuntu.components, {'main'})
-        self.assertEqual(ubuntu.extra_components, {'universe', 'restricted',
+        self.assertEqual(ubuntu.components, {'main', 'universe'})
+        self.assertEqual(ubuntu.extra_components, {'restricted',
             'multiverse'})
         self.assertEqual(ubuntu.all_components, {'main', 'universe',
             'restricted', 'multiverse'})
@@ -371,8 +371,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(xenial.autopkgtest, True)
         # FIXME: this seems wrong
         self.assertEqual(xenial.default_suite, ubuntu_devel)
-        self.assertEqual(xenial.components, {'main'})
-        self.assertEqual(xenial.extra_components, {'universe', 'multiverse',
+        self.assertEqual(xenial.components, {'main', 'universe'})
+        self.assertEqual(xenial.extra_components, {'multiverse',
             'restricted'})
         self.assertEqual(xenial.all_components, {'main', 'universe',
             'multiverse', 'restricted'})

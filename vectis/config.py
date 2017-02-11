@@ -106,7 +106,8 @@ vendors:
                 components: main
     ubuntu:
         worker_vendor: ubuntu
-        extra_components: universe restricted multiverse
+        components: main universe
+        extra_components: restricted multiverse
         kernel_package:
             null: linux-image-generic
         suites:
