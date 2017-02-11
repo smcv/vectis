@@ -42,7 +42,7 @@ echo "1..1"
 $VECTIS --vendor=ubuntu --storage="${storage}" \
     new \
     --mirror="${VECTIS_TEST_UBUNTU_MIRROR}" \
-    --suite=devel
+    --suite="${lts}"
 
 image="$(cd "${storage}" && ls -1 vectis-ubuntu-*-"${arch}".qcow2)"
 
