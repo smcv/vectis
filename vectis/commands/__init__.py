@@ -25,8 +25,7 @@ base.add_argument('--vendor',
 base.add_argument('--archive',
         help='OS distribution to look for on mirrors '
         '[default: {}]'.format(args.vendor))
-base.add_argument('--mirror',
-        help='Mirror [default: {}]'.format(args.mirror))
+base.add_argument('--mirror', help='Mirror to use')
 
 parser = argparse.ArgumentParser(
         description='Do Debian-related things in a virtual machine.',
@@ -45,8 +44,7 @@ p = subparsers.add_parser('bootstrap',
 p.add_argument('--size', dest='qemu_image_size',
         help='Size of image [default: {}]'.format(args.qemu_image_size))
 p.add_argument('--bootstrap-mirror',
-        help='Mirror to use for initial setup '
-        '[default: {}]'.format(args.bootstrap_mirror))
+        help='Mirror to use for initial setup')
 p.add_argument('--qemu-image', dest='write_qemu_image',
         help='Virtual machine image to create '
         '[default: {}]'.format(args.write_qemu_image))
