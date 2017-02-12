@@ -358,7 +358,8 @@ class Build:
                         '--',
                         'sh', '-c',
                         'apt-get update >&2 && '
-                        'apt-cache showsrc --only-source "$1" | '
+                        '( apt-cache showsrc --only-source "$1" || '
+                        '  apt-cache showsrc "$1" ) | '
                         'sed -ne "s/^Version: *//p"',
                         'sh', # argv[0]
                         self.buildable.source_package],
