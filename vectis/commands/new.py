@@ -129,6 +129,9 @@ def new(args, out):
             debootstrap_args.append('keyring={}/apt-key.gpg'.format(
                 worker.scratch))
 
+        debootstrap_args.append('components={}'.format(
+            ','.join(args.components)))
+
         if debootstrap_args:
             argv.append('--debootstrapopts={}'.format(
                 ' '.join(debootstrap_args)))

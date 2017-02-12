@@ -63,6 +63,9 @@ def run(args):
             debootstrap_args.append('--keyring={}/apt-key.gpg'.format(
                 worker.scratch))
 
+        debootstrap_args.append('--components={}'.format(
+            ','.join(args.components)))
+
         worker.check_call([
                 'env', 'DEBIAN_FRONTEND=noninteractive',
                 worker.command_wrapper,
