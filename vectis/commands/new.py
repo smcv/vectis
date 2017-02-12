@@ -79,30 +79,59 @@ def new(args, out):
             'env', 'DEBIAN_FRONTEND=noninteractive',
             'apt-get', '-y', 'upgrade',
             ])
-        worker.check_call([
-            'apt-get',
-            '-y',
-            '--no-install-recommends',
-            'install',
 
+        worker_packages = [
             'autopkgtest',
             'grub2-common',
             'python3',
             'qemu-utils',
             'vmdebootstrap',
-            ])
+            ]
+
         # Optional (x86 only, but necessary for wheezy)
-        worker.call([
+        optional_worker_packages = [
+            'extlinux',
+            'mbr',
+            ]
+
+        keyring = args.apt_key_package
+
+        if keyring is not None:
+            optional_worker_packages.append(keyring)
+
+        worker.check_call([
             'apt-get',
             '-y',
             '--no-install-recommends',
             'install',
+            ] + worker_packages)
 
-            'extlinux',
-            'mbr',
-            ])
+        # Failure is ignored for these non-critical packages
+        for p in optional_worker_packages:
+            worker.call([
+                'apt-get',
+                '-y',
+                '--no-install-recommends',
+                'install',
+                p])
 
         version = worker.dpkg_version('vmdebootstrap')
+
+        argv = vmdebootstrap_argv(version, args)
+
+        debootstrap_args = []
+
+        if worker.call(['test', '-f', args.apt_key]) == 0:
+            debootstrap_args.append('keyring={}'.format(args.apt_key))
+        elif os.path.exists(args.apt_key):
+            worker.copy_to_guest(args.apt_key,
+                    '{}/apt-key.gpg'.format(worker.scratch))
+            debootstrap_args.append('keyring={}/apt-key.gpg'.format(
+                worker.scratch))
+
+        if debootstrap_args:
+            argv.append('--debootstrapopts={}'.format(
+                ' '.join(debootstrap_args)))
 
         worker.copy_to_guest(
                 os.path.join(os.path.dirname(__file__), '..', 'setup-testbed'),
@@ -113,10 +142,11 @@ def new(args, out):
                 'env', 'DEBIAN_FRONTEND=noninteractive',
                 worker.command_wrapper,
                 '--',
-                ] + vmdebootstrap_argv(version, args) + [
+                ] + argv + [
                 '--customize={}/setup-testbed'.format(worker.scratch),
                 '--image={}/output.raw'.format(worker.scratch),
                 ])
+
         worker.check_call(['qemu-img', 'convert', '-f', 'raw', '-O',
                 'qcow2', '-c', '-p',
                 '{}/output.raw'.format(worker.scratch),

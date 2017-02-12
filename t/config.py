@@ -57,7 +57,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIsNone(self.__config.sbuild_buildables)
         self.assertEqual(self.__config.sbuild_resolver, [])
         self.assertEqual(self.__config.debootstrap_script, 'sid')
-        self.assertIsNone(self.__config.apt_key)
+        self.assertEqual(self.__config.apt_key,
+                '/usr/share/keyrings/debian-archive-keyring.gpg')
         self.assertIsNone(self.__config.apt_suite)
         self.assertEqual(self.__config.dpkg_source_tar_ignore, [])
         self.assertIsNone(self.__config.dpkg_source_diff_ignore)
@@ -192,7 +193,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertGreaterEqual(debian.parallel, 1)
         self.assertIs(debian.sbuild_together, False)
         self.assertEqual(debian.sbuild_resolver, [])
-        self.assertIsNone(debian.apt_key)
+        self.assertEqual(debian.apt_key,
+                '/usr/share/keyrings/debian-archive-keyring.gpg')
         self.assertIsNone(debian.apt_suite)
         self.assertIsNone(debian.dpkg_source_diff_ignore)
         self.assertEqual(debian.dpkg_source_tar_ignore, [])
@@ -245,7 +247,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertGreaterEqual(jessie.parallel, 1)
         self.assertIs(jessie.sbuild_together, False)
         self.assertEqual(jessie.sbuild_resolver, [])
-        self.assertIsNone(jessie.apt_key)
+        self.assertEqual(jessie.apt_key,
+                '/usr/share/keyrings/debian-archive-keyring.gpg')
         self.assertEqual(jessie.apt_suite, 'jessie')
         self.assertIsNone(jessie.dpkg_source_diff_ignore)
         self.assertEqual(jessie.dpkg_source_tar_ignore, [])
@@ -381,7 +384,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertGreaterEqual(ubuntu.parallel, 1)
         self.assertIs(ubuntu.sbuild_together, False)
         self.assertEqual(ubuntu.sbuild_resolver, [])
-        self.assertIsNone(ubuntu.apt_key)
+        self.assertEqual(ubuntu.apt_key,
+                '/usr/share/keyrings/ubuntu-archive-keyring.gpg')
         self.assertIsNone(ubuntu.apt_suite)
         self.assertIsNone(ubuntu.dpkg_source_diff_ignore)
         self.assertEqual(ubuntu.dpkg_source_tar_ignore, [])
@@ -439,7 +443,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertGreaterEqual(xenial.parallel, 1)
         self.assertIs(xenial.sbuild_together, False)
         self.assertEqual(xenial.sbuild_resolver, [])
-        self.assertIsNone(xenial.apt_key)
+        self.assertEqual(xenial.apt_key,
+                '/usr/share/keyrings/ubuntu-archive-keyring.gpg')
         self.assertEqual(xenial.apt_suite, 'xenial')
         self.assertIsNone(xenial.dpkg_source_diff_ignore)
         self.assertEqual(xenial.dpkg_source_tar_ignore, [])

@@ -575,7 +575,7 @@ class Config(_ConfigLike):
 
     @property
     def sbuild_worker_suite(self):
-        suite = self['sbuild_worker_suite']
+        value = self['sbuild_worker_suite']
 
         if value is None:
             value = self.sbuild_worker_vendor.default_worker_suite
@@ -583,11 +583,11 @@ class Config(_ConfigLike):
         if value is None:
             return None
 
-        return self.sbuild_worker_vendor.get_suite(suite, True)
+        return self.sbuild_worker_vendor.get_suite(value, True)
 
     @property
     def vmdebootstrap_worker_suite(self):
-        suite = self['vmdebootstrap_worker_suite']
+        value = self['vmdebootstrap_worker_suite']
 
         if value is None:
             value = self.vmdebootstrap_worker_vendor.default_worker_suite
@@ -595,7 +595,7 @@ class Config(_ConfigLike):
         if value is None:
             return None
 
-        return self.vmdebootstrap_worker_vendor.get_suite(suite, True)
+        return self.vmdebootstrap_worker_vendor.get_suite(value, True)
 
     @property
     def autopkgtest_qemu_image(self):

@@ -40,6 +40,29 @@ def run(args):
             'sbuild',
             'schroot',
             ])
+
+        keyring = args.apt_key_package
+
+        if keyring is not None:
+            worker.call([
+                'apt-get',
+                '-y',
+                '--no-install-recommends',
+                'install',
+
+                keyring,
+                ])
+
+        debootstrap_args = []
+
+        if worker.call(['test', '-f', args.apt_key]) == 0:
+            debootstrap_args.append('--keyring={}'.format(args.apt_key))
+        elif os.path.exists(args.apt_key):
+            worker.copy_to_guest(args.apt_key,
+                    '{}/apt-key.gpg'.format(worker.scratch))
+            debootstrap_args.append('--keyring={}/apt-key.gpg'.format(
+                worker.scratch))
+
         worker.check_call([
                 'env', 'DEBIAN_FRONTEND=noninteractive',
                 worker.command_wrapper,
@@ -49,6 +72,7 @@ def run(args):
                 '--include=fakeroot,sudo,vim',
                 '--components={}'.format(','.join(args.components)),
                 '--make-sbuild-tarball={}/output.tar.gz'.format(worker.scratch),
+            ] + debootstrap_args + [
                 str(args.suite), '{}/chroot'.format(worker.scratch),
                 args.mirror,
                 '/usr/share/debootstrap/scripts/{}'.format(args.debootstrap_script),

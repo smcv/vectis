@@ -16,6 +16,8 @@ defaults:
     qemu_image: autopkgtest.qcow2
     write_qemu_image: null
     debootstrap_script: null
+    apt_key_package: null
+    apt_key: null
     default_suite: null
     default_worker_suite: null
     architecture: null
@@ -51,7 +53,6 @@ defaults:
 
     sbuild_buildables: null
     sbuild_resolver: []
-    apt_key: null
     apt_suite: null
     dpkg_source_tar_ignore: []
     dpkg_source_diff_ignore: null
@@ -71,6 +72,8 @@ vendors:
         extra_components: contrib non-free
         sbuild_worker_suite: jessie-apt.buildd.debian.org
         worker_vendor: debian
+        apt_key_package: debian-archive-keyring
+        apt_key: /usr/share/keyrings/debian-archive-keyring.gpg
         suites:
             wheezy:
                 force_parallel: 1
@@ -113,6 +116,8 @@ vendors:
                 apt_suite: "*"
                 components: main
     ubuntu:
+        apt_key_package: ubuntu-archive-keyring
+        apt_key: /usr/share/keyrings/ubuntu-archive-keyring.gpg
         worker_vendor: ubuntu
         components: main universe
         extra_components: restricted multiverse
