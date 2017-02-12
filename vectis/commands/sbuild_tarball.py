@@ -19,7 +19,7 @@ def run(args):
     if args.suite is None:
         args.suite = args.default_suite
 
-    sbuild_tarball = 'sbuild-{vendor}-{suite}-{arch}.tar.gz'.format(
+    sbuild_tarball = '{arch}/{vendor}/{suite}/sbuild.tar.gz'.format(
             arch=args.architecture,
             vendor=args.vendor,
             suite=args.suite,
@@ -55,6 +55,7 @@ def run(args):
             ])
 
         out = os.path.join(args.storage, sbuild_tarball)
+        os.makedirs(os.path.dirname(out), exist_ok=True)
 
         # Smoke-test the new tarball before being prepared to use it.
         if args._test_package:

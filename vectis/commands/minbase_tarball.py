@@ -15,7 +15,7 @@ def run(args):
     if args.suite is None:
         args.suite = args.default_suite
 
-    minbase_tarball = 'minbase-{vendor}-{suite}-{arch}.tar.gz'.format(
+    minbase_tarball = '{arch}/{vendor}/{suite}/minbase.tar.gz'.format(
             arch=args.architecture,
             vendor=args.vendor,
             suite=args.suite,
@@ -54,6 +54,7 @@ def run(args):
             '-z', '-c', '.'])
 
         out = os.path.join(args.storage, minbase_tarball)
+        os.makedirs(os.path.dirname(out), exist_ok=True)
         worker.copy_to_host('{}/output.tar.gz'.format(worker.scratch), out + '.new')
         # FIXME: smoke-test it?
         os.rename(out + '.new', out)

@@ -313,13 +313,16 @@ class Build:
 
         hierarchy = self.suite.hierarchy
 
-        sbuild_tarball = (
-                'sbuild-{vendor}-{base}-{arch}.tar.gz'.format(
+        sbuild_tarball_dir = (
+                '{arch}/{vendor}/{base}'.format(
                     arch=use_arch,
                     vendor=self.buildable.vendor,
                     base=hierarchy[-1],
                     ))
 
+        self.worker.check_call(['mkdir', '-p',
+            '{}/in/{}'.format(self.worker.scratch, sbuild_tarball_dir)])
+        sbuild_tarball = sbuild_tarball_dir + '/sbuild.tar.gz'
         self.worker.copy_to_guest(os.path.join(self.storage,
                     sbuild_tarball),
                 '{}/in/{}'.format(self.worker.scratch, sbuild_tarball),

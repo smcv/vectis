@@ -24,16 +24,16 @@ if ! lts="$(ubuntu-distro-info --lts)"; then
     exit 0
 fi
 
-ln -s "${XDG_CACHE_HOME:-"${HOME}/.cache"}/vectis/${arch}/ubuntu/${lts}/autopkgtest.qcow2" "${storage}"
-ln -s "${XDG_CACHE_HOME:-"${HOME}/.cache"}/vectis/sbuild-ubuntu-${lts}-${arch}.tar.gz" "${storage}"
+ln -s "${XDG_CACHE_HOME:-"${HOME}/.cache"}/vectis/${arch}/ubuntu/${lts}/autopkgtest.qcow2" "${storage}/${arch}/ubuntu/${lts}/"
+ln -s "${XDG_CACHE_HOME:-"${HOME}/.cache"}/vectis/${arch}/ubuntu/${lts}/sbuild.tar.gz" "${storage}/${arch}/ubuntu/${lts}/"
 
 if ! [ -f "${storage}/${arch}/ubuntu/${lts}/autopkgtest.qcow2" ]; then
     echo "1..0 # SKIP XDG_CACHE_HOME/vectis/${arch}/ubuntu/${lts}/autopkgtest.qcow2 not found"
     exit 0
 fi
 
-if ! [ -f "${storage}/sbuild-ubuntu-${lts}-${arch}.tar.gz" ]; then
-    echo "1..0 # SKIP XDG_CACHE_HOME/vectis/sbuild-ubuntu-${lts}-${arch}.tar.gz not found"
+if ! [ -f "${storage}/${arch}/ubuntu/${lts}/sbuild.tar.gz" ]; then
+    echo "1..0 # SKIP XDG_CACHE_HOME/vectis/${arch}/ubuntu/${lts}/sbuild.tar.gz not found"
     exit 0
 fi
 

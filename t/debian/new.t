@@ -16,15 +16,15 @@ arch="$(dpkg --print-architecture)"
 
 mkdir -p "${storage}/${arch}/debian/sid"
 ln -s "${XDG_CACHE_HOME:-"${HOME}/.cache"}/vectis/${arch}/debian/sid/autopkgtest.qcow2" "${storage}/${arch}/debian/sid/"
-ln -s "${XDG_CACHE_HOME:-"${HOME}/.cache"}"/vectis/sbuild-debian-sid-${arch}.tar.gz "${storage}"
+ln -s "${XDG_CACHE_HOME:-"${HOME}/.cache"}/vectis/${arch}/debian/sid/sbuild.tar.gz" "${storage}/${arch}/debian/sid/"
 
 if ! [ -f "${storage}/${arch}/debian/sid/autopkgtest.qcow2" ]; then
-    echo "1..0 # SKIP XDG_CACHE_HOME/vectis/${arch}/debian/sid/autopkgtest.qcow2 not found"
+    echo "1..0 # SKIP ${storage}/vectis/${arch}/debian/sid/autopkgtest.qcow2 not found"
     exit 0
 fi
 
-if ! [ -f "${storage}/sbuild-debian-sid-${arch}.tar.gz" ]; then
-    echo "1..0 # SKIP XDG_CACHE_HOME/vectis/sbuild-debian-sid-${arch}.tar.gz not found"
+if ! [ -f "${storage}/${arch}/debian/sid/sbuild.tar.gz" ]; then
+    echo "1..0 # SKIP ${storage}/vectis/${arch}/debian/sid/sbuild.tar.gz not found"
     exit 0
 fi
 
