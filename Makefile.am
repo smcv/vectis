@@ -38,6 +38,7 @@ nobase_dist_pkgdata_DATA = \
 	${NULL}
 
 nobase_dist_pkgdata_SCRIPTS = \
+	vectis/setup-testbed \
 	vectis/vectis-command-wrapper \
 	${NULL}
 

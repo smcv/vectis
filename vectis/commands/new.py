@@ -11,7 +11,7 @@ from debian.debian_support import (
 
 from vectis.worker import Worker
 
-def vmdebootstrap_argv(version, args, setup_script):
+def vmdebootstrap_argv(version, args):
     argv = ['env',
             # We use apt-cacher-ng in non-proxy mode, to make it easier to
             # add extra apt sources later that can't go via this proxy.
@@ -34,7 +34,6 @@ def vmdebootstrap_argv(version, args, setup_script):
             '--no-mbr',
             '--no-extlinux',
         ]
-    argv.append('--customize={}'.format(setup_script))
 
     kernel = args.get_kernel_package(args.architecture)
 
@@ -96,13 +95,19 @@ def new(args, out):
 
         version = worker.dpkg_version('vmdebootstrap')
 
+        worker.copy_to_guest(
+                os.path.join(os.path.dirname(__file__), '..', 'setup-testbed'),
+                '{}/setup-testbed'.format(worker.scratch))
+        worker.check_call(['chmod', '0755',
+            '{}/setup-testbed'.format(worker.scratch)])
         worker.check_call([
                 'env', 'DEBIAN_FRONTEND=noninteractive',
                 worker.command_wrapper,
                 '--',
-                ] + vmdebootstrap_argv(version, args,
-                    '/usr/share/autopkgtest/setup-commands/setup-testbed') + [
-                '--image={}/output.raw'.format(worker.scratch)])
+                ] + vmdebootstrap_argv(version, args) + [
+                '--customize={}/setup-testbed'.format(worker.scratch),
+                '--image={}/output.raw'.format(worker.scratch),
+                ])
         worker.check_call(['qemu-img', 'convert', '-f', 'raw', '-O',
                 'qcow2', '-c', '-p',
                 '{}/output.raw'.format(worker.scratch),

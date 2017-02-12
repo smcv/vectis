@@ -35,8 +35,9 @@ def run(args):
 
     with TemporaryDirectory(prefix='vectis-bootstrap-') as scratch:
         subprocess.check_call(['sudo',
-                ] + vmdebootstrap_argv(version, args,
-                    '/usr/share/autopkgtest/setup-commands/setup-testbed') + [
+                ] + vmdebootstrap_argv(version, args) + [
+                '--customize={}'.format(
+                    os.path.join(os.path.dirname(__file__), 'setup-testbed')),
                 '--owner={}'.format(pwd.getpwuid(os.getuid())[0]),
                 '--image={}/output.raw'.format(scratch),
                 ])
