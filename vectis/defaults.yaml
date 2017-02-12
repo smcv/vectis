@@ -70,6 +70,7 @@ vendors:
         suites:
             wheezy:
                 force_parallel: 1
+                # This assumes a post-jessie worker
                 vmdebootstrap_options:
                     - "--roottype=ext3"
             jessie:
