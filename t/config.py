@@ -84,7 +84,18 @@ class DefaultsTestCase(unittest.TestCase):
         sid = self.__config.vendor.get_suite('sid')
         self.assertIs(self.__config.autopkgtest, True)
         self.assertEqual(self.__config.suite, sid)
-        self.assertEqual(self.__config.worker_suite, sid)
+
+        try:
+            import distro_info
+        except ImportError:
+            pass
+        else:
+            self.assertEqual(self.__config.worker_suite,
+                    self.__config.vendor.get_suite(
+                        distro_info.DebianDistroInfo().testing()))
+            self.assertEqual(self.__config.default_worker_suite,
+                        distro_info.DebianDistroInfo().testing())
+
         jb = self.__config.vendor.get_suite('jessie-apt.buildd.debian.org')
         self.assertEqual(self.__config.sbuild_worker_suite, jb)
         self.assertEqual(self.__config.default_suite, 'sid')
@@ -329,9 +340,11 @@ class DefaultsTestCase(unittest.TestCase):
         # FIXME: should be a Vendor?
         self.assertEqual(ubuntu.worker_vendor, 'ubuntu')
         # FIXME: should be a Suite?
-        self.assertEqual(ubuntu.worker_suite, ubuntu_info.lts())
+        self.assertEqual(ubuntu.default_worker_suite, ubuntu_info.lts())
         # FIXME: should be a Suite? or ubuntu_info.lts()?
+        self.assertEqual(ubuntu.worker_suite, None)
         self.assertEqual(ubuntu.sbuild_worker_suite, None)
+        self.assertEqual(ubuntu.vmdebootstrap_worker_suite, None)
         self.assertEqual(ubuntu.archive, 'ubuntu')
         self.assertEqual(ubuntu.apt_cacher_ng, 'http://192.168.122.1:3142')
         self.assertEqual(ubuntu.mirror, 'http://192.168.122.1:3142/ubuntu')
@@ -382,9 +395,12 @@ class DefaultsTestCase(unittest.TestCase):
         # FIXME: should be a Vendor?
         self.assertEqual(xenial.worker_vendor, 'ubuntu')
         # FIXME: should be a Suite?
-        self.assertEqual(xenial.worker_suite, ubuntu_info.lts())
+        self.assertEqual(xenial.default_worker_suite,
+                ubuntu_info.lts())
         # FIXME: should be a Suite? or ubuntu_info.lts()?
+        self.assertEqual(xenial.worker_suite, None)
         self.assertEqual(xenial.sbuild_worker_suite, None)
+        self.assertEqual(xenial.vmdebootstrap_worker_suite, None)
         self.assertEqual(xenial.archive, 'ubuntu')
         self.assertEqual(xenial.apt_cacher_ng, 'http://192.168.122.1:3142')
         self.assertEqual(xenial.mirror, 'http://192.168.122.1:3142/ubuntu')

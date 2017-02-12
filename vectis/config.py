@@ -417,6 +417,7 @@ class Config(_ConfigLike):
             debian = distro_info.DebianDistroInfo()
             ubuntu = distro_info.UbuntuDistroInfo()
             d['vendors']['debian']['default_suite'] = 'sid'
+            d['vendors']['debian']['default_worker_suite'] = debian.testing()
             d['vendors']['debian']['suites']['stable'] = {
                     'alias_for': debian.stable(),
             }
@@ -436,7 +437,7 @@ class Config(_ConfigLike):
                 ubuntu_devel = ubuntu.stable()
 
             d['vendors']['ubuntu']['default_suite'] = ubuntu.devel()
-            d['vendors']['ubuntu']['worker_suite'] = ubuntu.lts()
+            d['vendors']['ubuntu']['default_worker_suite'] = ubuntu.lts()
             d['vendors']['ubuntu']['suites']['devel'] = {
                     'alias_for': ubuntu_devel,
             }
@@ -547,7 +548,7 @@ class Config(_ConfigLike):
         value = self['worker_suite']
 
         if value is None:
-            value = self.worker_vendor.default_suite
+            value = self.worker_vendor.default_worker_suite
 
         if value is None:
             return None
