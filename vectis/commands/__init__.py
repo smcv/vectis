@@ -12,6 +12,35 @@ from vectis.error import (Error)
 
 logger = logging.getLogger(__name__)
 
+def add_worker_options(p, context=None, context_implicit=False):
+    if context is None:
+        arg_prefix = ''
+        dest_prefix = ''
+    elif context_implicit:
+        arg_prefix = ''
+        dest_prefix = context + '_'
+    else:
+        arg_prefix = context + '-'
+        dest_prefix = context + '_'
+
+    p.add_argument('--{}worker'.format(arg_prefix),
+            dest=dest_prefix + 'worker',
+            help='Virtual machine to use to create it '
+            '[default: {}]'.format(
+                getattr(args, dest_prefix + 'worker')))
+
+    p.add_argument('--{}worker-vendor'.format(arg_prefix),
+            dest=dest_prefix + 'worker_vendor',
+            help='Virtual machine vendor to use '
+            '[default: {}]'.format(
+                getattr(args, dest_prefix + 'worker_vendor')))
+
+    p.add_argument('--{}worker-suite'.format(arg_prefix),
+            dest=dest_prefix + 'worker_suite',
+            help='Virtual machine suite to use '
+            '[default: {}]'.format(
+                getattr(args, dest_prefix + 'worker_suite')))
+
 args = Config()
 
 base = argparse.ArgumentParser(argument_default=argparse.SUPPRESS,
@@ -66,12 +95,7 @@ p.add_argument('--size', dest='qemu_image_size',
 p.add_argument('--qemu-image', dest='write_qemu_image',
         help='Virtual machine image to create '
         '[default: {}]'.format(args.write_qemu_image))
-p.add_argument('--worker',
-        help='Virtual machine to use to create it '
-        '[default: {}]'.format(args.worker))
-p.add_argument('--worker-suite',
-        help='Virtual machine suite to use '
-        '[default: {}]'.format(args.worker_suite))
+add_worker_options(p, context='vmdebootstrap', context_implicit=True)
 p.add_argument('--suite',
         help='Release suite [default: {}]'.format(args.default_suite))
 p.add_argument('--architecture', '--arch',
@@ -104,12 +128,7 @@ p = subparsers.add_parser('sbuild-tarball',
         argument_default=argparse.SUPPRESS,
         parents=(base,),
         )
-p.add_argument('--worker',
-        help='Virtual machine to use '
-        '[default: {}]'.format(args.worker))
-p.add_argument('--worker-suite',
-        help='Virtual machine suite to use '
-        '[default: {}]'.format(args.worker_suite))
+add_worker_options(p)
 p.add_argument('--debootstrap-script',
         help='debootstrap script to run '
         '[default: {}]'.format(args.debootstrap_script))
@@ -129,12 +148,7 @@ p = subparsers.add_parser('minbase-tarball',
         argument_default=argparse.SUPPRESS,
         parents=(base,),
         )
-p.add_argument('--worker',
-        help='Virtual machine to use '
-        '[default: {}]'.format(args.worker))
-p.add_argument('--worker-suite',
-        help='Virtual machine suite to use '
-        '[default: {}]'.format(args.worker_suite))
+add_worker_options(p)
 p.add_argument('--debootstrap-script',
         help='debootstrap script to run '
         '[default: {}]'.format(args.debootstrap_script))
@@ -150,12 +164,7 @@ p = subparsers.add_parser('sbuild',
         conflict_handler='resolve',
         parents=(base,),
         )
-p.add_argument('--worker',
-        help='Virtual machine image to use '
-        '[default: {}]'.format(args.worker))
-p.add_argument('--worker-suite', dest='sbuild_worker_suite',
-        help='Suite to run in virtual machine, [default={}]'.format(
-            args.sbuild_worker_suite))
+add_worker_options(p, context='sbuild', context_implicit=True)
 p.add_argument('_buildables', metavar='CHANGES_OR_DSC_OR_DIR',
         help='sourceful .changes or .dsc or source directory', nargs='*',
         default=[])

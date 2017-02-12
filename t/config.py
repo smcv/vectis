@@ -41,8 +41,13 @@ class DefaultsTestCase(unittest.TestCase):
 
         self.assertEqual(str(self.__config.vendor), 'debian')
         self.assertEqual(str(self.__config.worker_vendor), 'debian')
+        self.assertEqual(str(self.__config.vmdebootstrap_worker_vendor),
+                'debian')
+        self.assertEqual(str(self.__config.sbuild_worker_vendor), 'debian')
         self.assertIs(self.__config.vendor, debian)
         self.assertIs(self.__config.worker_vendor, debian)
+        self.assertIs(self.__config.sbuild_worker_vendor, debian)
+        self.assertIs(self.__config.vmdebootstrap_worker_vendor, debian)
         self.assertEqual(self.__config.archive, 'debian')
         self.assertEqual(self.__config.apt_cacher_ng, None)
         self.assertEqual(self.__config.force_parallel, 0)
@@ -115,6 +120,10 @@ class DefaultsTestCase(unittest.TestCase):
         self.__config.architecture = 'm68k'
         self.__config.suite = 'potato'
         self.__config.worker_suite = 'sarge'
+        self.__config.sbuild_worker_suite = 'alchemist'
+        self.__config.sbuild_worker_vendor = 'steamos'
+        self.__config.vmdebootstrap_worker_suite = 'xenial'
+        self.__config.vmdebootstrap_worker_vendor = 'ubuntu'
 
         debian = self.__config._get_vendor('debian')
         potato = debian.get_suite('potato')
@@ -133,6 +142,13 @@ class DefaultsTestCase(unittest.TestCase):
                     self.__config.storage))
         self.assertEqual(self.__config.worker,
                 'qemu {}/m68k/debian/sarge/autopkgtest.qcow2'.format(
+                    self.__config.storage))
+
+        self.assertEqual(self.__config.sbuild_worker_qemu_image,
+                '{}/m68k/steamos/alchemist/autopkgtest.qcow2'.format(
+                    self.__config.storage))
+        self.assertEqual(self.__config.vmdebootstrap_worker_qemu_image,
+                '{}/m68k/ubuntu/xenial/autopkgtest.qcow2'.format(
                     self.__config.storage))
 
         self.assertEqual(self.__config.mirror,
@@ -158,6 +174,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(debian.vendor, debian)
         # FIXME: should be a Vendor?
         self.assertEqual(debian.worker_vendor, 'debian')
+        self.assertEqual(debian.sbuild_worker_vendor, None)
+        self.assertEqual(debian.vmdebootstrap_worker_vendor, None)
         # FIXME: should be a Suite? or 'sid'?
         self.assertEqual(debian.worker_suite, None)
         # FIXME: should be a Suite?
@@ -211,6 +229,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(jessie.vendor, debian)
         # FIXME: should be a Vendor?
         self.assertEqual(jessie.worker_vendor, 'debian')
+        self.assertEqual(jessie.sbuild_worker_vendor, None)
+        self.assertEqual(jessie.vmdebootstrap_worker_vendor, None)
         # FIXME: should be a Suite? or 'sid'?
         self.assertEqual(jessie.worker_suite, None)
         # FIXME: should be a Suite?
@@ -258,6 +278,8 @@ class DefaultsTestCase(unittest.TestCase):
             'restricted', 'multiverse'})
         self.assertEqual(ubuntu.vendor, ubuntu)
         self.assertEqual(ubuntu.worker_vendor, 'ubuntu')
+        self.assertEqual(ubuntu.sbuild_worker_vendor, None)
+        self.assertEqual(ubuntu.vmdebootstrap_worker_vendor, None)
         self.assertEqual(ubuntu.archive, 'ubuntu')
         self.assertEqual(ubuntu.mirror, 'http://192.168.122.1:3142/ubuntu')
         self.assertIsNone(ubuntu.get_suite('unstable', create=False))
@@ -270,6 +292,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(steamos.components, {'main'})
         self.assertEqual(steamos.vendor, steamos)
         self.assertEqual(steamos.worker_vendor, 'debian')
+        self.assertEqual(steamos.sbuild_worker_vendor, None)
+        self.assertEqual(steamos.vmdebootstrap_worker_vendor, None)
         self.assertEqual(steamos.archive, 'steamos')
         self.assertEqual(steamos.mirror, 'http://192.168.122.1:3142/steamos')
 
@@ -339,6 +363,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(ubuntu.vendor, ubuntu)
         # FIXME: should be a Vendor?
         self.assertEqual(ubuntu.worker_vendor, 'ubuntu')
+        self.assertEqual(ubuntu.sbuild_worker_vendor, None)
+        self.assertEqual(ubuntu.vmdebootstrap_worker_vendor, None)
         # FIXME: should be a Suite?
         self.assertEqual(ubuntu.default_worker_suite, ubuntu_info.lts())
         # FIXME: should be a Suite? or ubuntu_info.lts()?
@@ -394,6 +420,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(xenial.vendor, ubuntu)
         # FIXME: should be a Vendor?
         self.assertEqual(xenial.worker_vendor, 'ubuntu')
+        self.assertEqual(xenial.sbuild_worker_vendor, None)
+        self.assertEqual(xenial.vmdebootstrap_worker_vendor, None)
         # FIXME: should be a Suite?
         self.assertEqual(xenial.default_worker_suite,
                 ubuntu_info.lts())

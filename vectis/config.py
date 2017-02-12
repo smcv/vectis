@@ -537,6 +537,24 @@ class Config(_ConfigLike):
     def worker_vendor(self):
         return self._get_vendor(self['worker_vendor'])
 
+    @property
+    def vmdebootstrap_worker_vendor(self):
+        value = self['vmdebootstrap_worker_vendor']
+
+        if value is None:
+            value = self['worker_vendor']
+
+        return self._get_vendor(value)
+
+    @property
+    def sbuild_worker_vendor(self):
+        value = self['sbuild_worker_vendor']
+
+        if value is None:
+            value = self['worker_vendor']
+
+        return self._get_vendor(value)
+
     def __setattr__(self, name, value):
         if name.startswith('_'):
             super(Config, self).__setattr__(name, value)
@@ -559,19 +577,25 @@ class Config(_ConfigLike):
     def sbuild_worker_suite(self):
         suite = self['sbuild_worker_suite']
 
-        if suite is None:
-            return self.worker_suite
+        if value is None:
+            value = self.sbuild_worker_vendor.default_worker_suite
 
-        return self.worker_vendor.get_suite(suite, True)
+        if value is None:
+            return None
+
+        return self.sbuild_worker_vendor.get_suite(suite, True)
 
     @property
     def vmdebootstrap_worker_suite(self):
         suite = self['vmdebootstrap_worker_suite']
 
-        if suite is None:
-            suite = self.worker_suite
+        if value is None:
+            value = self.vmdebootstrap_worker_vendor.default_worker_suite
 
-        return self.worker_vendor.get_suite(suite, True)
+        if value is None:
+            return None
+
+        return self.vmdebootstrap_worker_vendor.get_suite(suite, True)
 
     @property
     def autopkgtest_qemu_image(self):
@@ -618,13 +642,13 @@ class Config(_ConfigLike):
         value = self['sbuild_worker_qemu_image']
 
         if value is None:
-            value = self.worker_vendor['qemu_image']
+            value = self.sbuild_worker_vendor['qemu_image']
 
         assert value is not None
 
         if '/' not in value:
             return os.path.join(self.storage, self.worker_architecture,
-                    str(self.worker_vendor),
+                    str(self.sbuild_worker_vendor),
                     str(self.sbuild_worker_suite.hierarchy[-1]),
                     value)
 
@@ -666,13 +690,13 @@ class Config(_ConfigLike):
         value = self['vmdebootstrap_worker_qemu_image']
 
         if value is None:
-            value = self.worker_vendor['qemu_image']
+            value = self.vmdebootstrap_worker_vendor['qemu_image']
 
         assert value is not None
 
         if '/' not in value:
             return os.path.join(self.storage, self.worker_architecture,
-                    str(self.worker_vendor),
+                    str(self.vmdebootstrap_worker_vendor),
                     str(self.vmdebootstrap_worker_suite.hierarchy[-1]), value)
 
         return value
