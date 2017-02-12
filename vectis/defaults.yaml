@@ -73,6 +73,9 @@ vendors:
                 # This assumes a post-jessie worker
                 vmdebootstrap_options:
                     - "--roottype=ext3"
+                    - "--extlinux"
+                    - "--mbr"
+                    - "--no-grub"
             jessie:
                 force_parallel: 1
             sid: {}

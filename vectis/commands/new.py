@@ -31,7 +31,6 @@ def vmdebootstrap_argv(version, args):
             '--mirror={}'.format(args.bootstrap_mirror),
             '--arch={}'.format(args.architecture),
             '--grub',
-            '--no-mbr',
             '--no-extlinux',
         ]
 
@@ -91,6 +90,16 @@ def new(args, out):
             'python3',
             'qemu-utils',
             'vmdebootstrap',
+            ])
+        # Optional (x86 only, but necessary for wheezy)
+        worker.call([
+            'apt-get',
+            '-y',
+            '--no-install-recommends',
+            'install',
+
+            'extlinux',
+            'mbr',
             ])
 
         version = worker.dpkg_version('vmdebootstrap')
