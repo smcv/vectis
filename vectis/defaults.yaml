@@ -32,6 +32,7 @@ defaults:
     sbuild_worker: null
 
     vmdebootstrap_worker_suite: null
+    vmdebootstrap_worker_qemu_image: null
     vmdebootstrap_worker: null
     vmdebootstrap_options: []
 
@@ -70,12 +71,13 @@ vendors:
         suites:
             wheezy:
                 force_parallel: 1
-                # This assumes a post-jessie worker
+                vmdebootstrap_worker_suite: jessie
                 vmdebootstrap_options:
-                    - "--roottype=ext3"
+                    - "--boottype=ext3"
                     - "--extlinux"
                     - "--mbr"
                     - "--no-grub"
+                    - "--enable-dhcp"
             jessie:
                 force_parallel: 1
             sid: {}

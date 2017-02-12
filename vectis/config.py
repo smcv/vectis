@@ -507,6 +507,9 @@ class Config(_ConfigLike):
         if name in self._path_based:
             return self._path_based[name]
 
+        if name not in ('vendor', 'suite'):
+            return self.suite[name]
+
         if name != 'vendor':
             return self.vendor[name]
 
@@ -658,11 +661,27 @@ class Config(_ConfigLike):
         return value
 
     @property
+    def vmdebootstrap_worker_qemu_image(self):
+        value = self['vmdebootstrap_worker_qemu_image']
+
+        if value is None:
+            value = self.worker_vendor['qemu_image']
+
+        assert value is not None
+
+        if '/' not in value:
+            return os.path.join(self.storage, self.worker_architecture,
+                    str(self.worker_vendor),
+                    str(self.vmdebootstrap_worker_suite.hierarchy[-1]), value)
+
+        return value
+
+    @property
     def vmdebootstrap_worker(self):
         value = self['vmdebootstrap_worker']
 
         if value is None:
-            value = self.worker
+            value = 'qemu ' + self.vmdebootstrap_worker_qemu_image
 
         return value
 
