@@ -87,7 +87,7 @@ def new(args, out):
             'install',
 
             'autopkgtest',
-            'mbr',
+            'grub2-common',
             'python3',
             'qemu-utils',
             'vmdebootstrap',
