@@ -11,19 +11,15 @@ else
     VECTIS=vectis
 fi
 
-storage="$(mktemp --tmpdir -d vectis-test-XXXXXXXXXX)"
+: "${XDG_CACHE_HOME:="${HOME}/.cache"}"
 arch="$(dpkg --print-architecture)"
 
-mkdir -p "${storage}/${arch}/debian/sid"
-ln -s "${XDG_CACHE_HOME:-"${HOME}/.cache"}/vectis/${arch}/debian/sid/autopkgtest.qcow2" "${storage}/${arch}/debian/sid/"
-ln -s "${XDG_CACHE_HOME:-"${HOME}/.cache"}/vectis/${arch}/debian/sid/sbuild.tar.gz" "${storage}/${arch}/debian/sid/"
-
-if ! [ -f "${storage}/${arch}/debian/sid/autopkgtest.qcow2" ]; then
+if ! [ -f "${XDG_CACHE_HOME}/vectis/${arch}/debian/sid/autopkgtest.qcow2" ]; then
     echo "1..0 # SKIP ${storage}/vectis/${arch}/debian/sid/autopkgtest.qcow2 not found"
     exit 0
 fi
 
-if ! [ -f "${storage}/${arch}/debian/sid/sbuild.tar.gz" ]; then
+if ! [ -f "${XDG_CACHE_HOME}/vectis/${arch}/debian/sid/sbuild.tar.gz" ]; then
     echo "1..0 # SKIP ${storage}/vectis/${arch}/debian/sid/sbuild.tar.gz not found"
     exit 0
 fi
@@ -32,6 +28,12 @@ if [ -z "${VECTIS_TEST_DEBIAN_MIRROR:-}" ]; then
     echo "1..0 # SKIP This test requires VECTIS_TEST_DEBIAN_MIRROR=http://192.168.122.1:3142/debian or similar"
     exit 0
 fi
+
+storage="$(mktemp --tmpdir -d vectis-test-XXXXXXXXXX)"
+
+mkdir -p "${storage}/${arch}/debian/sid"
+ln -s "${XDG_CACHE_HOME}/vectis/${arch}/debian/sid/autopkgtest.qcow2" "${storage}/${arch}/debian/sid/"
+ln -s "${XDG_CACHE_HOME}/vectis/${arch}/debian/sid/sbuild.tar.gz" "${storage}/${arch}/debian/sid/"
 
 echo "1..1"
 

@@ -11,9 +11,6 @@ else
     VECTIS=vectis
 fi
 
-storage="$(mktemp --tmpdir -d vectis-test-XXXXXXXXXX)"
-arch="$(dpkg --print-architecture)"
-
 if [ -z "${VECTIS_TEST_UBUNTU_MIRROR:-}" ]; then
     echo "1..0 # SKIP This test requires VECTIS_TEST_UBUNTU_MIRROR=http://192.168.122.1:3142/ubuntu or similar"
     exit 0
@@ -24,18 +21,23 @@ if ! lts="$(ubuntu-distro-info --lts)"; then
     exit 0
 fi
 
-ln -s "${XDG_CACHE_HOME:-"${HOME}/.cache"}/vectis/${arch}/ubuntu/${lts}/autopkgtest.qcow2" "${storage}/${arch}/ubuntu/${lts}/"
-ln -s "${XDG_CACHE_HOME:-"${HOME}/.cache"}/vectis/${arch}/ubuntu/${lts}/sbuild.tar.gz" "${storage}/${arch}/ubuntu/${lts}/"
+: "${XDG_CACHE_HOME:="${HOME}/.cache"}"
+arch="$(dpkg --print-architecture)"
 
-if ! [ -f "${storage}/${arch}/ubuntu/${lts}/autopkgtest.qcow2" ]; then
+if ! [ -f "${XDG_CACHE_HOME}/vectis/${arch}/ubuntu/${lts}/autopkgtest.qcow2" ]; then
     echo "1..0 # SKIP XDG_CACHE_HOME/vectis/${arch}/ubuntu/${lts}/autopkgtest.qcow2 not found"
     exit 0
 fi
 
-if ! [ -f "${storage}/${arch}/ubuntu/${lts}/sbuild.tar.gz" ]; then
+if ! [ -f "${XDG_CACHE_HOME}/vectis/${arch}/ubuntu/${lts}/sbuild.tar.gz" ]; then
     echo "1..0 # SKIP XDG_CACHE_HOME/vectis/${arch}/ubuntu/${lts}/sbuild.tar.gz not found"
     exit 0
 fi
+
+storage="$(mktemp --tmpdir -d vectis-test-XXXXXXXXXX)"
+
+ln -s "${XDG_CACHE_HOME}/vectis/${arch}/ubuntu/${lts}/autopkgtest.qcow2" "${storage}/${arch}/ubuntu/${lts}/"
+ln -s "${XDG_CACHE_HOME}/vectis/${arch}/ubuntu/${lts}/sbuild.tar.gz" "${storage}/${arch}/ubuntu/${lts}/"
 
 echo "1..1"
 
