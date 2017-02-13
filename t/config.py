@@ -88,7 +88,7 @@ class DefaultsTestCase(unittest.TestCase):
                         XDG_CACHE_HOME, ARCHITECTURE))
 
         sid = self.__config.vendor.get_suite('sid')
-        self.assertIs(self.__config.autopkgtest, True)
+        self.assertEqual(self.__config.autopkgtest, ['qemu'])
         self.assertEqual(self.__config.suite, sid)
 
         try:
@@ -162,7 +162,7 @@ class DefaultsTestCase(unittest.TestCase):
         ubuntu = self.__config._get_vendor('ubuntu')
 
         self.assertEqual(str(debian), 'debian')
-        self.assertIs(debian.autopkgtest, True)
+        self.assertEqual(debian.autopkgtest, ['qemu'])
         self.assertEqual(debian.default_suite, 'sid')
         self.assertEqual(str(debian.get_suite('unstable')), 'sid')
         self.assertIs(debian.get_suite('unstable'), debian.get_suite('sid'))
@@ -222,7 +222,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(list(jessie.hierarchy), [jessie])
         self.assertEqual(list(sec.hierarchy), [sec, jessie])
 
-        self.assertIs(jessie.autopkgtest, True)
+        self.assertEqual(jessie.autopkgtest, ['qemu'])
         self.assertEqual(jessie.default_suite, 'sid')
         self.assertEqual(jessie.components, {'main'})
         self.assertEqual(jessie.extra_components, {'contrib', 'non-free'})
@@ -356,7 +356,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(str(security.hierarchy[1]), str(stable))
 
         self.assertEqual(str(ubuntu), 'ubuntu')
-        self.assertIs(ubuntu.autopkgtest, True)
+        self.assertEqual(ubuntu.autopkgtest, ['qemu'])
         self.assertEqual(ubuntu.default_suite, ubuntu_devel)
         self.assertEqual(ubuntu.components, {'main', 'universe'})
         self.assertEqual(ubuntu.extra_components, {'restricted',
@@ -413,7 +413,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(list(xenial.hierarchy), [xenial])
         self.assertEqual(list(sec.hierarchy), [sec, xenial])
 
-        self.assertIs(xenial.autopkgtest, True)
+        self.assertEqual(xenial.autopkgtest, ['qemu'])
         # FIXME: this seems wrong
         self.assertEqual(xenial.default_suite, ubuntu_devel)
         self.assertEqual(xenial.components, {'main', 'universe'})

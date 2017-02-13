@@ -183,23 +183,41 @@ def _run(args, buildables, worker):
                     buildable.buildable)
             continue
 
-        # TODO: backends other than qemu
-        image = args.autopkgtest_qemu_image
+        for test in args.autopkgtest:
+            if test == 'qemu':
+                image = args.autopkgtest_qemu_image
 
-        if args.autopkgtest and image and os.path.exists(image):
-            # Run this in the host system, to avoid nested virtualization.
-            status = subprocess.call(['autopkgtest',
-                    '--apt-upgrade',
-                    '--no-built-binaries',
-                    # TODO: --output-dir
-                    # TODO: --setup-commands
-                    buildable.merged_changes['binary'],
-                    source,
-                    '--',
-                    'qemu', args.autopkgtest_qemu_image])
+                if not image or not os.path.exists(image):
+                    continue
 
-            if (status & ~2) != 0:
-                logger.error('autopkgtest failed: status %d', status)
+                # Run this in the host system, to avoid nested virtualization.
+                status = subprocess.call(['autopkgtest',
+                        '--apt-upgrade',
+                        '--no-built-binaries',
+                        # TODO: --output-dir
+                        # TODO: --setup-commands
+                        buildable.merged_changes['binary'],
+                        source,
+                        '--',
+                        'qemu', args.autopkgtest_qemu_image])
+
+            else:
+                logger.warning('Unknown autopkgtest setup: {}'.format(test)
+                continue
+
+            if status == 0:
+                logger.info('All autopkgtests passed')
+            elif status == 2:
+                logger.info('All autopkgtests passed or skipped')
+            elif status == 8:
+                logger.info('No autopkgtests found in this package')
+            elif status == 12:
+                logger.warning('Failed to install test dependencies')
+            elif status == 16:
+                logger.warning('Failed to set up testbed for autopkgtest')
+            else:
+                logger.error('Autopkgtests failed')
+                # ... but still continue for the moment
 
     for buildable in buildables:
         logger.info('Built changes files from %s:\n\t%s',

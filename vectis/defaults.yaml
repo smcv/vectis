@@ -41,7 +41,8 @@ defaults:
     vmdebootstrap_worker: null
     vmdebootstrap_options: []
 
-    autopkgtest: true
+    autopkgtest:
+        - qemu
     autopkgtest_qemu_image: null
 
     bootstrap_mirror: null
@@ -143,3 +144,5 @@ directories:
         # anything in here by default. We configure '/' so that path search
         # always terminates.
         null: null
+
+# vim:set sw=4 sts=4 et:
