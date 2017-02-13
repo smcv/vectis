@@ -21,6 +21,11 @@ if [ -z "${VECTIS_TEST_DEBIAN_MIRROR:-}" ]; then
     exit 0
 fi
 
+if ! testing="$(debian-distro-info --testing)"; then
+    echo "1..0 # SKIP Could not determine current Debian testing suite"
+    exit 0
+fi
+
 echo "1..1"
 
 storage="$(mktemp --tmpdir -d vectis-test-XXXXXXXXXX)"
@@ -30,9 +35,9 @@ storage="$(mktemp --tmpdir -d vectis-test-XXXXXXXXXX)"
 "$VECTIS_TEST_SUDO" $VECTIS --storage="${storage}" bootstrap \
     --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" --size=23G
 $VECTIS --storage="${storage}" sbuild-tarball \
-    --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" --suite=sid
+    --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" --suite="${testing}"
 $VECTIS --storage="${storage}" sbuild \
-    --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" --suite=sid "${storage}/"hello*.dsc
+    --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" --suite="${testing}" "${storage}/"hello*.dsc
 rm -fr "${storage}"
 
 echo "ok 1"
