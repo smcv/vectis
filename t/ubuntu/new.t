@@ -36,6 +36,7 @@ fi
 
 storage="$(mktemp --tmpdir -d vectis-test-XXXXXXXXXX)"
 
+mkdir -p "${storage}/${arch}/ubuntu/${lts}"
 ln -s "${XDG_CACHE_HOME}/vectis/${arch}/ubuntu/${lts}/autopkgtest.qcow2" "${storage}/${arch}/ubuntu/${lts}/"
 ln -s "${XDG_CACHE_HOME}/vectis/${arch}/ubuntu/${lts}/sbuild.tar.gz" "${storage}/${arch}/ubuntu/${lts}/"
 
