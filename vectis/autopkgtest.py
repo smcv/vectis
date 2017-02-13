@@ -5,10 +5,20 @@
 import logging
 import os
 import subprocess
+import textwrap
+from tempfile import TemporaryDirectory
+
+from vectis.util import (
+        AtomicWriter,
+        )
 
 logger = logging.getLogger(__name__)
 
 def run_autopkgtest(args, testable, binaries=None):
+    with TemporaryDirectory(prefix='vectis-autopkgtest-') as tmp:
+        _run_autopkgtest(tmp, args, testable, binaries)
+
+def _run_autopkgtest(tmp, args, testable, binaries=None):
     all_ok = True
 
     for test in args.autopkgtest:
@@ -26,6 +36,34 @@ def run_autopkgtest(args, testable, binaries=None):
                 # TODO: --output-dir
                 # TODO: --setup-commands
                 ]
+
+            # FIXME: duplicate of code in Worker
+            with AtomicWriter(os.path.join(tmp, 'sources.list')) as writer:
+                for ancestor in args.suite.hierarchy:
+                    if args.components:
+                        filtered_components = (set(args.components) &
+                                set(ancestor.all_components))
+                    else:
+                        filtered_components = ancestor.components
+
+                    writer.write(textwrap.dedent('''
+                    deb {mirror} {suite} {components}
+                    deb-src {mirror} {suite} {components}
+                    ''').format(
+                        components=' '.join(filtered_components),
+                        mirror=ancestor.mirror,
+                        suite=ancestor.apt_suite,
+                    ))
+
+                    if ancestor.apt_key is not None:
+                        argv.append('--copy={}:{}'.format(
+                            ancestor.apt_key,
+                            '/etc/apt/trusted.gpg.d/' +
+                            os.path.basename(ancestor.apt_key)))
+
+            argv.append('--copy={}:{}'.format(
+                        os.path.join(tmp, 'sources.list'),
+                        '/etc/apt/sources.list'))
 
             if binaries is not None:
                 for b in binaries:
