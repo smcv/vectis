@@ -23,6 +23,7 @@ EXTRA_DIST = \
 nobase_dist_pkgdata_DATA = \
 	vectis/__init__.py \
 	vectis/__main__.py \
+	vectis/autopkgtest.py \
 	vectis/commands/__init__.py \
 	vectis/commands/bootstrap.py \
 	vectis/commands/minbase_tarball.py \
