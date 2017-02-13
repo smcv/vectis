@@ -103,6 +103,9 @@ def new(args, out):
             optional_worker_packages.append(keyring)
 
         worker.check_call([
+            'env',
+            'DEBIAN_FRONTEND=noninteractive',
+            '--',
             'apt-get',
             '-y',
             '--no-install-recommends',
@@ -112,6 +115,9 @@ def new(args, out):
         # Failure is ignored for these non-critical packages
         for p in optional_worker_packages:
             worker.call([
+                'env',
+                'DEBIAN_FRONTEND=noninteractive',
+                '--',
                 'apt-get',
                 '-y',
                 '--no-install-recommends',
@@ -176,7 +182,11 @@ def run(args):
         with Worker(['qemu', created]) as worker:
             worker.set_up_apt(args.suite)
             worker.check_call(['apt-get', '-y', 'update'])
-            worker.check_call(['apt-get',
+            worker.check_call([
+                'env',
+                'DEBIAN_FRONTEND=noninteractive',
+                '--',
+                'apt-get',
                 '-y',
                 '--no-install-recommends',
                 'install',

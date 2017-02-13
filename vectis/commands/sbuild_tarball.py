@@ -30,6 +30,8 @@ def run(args):
         logger.info('Installing debootstrap and sbuild')
         worker.set_up_apt(args.worker_suite)
         worker.check_call([
+            'env',
+            'DEBIAN_FRONTEND=noninteractive',
             'apt-get',
             '-y',
             '--no-install-recommends',
@@ -45,6 +47,8 @@ def run(args):
 
         if keyring is not None:
             worker.call([
+                'env',
+                'DEBIAN_FRONTEND=noninteractive',
                 'apt-get',
                 '-y',
                 '--no-install-recommends',

@@ -52,7 +52,10 @@ def run(args):
         try:
             with Worker(['qemu', '{}.new'.format(out)]) as worker:
                 worker.set_up_apt(args.suite)
-                worker.check_call(['apt-get',
+                worker.check_call([
+                    'env',
+                    'DEBIAN_FRONTEND=noninteractive',
+                    'apt-get',
                     '-y',
                     '--no-install-recommends',
                     'install',

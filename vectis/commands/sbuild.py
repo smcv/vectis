@@ -67,6 +67,8 @@ def _run(args, buildables, worker):
     logger.info('Installing sbuild')
     worker.set_up_apt(args.worker_suite)
     worker.check_call([
+        'env',
+        'DEBIAN_FRONTEND=noninteractive',
         'apt-get',
         '-y',
         '--no-install-recommends',
