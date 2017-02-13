@@ -33,6 +33,7 @@ nobase_dist_pkgdata_DATA = \
 	vectis/commands/sbuild_tarball.py \
 	vectis/config.py \
 	vectis/debuild.py \
+	vectis/defaults.yaml \
 	vectis/error.py \
 	vectis/util.py \
 	vectis/worker.py \
@@ -130,7 +131,8 @@ installcheck-local:
 		--timeout=1000 \
 		vectis
 
-$(installed_test_meta_DATA): %.test: % Makefile
+$(nobase_installed_test_meta_DATA): %.test: % Makefile
+	@$(MKDIR_P) "$$(dirname "$@")"
 	$(AM_V_GEN) ( \
 		echo '[Test]'; \
 		echo 'Type=session'; \
