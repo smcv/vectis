@@ -437,13 +437,13 @@ class Build:
                 # Backwards compatibility for Debian jessie buildd backport,
                 # and for sbuild in Ubuntu xenial.
 
-                # Urgh. This sbuild expects to find foo_1_amd64.changes
+                # sbuild < 0.69.0 expects to find foo_1_amd64.changes
                 # even for a source-only build (because it doesn't really
                 # support source-only builds), so we have to cheat.
-                # sbuild splits the command on spaces so we need to have
-                # a one-liner that doesn't contain embedded whitespace.
+                # sbuild < 0.66 splits the command on spaces so we need to
+                # have a one-liner that doesn't contain embedded whitespace.
                 # Luckily, Perl can be written as line-noise.
-                argv.append('--finished-build-commands=perl -e ' +
+                perl = (
                         '$arch=qx(dpkg\\x20--print-architecture);' +
                         'chomp($arch);' +
                         'chdir(shift);' +
@@ -452,10 +452,15 @@ class Build:
                              's/_source\\.changes$/_${arch}.changes/;' +
                              'print("Renaming\\x20$orig\\x20to\\x20$_\\n");' +
                              'rename($orig,$_)||die("$!");' +
-                        '}' +
-                        ' %p')
-            else:
-                argv.append('--no-arch-any')
+                        '}')
+                assert ' ' not in perl
+                assert "'" not in perl
+
+                if sbuild_version >= Version('0.66.0'):
+                    perl = "'{}'".format(perl)
+
+                argv.append(
+                    '--finished-build-commands=perl -e {} %p'.format(perl))
 
             argv.append('--source')
         else:
