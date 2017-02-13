@@ -422,12 +422,21 @@ class Build:
         elif self.arch == 'source':
             logger.info('Source-only')
 
-            # Backwards compatibility goo for Debian jessie buildd backport
-            if sbuild_version < Version('0.69.0'):
+            if sbuild_version < Version('0.67.0'):
+                # Backwards compatibility for Debian jessie buildd backport
                 # If we only build 'all', and we don't build 'all',
                 # then logically we build nothing (except source).
+                # sbuild >= 0.69.0 deprecates this syntax.
                 argv.append('--arch-all-only')
                 argv.append('--no-arch-all')
+            else:
+                # sbuild >= 0.67.0 gives better control
+                argv.append('--no-arch-any')
+
+            if sbuild_version < Version('0.69.0'):
+                # Backwards compatibility for Debian jessie buildd backport,
+                # and for sbuild in Ubuntu xenial.
+
                 # Urgh. This sbuild expects to find foo_1_amd64.changes
                 # even for a source-only build (because it doesn't really
                 # support source-only builds), so we have to cheat.
