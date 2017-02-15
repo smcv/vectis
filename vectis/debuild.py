@@ -622,3 +622,6 @@ class Build:
             product = '{}/out/{}'.format(self.worker.scratch, f['name'])
             copied_back = os.path.join(self.output_builds, f['name'])
             self.worker.copy_to_host(product, copied_back)
+
+            if f['name'].endswith('.dsc') and self.buildable.dsc is None:
+                self.buildable.dsc = Dsc(open(copied_back))

@@ -188,6 +188,10 @@ def _run(args, buildables, worker):
                     buildable.buildable)
             continue
 
+        if buildable.dsc is not None and 'testsuite' not in buildable.dsc:
+            logger.info('No autopkgtests available')
+            continue
+
         run_autopkgtest(args, source,
                 binaries=(buildable.merged_changes['binary'],),
                 )
