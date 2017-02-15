@@ -188,7 +188,7 @@ class Buildable:
                             orig_pattern))
 
                     for orig in glob.glob(orig_pattern):
-                        logger.info('Copying original tarball: {}'.format(orig))
+                        logger.info('Copying original tarball: %s', orig)
                         worker.copy_to_guest(orig,
                                 '{}/in/{}'.format(worker.scratch,
                                     os.path.basename(orig)))
