@@ -65,7 +65,7 @@ def get_dpkg_source_options(args):
 
 def _run(args, buildables, worker):
     logger.info('Installing sbuild')
-    worker.set_up_apt(args.worker_suite)
+    worker.set_up_apt(args.sbuild_worker_suite)
     worker.check_call([
         'env',
         'DEBIAN_FRONTEND=noninteractive',
