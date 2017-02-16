@@ -555,6 +555,15 @@ class Config(_ConfigLike):
         return self._get_vendor(value)
 
     @property
+    def lxc_worker_vendor(self):
+        value = self['lxc_worker_vendor']
+
+        if value is None:
+            value = self['worker_vendor']
+
+        return self._get_vendor(value)
+
+    @property
     def sbuild_worker_vendor(self):
         value = self['sbuild_worker_vendor']
 
@@ -580,6 +589,18 @@ class Config(_ConfigLike):
             return None
 
         return self.worker_vendor.get_suite(value, True)
+
+    @property
+    def lxc_worker_suite(self):
+        value = self['lxc_worker_suite']
+
+        if value is None:
+            value = self.lxc_worker_vendor.default_worker_suite
+
+        if value is None:
+            return None
+
+        return self.lxc_worker_vendor.get_suite(value, True)
 
     @property
     def sbuild_worker_suite(self):
@@ -647,6 +668,23 @@ class Config(_ConfigLike):
         return value
 
     @property
+    def lxc_worker_qemu_image(self):
+        value = self['lxc_worker_qemu_image']
+
+        if value is None:
+            value = self.lxc_worker_vendor['qemu_image']
+
+        assert value is not None
+
+        if '/' not in value:
+            return os.path.join(self.storage, self.worker_architecture,
+                    str(self.lxc_worker_vendor),
+                    str(self.lxc_worker_suite.hierarchy[-1]),
+                    value)
+
+        return value
+
+    @property
     def sbuild_worker_qemu_image(self):
         value = self['sbuild_worker_qemu_image']
 
@@ -682,6 +720,15 @@ class Config(_ConfigLike):
 
         if value is None:
             value = 'qemu ' + self.worker_qemu_image
+
+        return value
+
+    @property
+    def lxc_worker(self):
+        value = self['lxc_worker']
+
+        if value is None:
+            value = 'qemu ' + self.lxc_worker_qemu_image
 
         return value
 

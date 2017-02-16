@@ -155,6 +155,18 @@ p.add_argument('--suite',
 p.add_argument('--architecture', '--arch',
         help='dpkg architecture [default: {}]'.format(args.architecture))
 
+help = 'Create LXC tarballs'
+p = subparsers.add_parser('lxc-tarballs',
+        help=help, description=help,
+        argument_default=argparse.SUPPRESS,
+        parents=(base,),
+        )
+add_worker_options(p, context='lxc', context_implicit=True)
+p.add_argument('--suite',
+        help='Release suite [default: {}]'.format(args.default_suite))
+p.add_argument('--architecture', '--arch',
+        help='dpkg architecture [default: {}]'.format(args.architecture))
+
 help = 'Build a Debian package with sbuild'
 p = subparsers.add_parser('sbuild',
         help=help, description=help,

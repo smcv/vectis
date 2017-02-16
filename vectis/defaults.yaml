@@ -30,6 +30,12 @@ defaults:
     worker: null
     worker_qemu_image: null
 
+    lxc_24bit_subnet: '10.0.3'
+    lxc_worker_qemu_image: null
+    lxc_worker_suite: null
+    lxc_worker_vendor: null
+    lxc_worker: null
+
     sbuild_worker_qemu_image: null
     sbuild_worker_suite: null
     sbuild_worker_vendor: null

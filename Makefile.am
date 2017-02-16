@@ -26,6 +26,7 @@ nobase_dist_pkgdata_DATA = \
 	vectis/autopkgtest.py \
 	vectis/commands/__init__.py \
 	vectis/commands/bootstrap.py \
+	vectis/commands/lxc_tarballs.py \
 	vectis/commands/minbase_tarball.py \
 	vectis/commands/new.py \
 	vectis/commands/run.py \
@@ -35,6 +36,7 @@ nobase_dist_pkgdata_DATA = \
 	vectis/debuild.py \
 	vectis/defaults.yaml \
 	vectis/error.py \
+	vectis/lxc.py \
 	vectis/util.py \
 	vectis/worker.py \
 	${NULL}
