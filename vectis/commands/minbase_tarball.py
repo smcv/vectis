@@ -5,6 +5,7 @@
 import logging
 import os
 
+from vectis.error import ArgumentError
 from vectis.worker import Worker
 
 logger = logging.getLogger(__name__)
@@ -13,7 +14,10 @@ def run(args):
     os.makedirs(args.storage, exist_ok=True)
 
     if args.suite is None:
-        args.suite = args.default_suite
+        if args.default_suite is not None:
+            args.suite = args.default_suite
+        else:
+            raise ArgumentError('--suite must be specified')
 
     minbase_tarball = '{arch}/{vendor}/{suite}/minbase.tar.gz'.format(
             arch=args.architecture,

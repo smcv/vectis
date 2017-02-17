@@ -56,7 +56,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(self.__config.qemu_image_size, '42G')
         self.assertIsNone(self.__config.sbuild_buildables)
         self.assertEqual(self.__config.sbuild_resolver, [])
-        self.assertEqual(self.__config.debootstrap_script, 'sid')
+        self.assertEqual(self.__config.debootstrap_script, None)
         self.assertEqual(self.__config.apt_key,
                 '/usr/share/keyrings/debian-archive-keyring.gpg')
         self.assertIsNone(self.__config.apt_suite)
@@ -89,7 +89,7 @@ class DefaultsTestCase(unittest.TestCase):
 
         sid = self.__config.vendor.get_suite('sid')
         self.assertEqual(self.__config.autopkgtest, ['qemu'])
-        self.assertEqual(self.__config.suite, sid)
+        self.assertEqual(self.__config.suite, None)
 
         try:
             import distro_info

@@ -9,6 +9,7 @@ from debian.debian_support import (
         Version,
         )
 
+from vectis.error import ArgumentError
 from vectis.worker import Worker
 
 def vmdebootstrap_argv(version, args):
@@ -172,6 +173,12 @@ def new(args, out):
 def run(args):
     out = args.write_qemu_image
     os.makedirs(os.path.dirname(out), exist_ok=True)
+
+    if args.suite is None:
+        if args.default_suite is not None:
+            args.suite = args.default_suite
+        else:
+            raise ArgumentError('--suite must be specified')
 
     if False:
         created = new_ubuntu_cloud(args, out)

@@ -124,6 +124,9 @@ class _ConfigLike:
 
     @property
     def debootstrap_script(self):
+        if self.suite is None:
+            return None
+
         return str(self.suite)
 
     @property
@@ -508,7 +511,8 @@ class Config(_ConfigLike):
         if name in self._path_based:
             return self._path_based[name]
 
-        if name not in ('vendor', 'suite'):
+        if (name not in ('vendor', 'suite') and
+                self.suite is not None):
             return self.suite[name]
 
         if name != 'vendor':
@@ -525,7 +529,7 @@ class Config(_ConfigLike):
         suite = self['suite']
 
         if suite is None:
-            suite = self.vendor.default_suite
+            return None
 
         return self.vendor.get_suite(suite)
 

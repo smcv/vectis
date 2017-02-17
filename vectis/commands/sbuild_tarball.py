@@ -9,6 +9,7 @@ from debian.debian_support import (
         Version,
         )
 
+from vectis.error import ArgumentError
 from vectis.worker import Worker
 
 logger = logging.getLogger(__name__)
@@ -17,7 +18,10 @@ def run(args):
     os.makedirs(args.storage, exist_ok=True)
 
     if args.suite is None:
-        args.suite = args.default_suite
+        if args.default_suite is not None:
+            args.suite = args.default_suite
+        else:
+            raise ArgumentError('--suite must be specified')
 
     sbuild_tarball = '{arch}/{vendor}/{suite}/sbuild.tar.gz'.format(
             arch=args.architecture,

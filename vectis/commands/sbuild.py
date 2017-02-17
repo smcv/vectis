@@ -85,8 +85,11 @@ def _run(args, buildables, worker):
         buildable.copy_source_to(worker)
 
         if buildable.suite == 'UNRELEASED':
+            logger.info('Replacing UNRELEASED with {}'.format(
+                args.vendor.default_suite))
             suite = args.vendor.get_suite(args.vendor.default_suite)
         else:
+            logger.info('Using suite {}'.format(buildable.suite))
             suite = args.vendor.get_suite(buildable.suite)
 
         dpkg_buildpackage_options = get_dpkg_buildpackage_options(args, suite)
