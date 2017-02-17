@@ -157,9 +157,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(self.__config.bootstrap_mirror,
                 'http://192.168.122.1:3142/debian')
 
-    def test_known_vendors(self):
+    def test_debian(self):
         debian = self.__config._get_vendor('debian')
-        ubuntu = self.__config._get_vendor('ubuntu')
 
         self.assertEqual(str(debian), 'debian')
         self.assertEqual(debian.autopkgtest, ['qemu'])
@@ -273,55 +272,13 @@ class DefaultsTestCase(unittest.TestCase):
         #with self.assertRaises(AttributeError): jessie.storage
         #with self.assertRaises(AttributeError): jessie.sbuild_buildables
 
-        self.assertEqual(str(ubuntu), 'ubuntu')
-        self.assertEqual(ubuntu.components, {'main', 'universe'})
-        self.assertEqual(ubuntu.extra_components, {'restricted',
-            'multiverse'})
-        self.assertEqual(ubuntu.all_components, {'main', 'universe',
-            'restricted', 'multiverse'})
-        self.assertEqual(ubuntu.vendor, ubuntu)
-        self.assertEqual(ubuntu.worker_vendor, 'ubuntu')
-        self.assertEqual(ubuntu.sbuild_worker_vendor, None)
-        self.assertEqual(ubuntu.vmdebootstrap_worker_vendor, None)
-        self.assertEqual(ubuntu.archive, 'ubuntu')
-        self.assertEqual(ubuntu.mirror, 'http://192.168.122.1:3142/ubuntu')
-        self.assertIsNone(ubuntu.get_suite('unstable', create=False))
-        self.assertIsNone(ubuntu.get_suite('stable', create=False))
-
-    def test_unknown_vendor(self):
-        steamos = self.__config._get_vendor('steamos')
-
-        self.assertEqual(str(steamos), 'steamos')
-        self.assertEqual(steamos.components, {'main'})
-        self.assertEqual(steamos.vendor, steamos)
-        self.assertEqual(steamos.worker_vendor, 'debian')
-        self.assertEqual(steamos.sbuild_worker_vendor, None)
-        self.assertEqual(steamos.vmdebootstrap_worker_vendor, None)
-        self.assertEqual(steamos.archive, 'steamos')
-        self.assertEqual(steamos.mirror, 'http://192.168.122.1:3142/steamos')
-
-        self.assertIsNone(steamos.get_suite('xyzzy', create=False))
-        self.assertIsNotNone(steamos.get_suite('xyzzy'))
-        self.assertIs(steamos.get_suite('xyzzy'), steamos.get_suite('xyzzy'))
-
-    def test_distro_info(self):
-        debian = self.__config._get_vendor('debian')
-        ubuntu = self.__config._get_vendor('ubuntu')
-
         try:
             import distro_info
         except ImportError:
             return
 
         debian_info = distro_info.DebianDistroInfo()
-        ubuntu_info = distro_info.UbuntuDistroInfo()
 
-        try:
-            ubuntu_devel = ubuntu_info.devel()
-        except distro_info.DistroDataOutdated:
-            ubuntu_devel = ubuntu_info.stable()
-
-        self.assertEqual(str(ubuntu.get_suite('devel')), ubuntu_devel)
         self.assertEqual(str(debian.get_suite('unstable')),
                 'sid')
         self.assertEqual(str(debian.get_suite('testing')),
@@ -354,6 +311,38 @@ class DefaultsTestCase(unittest.TestCase):
                 'http://192.168.122.1:3142/security.debian.org')
         self.assertEqual(security.hierarchy[0], security)
         self.assertEqual(str(security.hierarchy[1]), str(stable))
+
+    def test_ubuntu(self):
+        ubuntu = self.__config._get_vendor('ubuntu')
+
+        self.assertEqual(str(ubuntu), 'ubuntu')
+        self.assertEqual(ubuntu.components, {'main', 'universe'})
+        self.assertEqual(ubuntu.extra_components, {'restricted',
+            'multiverse'})
+        self.assertEqual(ubuntu.all_components, {'main', 'universe',
+            'restricted', 'multiverse'})
+        self.assertEqual(ubuntu.vendor, ubuntu)
+        self.assertEqual(ubuntu.worker_vendor, 'ubuntu')
+        self.assertEqual(ubuntu.sbuild_worker_vendor, None)
+        self.assertEqual(ubuntu.vmdebootstrap_worker_vendor, None)
+        self.assertEqual(ubuntu.archive, 'ubuntu')
+        self.assertEqual(ubuntu.mirror, 'http://192.168.122.1:3142/ubuntu')
+        self.assertIsNone(ubuntu.get_suite('unstable', create=False))
+        self.assertIsNone(ubuntu.get_suite('stable', create=False))
+
+        try:
+            import distro_info
+        except ImportError:
+            return
+
+        ubuntu_info = distro_info.UbuntuDistroInfo()
+
+        try:
+            ubuntu_devel = ubuntu_info.devel()
+        except distro_info.DistroDataOutdated:
+            ubuntu_devel = ubuntu_info.stable()
+
+        self.assertEqual(str(ubuntu.get_suite('devel')), ubuntu_devel)
 
         self.assertEqual(str(ubuntu), 'ubuntu')
         self.assertEqual(ubuntu.autopkgtest, ['qemu'])
@@ -468,6 +457,22 @@ class DefaultsTestCase(unittest.TestCase):
         # FIXME: this only makes sense as a global?
         #with self.assertRaises(AttributeError): xenial.storage
         #with self.assertRaises(AttributeError): xenial.sbuild_buildables
+
+    def test_unknown_vendor(self):
+        steamos = self.__config._get_vendor('steamos')
+
+        self.assertEqual(str(steamos), 'steamos')
+        self.assertEqual(steamos.components, {'main'})
+        self.assertEqual(steamos.vendor, steamos)
+        self.assertEqual(steamos.worker_vendor, 'debian')
+        self.assertEqual(steamos.sbuild_worker_vendor, None)
+        self.assertEqual(steamos.vmdebootstrap_worker_vendor, None)
+        self.assertEqual(steamos.archive, 'steamos')
+        self.assertEqual(steamos.mirror, 'http://192.168.122.1:3142/steamos')
+
+        self.assertIsNone(steamos.get_suite('xyzzy', create=False))
+        self.assertIsNotNone(steamos.get_suite('xyzzy'))
+        self.assertIs(steamos.get_suite('xyzzy'), steamos.get_suite('xyzzy'))
 
     def tearDown(self):
         pass
