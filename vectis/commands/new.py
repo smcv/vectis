@@ -44,9 +44,6 @@ def vmdebootstrap_argv(version, args):
             argv.append('--no-kernel')
             argv.append('--package={}'.format(kernel))
 
-    # https://bugs.debian.org/854814
-    argv.append('--package=resolvconf')
-
     argv.extend(args.vmdebootstrap_options)
 
     return argv
