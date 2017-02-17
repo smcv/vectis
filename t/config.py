@@ -32,133 +32,138 @@ class DefaultsTestCase(unittest.TestCase):
 
     def test_defaults(self):
         self.__config = Config(config_layers=({},), current_directory='/')
+        c = self.__config
 
-        self.assertGreaterEqual(self.__config.parallel, 1)
-        self.assertIs(type(self.__config.parallel), int)
+        self.assertGreaterEqual(c.parallel, 1)
+        self.assertIs(type(c.parallel), int)
 
-        debian = self.__config._get_vendor('debian')
-        ubuntu = self.__config._get_vendor('ubuntu')
+        debian = c._get_vendor('debian')
+        ubuntu = c._get_vendor('ubuntu')
 
-        self.assertEqual(str(self.__config.vendor), 'debian')
-        self.assertEqual(str(self.__config.worker_vendor), 'debian')
-        self.assertEqual(str(self.__config.vmdebootstrap_worker_vendor),
+        self.assertEqual(str(c.vendor), 'debian')
+        self.assertEqual(str(c.worker_vendor), 'debian')
+        self.assertEqual(str(c.vmdebootstrap_worker_vendor),
                 'debian')
-        self.assertEqual(str(self.__config.sbuild_worker_vendor), 'debian')
-        self.assertIs(self.__config.vendor, debian)
-        self.assertIs(self.__config.worker_vendor, debian)
-        self.assertIs(self.__config.sbuild_worker_vendor, debian)
-        self.assertIs(self.__config.vmdebootstrap_worker_vendor, debian)
-        self.assertEqual(self.__config.archive, 'debian')
-        self.assertEqual(self.__config.apt_cacher_ng, None)
-        self.assertEqual(self.__config.force_parallel, 0)
-        self.assertIs(self.__config.sbuild_together, False)
-        self.assertEqual(self.__config.output_builds, '..')
-        self.assertEqual(self.__config.qemu_image_size, '42G')
-        self.assertIsNone(self.__config.sbuild_buildables)
-        self.assertEqual(self.__config.sbuild_resolver, [])
-        self.assertEqual(self.__config.debootstrap_script, None)
-        self.assertEqual(self.__config.apt_key,
+        self.assertEqual(str(c.sbuild_worker_vendor), 'debian')
+        self.assertIs(c.vendor, debian)
+        self.assertIs(c.worker_vendor, debian)
+        self.assertIs(c.sbuild_worker_vendor, debian)
+        self.assertIs(c.vmdebootstrap_worker_vendor, debian)
+        self.assertEqual(c.archive, 'debian')
+        self.assertEqual(c.apt_cacher_ng, None)
+        self.assertEqual(c.force_parallel, 0)
+        self.assertIs(c.sbuild_together, False)
+        self.assertEqual(c.output_builds, '..')
+        self.assertEqual(c.qemu_image_size, '42G')
+        self.assertIsNone(c.sbuild_buildables)
+        self.assertEqual(c.sbuild_resolver, [])
+        self.assertEqual(c.debootstrap_script, None)
+        self.assertEqual(c.apt_key,
                 '/usr/share/keyrings/debian-archive-keyring.gpg')
-        self.assertIsNone(self.__config.apt_suite)
-        self.assertEqual(self.__config.dpkg_source_tar_ignore, [])
-        self.assertIsNone(self.__config.dpkg_source_diff_ignore)
-        self.assertEqual(self.__config.dpkg_source_extend_diff_ignore, [])
+        self.assertIsNone(c.apt_suite)
+        self.assertEqual(c.dpkg_source_tar_ignore, [])
+        self.assertIsNone(c.dpkg_source_diff_ignore)
+        self.assertEqual(c.dpkg_source_extend_diff_ignore, [])
 
         if ARCHITECTURE is not None:
-            self.assertEqual(self.__config.architecture, ARCHITECTURE)
-            self.assertEqual(self.__config.qemu_image,
+            self.assertEqual(c.architecture, ARCHITECTURE)
+            self.assertEqual(c.qemu_image,
                     '{}/vectis/{}/debian/sid/autopkgtest.qcow2'.format(
                         XDG_CACHE_HOME, ARCHITECTURE))
-            self.assertEqual(self.__config.autopkgtest_qemu_image,
+            self.assertEqual(c.autopkgtest_qemu_image,
                     '{}/vectis/{}/debian/sid/autopkgtest.qcow2'.format(
                         XDG_CACHE_HOME, ARCHITECTURE))
-            self.assertEqual(self.__config.write_qemu_image,
+            self.assertEqual(c.write_qemu_image,
                     '{}/vectis/{}/debian/sid/autopkgtest.qcow2'.format(
                         XDG_CACHE_HOME, ARCHITECTURE))
-            self.assertEqual(self.__config.worker_architecture, ARCHITECTURE)
-            self.assertEqual(self.__config.worker,
-                    'qemu {}'.format(self.__config.worker_qemu_image))
-            self.assertEqual(self.__config.worker_qemu_image,
+            self.assertEqual(c.worker_architecture, ARCHITECTURE)
+            self.assertEqual(c.worker,
+                    'qemu {}'.format(c.worker_qemu_image))
+            self.assertEqual(c.worker_qemu_image,
                     '{}/vectis/{}/debian/sid/autopkgtest.qcow2'.format(
                         XDG_CACHE_HOME, ARCHITECTURE))
-            self.assertEqual(self.__config.sbuild_worker,
-                    'qemu {}'.format(self.__config.sbuild_worker_qemu_image))
-            self.assertEqual(self.__config.sbuild_worker_qemu_image,
+            self.assertEqual(c.sbuild_worker,
+                    'qemu {}'.format(c.sbuild_worker_qemu_image))
+            self.assertEqual(c.sbuild_worker_qemu_image,
                     '{}/vectis/{}/debian/sid/autopkgtest.qcow2'.format(
                         XDG_CACHE_HOME, ARCHITECTURE))
 
-        sid = self.__config.vendor.get_suite('sid')
-        self.assertEqual(self.__config.autopkgtest, ['qemu'])
-        self.assertEqual(self.__config.suite, None)
+        sid = c.vendor.get_suite('sid')
+        self.assertEqual(c.autopkgtest, ['qemu'])
+        self.assertEqual(c.suite, None)
 
         try:
             import distro_info
         except ImportError:
             pass
         else:
-            self.assertEqual(self.__config.worker_suite,
-                    self.__config.vendor.get_suite(
+            self.assertEqual(c.worker_suite,
+                    c.vendor.get_suite(
                         distro_info.DebianDistroInfo().testing()))
-            self.assertEqual(self.__config.default_worker_suite,
+            self.assertEqual(c.default_worker_suite,
                         distro_info.DebianDistroInfo().testing())
 
-        jb = self.__config.vendor.get_suite('jessie-apt.buildd.debian.org')
-        self.assertEqual(self.__config.sbuild_worker_suite, jb)
-        self.assertEqual(self.__config.default_suite, 'sid')
-        self.assertEqual(self.__config.components, {'main'})
-        self.assertEqual(self.__config.extra_components,
+        jb = c.vendor.get_suite('jessie-apt.buildd.debian.org')
+        self.assertEqual(c.sbuild_worker_suite, jb)
+        self.assertEqual(c.default_suite, 'sid')
+        self.assertEqual(c.components, {'main'})
+        self.assertEqual(c.extra_components,
                 {'contrib', 'non-free'})
-        self.assertEqual(self.__config.all_components, {'main',
+        self.assertEqual(c.all_components, {'main',
             'contrib', 'non-free'})
 
-        self.assertEqual(self.__config.storage,
+        self.assertEqual(c.storage,
             '{}/vectis'.format(XDG_CACHE_HOME))
 
-        with self.assertRaises(ConfigError): self.__config.mirror
-        with self.assertRaises(ConfigError): self.__config.bootstrap_mirror
+        with self.assertRaises(ConfigError): c.mirror
+        with self.assertRaises(ConfigError): c.bootstrap_mirror
 
     def test_substitutions(self):
-        self.__config.architecture = 'm68k'
-        self.__config.suite = 'potato'
-        self.__config.worker_suite = 'sarge'
-        self.__config.sbuild_worker_suite = 'alchemist'
-        self.__config.sbuild_worker_vendor = 'steamos'
-        self.__config.vmdebootstrap_worker_suite = 'xenial'
-        self.__config.vmdebootstrap_worker_vendor = 'ubuntu'
+        c = self.__config
 
-        debian = self.__config._get_vendor('debian')
+        c.architecture = 'm68k'
+
+        c.suite = 'potato'
+        c.worker_suite = 'sarge'
+        c.sbuild_worker_suite = 'alchemist'
+        c.sbuild_worker_vendor = 'steamos'
+        c.vmdebootstrap_worker_suite = 'xenial'
+        c.vmdebootstrap_worker_vendor = 'ubuntu'
+
+        debian = c._get_vendor('debian')
         potato = debian.get_suite('potato')
         sarge = debian.get_suite('sarge')
         self.assertEqual(list(potato.hierarchy), [potato])
         self.assertEqual(list(sarge.hierarchy), [sarge])
-        self.assertEqual(self.__config.suite, potato)
-        self.assertEqual(self.__config.worker_suite, sarge)
+        self.assertEqual(c.suite, potato)
+        self.assertEqual(c.worker_suite, sarge)
 
-        self.assertEqual(self.__config.debootstrap_script, 'potato')
-        self.assertEqual(self.__config.qemu_image,
+        self.assertEqual(c.debootstrap_script, 'potato')
+        self.assertEqual(c.qemu_image,
                 '{}/m68k/debian/potato/autopkgtest.qcow2'.format(
-                    self.__config.storage))
-        self.assertEqual(self.__config.worker_qemu_image,
+                    c.storage))
+        self.assertEqual(c.worker_qemu_image,
                 '{}/m68k/debian/sarge/autopkgtest.qcow2'.format(
-                    self.__config.storage))
-        self.assertEqual(self.__config.worker,
+                    c.storage))
+        self.assertEqual(c.worker,
                 'qemu {}/m68k/debian/sarge/autopkgtest.qcow2'.format(
-                    self.__config.storage))
+                    c.storage))
 
-        self.assertEqual(self.__config.sbuild_worker_qemu_image,
+        self.assertEqual(c.sbuild_worker_qemu_image,
                 '{}/m68k/steamos/alchemist/autopkgtest.qcow2'.format(
-                    self.__config.storage))
-        self.assertEqual(self.__config.vmdebootstrap_worker_qemu_image,
+                    c.storage))
+        self.assertEqual(c.vmdebootstrap_worker_qemu_image,
                 '{}/m68k/ubuntu/xenial/autopkgtest.qcow2'.format(
-                    self.__config.storage))
+                    c.storage))
 
-        self.assertEqual(self.__config.mirror,
+        self.assertEqual(c.mirror,
                 'http://192.168.122.1:3142/debian')
-        self.assertEqual(self.__config.bootstrap_mirror,
+        self.assertEqual(c.bootstrap_mirror,
                 'http://192.168.122.1:3142/debian')
 
     def test_debian(self):
-        debian = self.__config._get_vendor('debian')
+        c = self.__config
+        debian = c._get_vendor('debian')
 
         self.assertEqual(str(debian), 'debian')
         self.assertEqual(debian.autopkgtest, ['qemu'])
@@ -313,7 +318,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(str(security.hierarchy[1]), str(stable))
 
     def test_ubuntu(self):
-        ubuntu = self.__config._get_vendor('ubuntu')
+        c = self.__config
+        ubuntu = c._get_vendor('ubuntu')
 
         self.assertEqual(str(ubuntu), 'ubuntu')
         self.assertEqual(ubuntu.components, {'main', 'universe'})
@@ -459,6 +465,7 @@ class DefaultsTestCase(unittest.TestCase):
         #with self.assertRaises(AttributeError): xenial.sbuild_buildables
 
     def test_unknown_vendor(self):
+        c = self.__config
         steamos = self.__config._get_vendor('steamos')
 
         self.assertEqual(str(steamos), 'steamos')
