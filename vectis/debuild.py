@@ -391,8 +391,7 @@ class Build:
             argv.append('--dpkg-source-opt=' + x)
 
         for child in hierarchy[:-1]:
-            argv.append('--extra-repository')
-            argv.append('deb {} {} {}'.format(
+            argv.append('--extra-repository=deb {} {} {}'.format(
                 child.mirror,
                 child.apt_suite,
                 ' '.join(set(self.components or child.components) &
@@ -402,8 +401,7 @@ class Build:
                 argv.extend(child.sbuild_resolver)
 
         for x in self.extra_repositories:
-            argv.append('--extra-repository')
-            argv.append(x)
+            argv.append('--extra-repository={}'.format(x))
 
         if self.arch == 'all':
             logger.info('Architecture: all')

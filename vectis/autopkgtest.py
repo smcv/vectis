@@ -14,11 +14,13 @@ from vectis.util import (
 
 logger = logging.getLogger(__name__)
 
-def run_autopkgtest(args, testable, binaries=None):
+def run_autopkgtest(args, testable, **kwargs):
     with TemporaryDirectory(prefix='vectis-autopkgtest-') as tmp:
-        _run_autopkgtest(tmp, args, testable, binaries)
+        _run_autopkgtest(tmp, args, testable, **kwargs)
 
-def _run_autopkgtest(tmp, args, testable, binaries=None):
+def _run_autopkgtest(tmp, args, testable, *,
+        binaries=None,
+        extra_repositories=()):
     all_ok = True
 
     for test in args.autopkgtest:
@@ -60,6 +62,9 @@ def _run_autopkgtest(tmp, args, testable, binaries=None):
                             ancestor.apt_key,
                             '/etc/apt/trusted.gpg.d/' +
                             os.path.basename(ancestor.apt_key)))
+
+                for x in extra_repositories:
+                    writer.write('\n{}\n'.format(x))
 
             argv.append('--copy={}:{}'.format(
                         os.path.join(tmp, 'sources.list'),

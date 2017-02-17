@@ -197,6 +197,7 @@ def _run(args, buildables, worker):
 
         run_autopkgtest(args, source,
                 binaries=(buildable.merged_changes['binary'],),
+                extra_repositories=args._extra_repository,
                 )
 
     for buildable in buildables:
