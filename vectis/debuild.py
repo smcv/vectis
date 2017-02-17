@@ -77,8 +77,8 @@ class Buildable:
                             paragraph.get('architecture', '').split())
                     binary = paragraph.get('package')
 
-                if binary is not None:
-                    self.binary_packages.append(binary)
+                    if binary is not None:
+                        self.binary_packages.append(binary)
 
             elif self.buildable.endswith('.changes'):
                 self.dirname = os.path.dirname(self.buildable)
@@ -229,7 +229,7 @@ class Buildable:
                     'sh', '-c', '"$@" || :',
                     'sh', # argv[0]
                     'dpkg-query', '-W', r'--showformat=${binary:Package}\n',
-                    ] + [p.strip() for p in self.binary_packages],
+                    ] + list(self.binary_packages),
                     universal_newlines=True).splitlines():
                 if ':' in line:
                     arch = line.split(':')[-1]
