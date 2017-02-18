@@ -166,14 +166,14 @@ def new(args, out):
     return out + '.new'
 
 def run(args):
-    out = args.write_qemu_image
-    os.makedirs(os.path.dirname(out), exist_ok=True)
-
     if args.suite is None:
         if args.default_suite is not None:
             args.suite = args.default_suite
         else:
             raise ArgumentError('--suite must be specified')
+
+    out = args.write_qemu_image
+    os.makedirs(os.path.dirname(out), exist_ok=True)
 
     if False:
         created = new_ubuntu_cloud(args, out)
