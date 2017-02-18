@@ -37,6 +37,7 @@ storage="$(mktemp --tmpdir -d vectis-test-XXXXXXXXXX)"
 $VECTIS --storage="${storage}" sbuild-tarball \
     --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" --suite="${testing}"
 $VECTIS --storage="${storage}" sbuild \
+    --worker-suite="${testing}" \
     --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" --suite="${testing}" "${storage}/"hello*.dsc
 rm -fr "${storage}"
 

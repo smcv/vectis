@@ -19,6 +19,12 @@ if ! testing="$(debian-distro-info --testing)"; then
     exit 0
 fi
 
+# Currently used for the sbuild worker
+if ! [ -f "${XDG_CACHE_HOME}/vectis/${arch}/debian/jessie/autopkgtest.qcow2" ]; then
+    echo "1..0 # SKIP ${arch}/debian/jessie/autopkgtest.qcow2 not found"
+    exit 0
+fi
+
 if ! [ -f "${XDG_CACHE_HOME}/vectis/${arch}/debian/${testing}/autopkgtest.qcow2" ]; then
     echo "1..0 # SKIP ${storage}/vectis/${arch}/debian/${testing}/autopkgtest.qcow2 not found"
     exit 0
@@ -36,7 +42,9 @@ fi
 
 storage="$(mktemp --tmpdir -d vectis-test-XXXXXXXXXX)"
 
+mkdir -p "${storage}/${arch}/debian/jessie"
 mkdir -p "${storage}/${arch}/debian/${testing}"
+ln -s "${XDG_CACHE_HOME}/vectis/${arch}/debian/jessie/autopkgtest.qcow2" "${storage}/${arch}/debian/jessie/"
 ln -s "${XDG_CACHE_HOME}/vectis/${arch}/debian/${testing}/autopkgtest.qcow2" "${storage}/${arch}/debian/${testing}/"
 ln -s "${XDG_CACHE_HOME}/vectis/${arch}/debian/${testing}/sbuild.tar.gz" "${storage}/${arch}/debian/${testing}/"
 
@@ -45,12 +53,10 @@ echo "1..1"
 $VECTIS --vendor=debian --storage="${storage}" \
     new \
     --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" \
-    --worker="qemu ${storage}/${arch}/debian/${testing}/autopkgtest.qcow2" \
     --suite="${testing}"
 test ! -L "${storage}/${arch}/debian/${testing}/autopkgtest.qcow2"
 $VECTIS --vendor=debian --storage="${storage}" sbuild \
     --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" \
-    --worker="qemu ${storage}/${arch}/debian/${testing}/autopkgtest.qcow2" \
     --suite="${testing}" \
     hello
 rm -fr "${storage}"
