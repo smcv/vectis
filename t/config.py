@@ -374,10 +374,9 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertGreaterEqual(c.parallel, 1)
         self.assertIs(c.sbuild_together, False)
         self.assertEqual(c.sbuild_resolver, [])
-        #self.assertEqual(c.apt_key,
-        #        os.path.join(os.path.dirname(vectis.config.__file__),
-        #            'keys', 'buildd.debian.org_archive_key_2015_2016.gpg'))
-        self.assertEqual(c.apt_key, 'buildd.debian.org_archive_key_2015_2016.gpg')
+        self.assertEqual(c.apt_key,
+                os.path.join(os.path.dirname(vectis.config.__file__),
+                    'keys', 'buildd.debian.org_archive_key_2015_2016.gpg'))
         self.assertIsNone(c.dpkg_source_diff_ignore)
         self.assertEqual(c.dpkg_source_tar_ignore, [])
         self.assertEqual(c.dpkg_source_extend_diff_ignore, [])

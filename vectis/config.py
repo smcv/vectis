@@ -738,3 +738,15 @@ class Config(_ConfigLike):
             return None
 
         return str(self.suite)
+
+    @property
+    def apt_key(self):
+        value = self['apt_key']
+
+        if value is None:
+            return None
+
+        if '/' in value:
+            return value
+
+        return os.path.join(os.path.dirname(__file__), 'keys', value)
