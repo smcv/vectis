@@ -6,7 +6,6 @@ import logging
 import os
 import shutil
 import subprocess
-import textwrap
 import urllib.parse
 from contextlib import ExitStack
 from tempfile import TemporaryDirectory
@@ -41,6 +40,9 @@ class Worker:
         self.stack = ExitStack()
         self.user = 'user'
         self.virt_process = None
+
+    def __repr__(self):
+        return '<Worker {}>'.format(self.argv)
 
     def __enter__(self):
         argv = list(map(os.path.expanduser, self.argv))
@@ -201,6 +203,8 @@ class Worker:
         return self.stack.__exit__(et, ev, tb)
 
     def set_up_apt(self, suite, components=()):
+        logger.info('Configuring apt in %r for %s', self, suite)
+
         with TemporaryDirectory(prefix='vectis-worker-') as tmp:
             with AtomicWriter(os.path.join(tmp, 'sources.list')) as writer:
                 for ancestor in suite.hierarchy:
@@ -210,14 +214,15 @@ class Worker:
                     else:
                         filtered_components = ancestor.components
 
-                    writer.write(textwrap.dedent('''
-                    deb {mirror} {suite} {components}
-                    deb-src {mirror} {suite} {components}
-                    ''').format(
+                    line = '{mirror} {suite} {components}'.format(
                         components=' '.join(filtered_components),
                         mirror=ancestor.mirror,
                         suite=ancestor.apt_suite,
-                    ))
+                    )
+                    logger.info('%s => deb %s', ancestor, line)
+
+                    writer.write('deb {}\n'.format(line))
+                    writer.write('deb-src {}\n'.format(line))
 
                     if ancestor.apt_key is not None:
                         self.copy_to_guest(ancestor.apt_key,
