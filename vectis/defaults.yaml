@@ -45,8 +45,6 @@ defaults:
         - qemu
     autopkgtest_qemu_image: null
 
-    bootstrap_mirror: null
-
     force_parallel: 0
     parallel: null
     sbuild_together: false

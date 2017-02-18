@@ -120,7 +120,6 @@ class DefaultsTestCase(unittest.TestCase):
             '{}/vectis'.format(XDG_CACHE_HOME))
 
         with self.assertRaises(ConfigError): c.mirror
-        with self.assertRaises(ConfigError): c.bootstrap_mirror
 
     def test_substitutions(self):
         c = self.__config
@@ -160,8 +159,6 @@ class DefaultsTestCase(unittest.TestCase):
                     c.storage))
 
         self.assertEqual(c.mirror,
-                'http://192.168.122.1:3142/debian')
-        self.assertEqual(c.bootstrap_mirror,
                 'http://192.168.122.1:3142/debian')
 
         self.assertEqual(potato.mirror,
@@ -212,7 +209,6 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(c.archive, 'debian')
         self.assertEqual(c.apt_cacher_ng, 'http://192.168.122.1:3142')
         self.assertEqual(c.mirror, 'http://192.168.122.1:3142/debian')
-        self.assertEqual(c.bootstrap_mirror, 'http://192.168.122.1:3142/debian')
         self.assertEqual(c.qemu_image_size, '42G')
         self.assertEqual(c.force_parallel, 0)
         self.assertGreaterEqual(c.parallel, 1)
@@ -305,7 +301,6 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(c.archive, 'debian')
         self.assertEqual(c.apt_cacher_ng, 'http://192.168.122.1:3142')
         self.assertEqual(c.mirror, 'http://192.168.122.1:3142/debian')
-        self.assertEqual(c.bootstrap_mirror, 'http://192.168.122.1:3142/debian')
         self.assertEqual(c.qemu_image_size, '42G')
         self.assertEqual(c.force_parallel, 1)
         self.assertGreaterEqual(c.parallel, 1)
@@ -368,8 +363,6 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(c.archive, 'apt.buildd.debian.org')
         self.assertEqual(c.apt_cacher_ng, 'http://192.168.122.1:3142')
         self.assertEqual(c.mirror, 'http://192.168.122.1:3142/apt.buildd.debian.org')
-        self.assertEqual(c.bootstrap_mirror,
-                'http://192.168.122.1:3142/apt.buildd.debian.org')
         self.assertEqual(c.qemu_image_size, '42G')
         self.assertEqual(c.force_parallel, 1)
         self.assertGreaterEqual(c.parallel, 1)
@@ -499,7 +492,6 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(c.archive, 'ubuntu')
         self.assertEqual(c.apt_cacher_ng, 'http://192.168.122.1:3142')
         self.assertEqual(c.mirror, 'http://192.168.122.1:3142/ubuntu')
-        self.assertEqual(c.bootstrap_mirror, 'http://192.168.122.1:3142/ubuntu')
         self.assertEqual(c.qemu_image_size, '42G')
         self.assertEqual(c.force_parallel, 0)
         self.assertGreaterEqual(c.parallel, 1)
@@ -567,7 +559,6 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(c.archive, 'ubuntu')
         self.assertEqual(c.apt_cacher_ng, 'http://192.168.122.1:3142')
         self.assertEqual(c.mirror, 'http://192.168.122.1:3142/ubuntu')
-        self.assertEqual(c.bootstrap_mirror, 'http://192.168.122.1:3142/ubuntu')
         self.assertEqual(c.qemu_image_size, '42G')
         self.assertEqual(c.force_parallel, 0)
         self.assertGreaterEqual(c.parallel, 1)
@@ -625,7 +616,6 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(c.archive, 'ubuntu')
         self.assertEqual(c.apt_cacher_ng, 'http://192.168.122.1:3142')
         self.assertEqual(c.mirror, 'http://192.168.122.1:3142/ubuntu')
-        self.assertEqual(c.bootstrap_mirror, 'http://192.168.122.1:3142/ubuntu')
         self.assertEqual(c.qemu_image_size, '42G')
         self.assertEqual(c.force_parallel, 0)
         self.assertGreaterEqual(c.parallel, 1)

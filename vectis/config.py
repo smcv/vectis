@@ -495,15 +495,6 @@ class Config(_ConfigLike):
 
         return value
 
-    @property
-    def bootstrap_mirror(self):
-        value = self['bootstrap_mirror']
-
-        if value is None:
-            value = self.mirror
-
-        return value
-
     def get_kernel_package(self, architecture):
         mapping = self['kernel_package']
 

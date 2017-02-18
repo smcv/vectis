@@ -32,7 +32,7 @@ def vmdebootstrap_argv(version, args):
             '--hostname=host',
             '--sparse',
             '--size={}'.format(args.qemu_image_size),
-            '--mirror={}'.format(args.bootstrap_mirror),
+            '--mirror={}'.format(args.mirror),
             '--arch={}'.format(args.architecture),
             '--grub',
             '--no-extlinux',
