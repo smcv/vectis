@@ -37,7 +37,8 @@ def run(args):
         subprocess.check_call(['sudo',
                 ] + vmdebootstrap_argv(version, args) + [
                 '--customize={}'.format(
-                    os.path.join(os.path.dirname(__file__), 'setup-testbed')),
+                    os.path.join(os.path.dirname(__file__),
+                        os.pardir, 'setup-testbed')),
                 '--owner={}'.format(pwd.getpwuid(os.getuid())[0]),
                 '--image={}/output.raw'.format(scratch),
                 ])
