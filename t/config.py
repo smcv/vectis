@@ -172,13 +172,14 @@ class DefaultsTestCase(unittest.TestCase):
     def test_debian(self):
         c = self.__config
         c.vendor = 'debian'
+        c.suite = 'sid'
 
         debian = c._get_vendor('debian')
         self.assertIs(c.vendor, debian)
 
         sid = debian.get_suite('sid')
 
-        self.assertIs(c.suite, None)
+        self.assertIs(c.suite, sid)
 
         # Properties of the vendor itself
         self.assertEqual(str(debian), 'debian')
