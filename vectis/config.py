@@ -37,16 +37,6 @@ class _ConfigLike:
     def _get_int(self, name):
         return int(self[name])
 
-    def _get_filename(self, name, default=None):
-        value = self[name]
-
-        if value is None:
-            value = default
-
-        value = os.path.expandvars(value)
-        value = os.path.expanduser(value)
-        return value
-
     @property
     def all_components(self):
         return self.components | self.extra_components
@@ -64,56 +54,6 @@ class _ConfigLike:
         return self._get_int('force_parallel')
 
     @property
-    def parallel(self):
-        return self._get_int('parallel')
-
-    @property
-    def sbuild_together(self):
-        return self._get_bool('sbuild_together')
-
-    def _get_bool(self, name):
-        value = self[name]
-
-        if isinstance(value, bool):
-            return value
-
-        raise ConfigError('Invalid value for {!r}: {!r} is not a boolean '
-                'value'.format(name, value))
-
-    def _get_mandatory_string(self, name):
-        value = self[name]
-
-        if isinstance(value, str):
-            return value
-
-        raise ConfigError('{!r} key {!r} has no default and must be '
-                'configured'.format(self, name))
-
-    def __getattr__(self, name):
-        try:
-            return self[name]
-        except KeyError as e:
-            raise AttributeError('No configuration item {!r}'.format(name))
-
-    @property
-    def storage(self):
-        return self._get_filename('storage',
-                os.path.join(XDG_CACHE_HOME, 'vectis'))
-
-    @property
-    def output_builds(self):
-        return self._get_filename('output_builds')
-
-    @property
-    def worker_architecture(self):
-        value = self['worker_architecture']
-
-        if value is None:
-            value = self.architecture
-
-        return value
-
-    @property
     def archive(self):
         value = self['archive']
 
@@ -121,13 +61,6 @@ class _ConfigLike:
             value = str(self.vendor)
 
         return value
-
-    @property
-    def debootstrap_script(self):
-        if self.suite is None:
-            return None
-
-        return str(self.suite)
 
     @property
     def mirror(self):
@@ -143,26 +76,8 @@ class _ConfigLike:
         return value
 
     @property
-    def bootstrap_mirror(self):
-        value = self['bootstrap_mirror']
-
-        if value is None:
-            value = self.mirror
-
-        return value
-
-    def get_kernel_package(self, architecture):
-        mapping = self['kernel_package']
-
-        if not isinstance(mapping, dict):
-            mapping = { None: mapping }
-
-        value = mapping.get(architecture)
-
-        if value is None:
-            value = mapping.get(None)
-
-        return value
+    def apt_cacher_ng(self):
+        return self['apt_cacher_ng']
 
 class Vendor(_ConfigLike):
     def __init__(self, name, raw):
@@ -187,6 +102,14 @@ class Vendor(_ConfigLike):
     @property
     def vendor(self):
         return self
+
+    @property
+    def default_suite(self):
+        return self['default_suite']
+
+    @property
+    def default_worker_suite(self):
+        return self['default_worker_suite']
 
     def get_suite(self, name, create=True):
         original_name = name
@@ -512,6 +435,88 @@ class Config(_ConfigLike):
             self._vendors[name] = Vendor(name, self._raw)
         return self._vendors[name]
 
+    def _get_filename(self, name, default=None):
+        value = self[name]
+
+        if value is None:
+            value = default
+
+        value = os.path.expandvars(value)
+        value = os.path.expanduser(value)
+        return value
+
+    @property
+    def parallel(self):
+        return self._get_int('parallel')
+
+    @property
+    def sbuild_together(self):
+        return self._get_bool('sbuild_together')
+
+    def _get_bool(self, name):
+        value = self[name]
+
+        if isinstance(value, bool):
+            return value
+
+        raise ConfigError('Invalid value for {!r}: {!r} is not a boolean '
+                'value'.format(name, value))
+
+    def _get_mandatory_string(self, name):
+        value = self[name]
+
+        if isinstance(value, str):
+            return value
+
+        raise ConfigError('{!r} key {!r} has no default and must be '
+                'configured'.format(self, name))
+
+    def __getattr__(self, name):
+        try:
+            return self[name]
+        except KeyError as e:
+            raise AttributeError('No configuration item {!r}'.format(name))
+
+    @property
+    def storage(self):
+        return self._get_filename('storage',
+                os.path.join(XDG_CACHE_HOME, 'vectis'))
+
+    @property
+    def output_builds(self):
+        return self._get_filename('output_builds')
+
+    @property
+    def worker_architecture(self):
+        value = self['worker_architecture']
+
+        if value is None:
+            value = self.architecture
+
+        return value
+
+    @property
+    def bootstrap_mirror(self):
+        value = self['bootstrap_mirror']
+
+        if value is None:
+            value = self.mirror
+
+        return value
+
+    def get_kernel_package(self, architecture):
+        mapping = self['kernel_package']
+
+        if not isinstance(mapping, dict):
+            mapping = { None: mapping }
+
+        value = mapping.get(architecture)
+
+        if value is None:
+            value = mapping.get(None)
+
+        return value
+
     def __getitem__(self, name):
         if name in self._overrides:
             return self._overrides[name]
@@ -725,4 +730,11 @@ class Config(_ConfigLike):
 
     @property
     def vmdebootstrap_options(self):
-        return self.suite.vmdebootstrap_options
+        return self.suite['vmdebootstrap_options']
+
+    @property
+    def debootstrap_script(self):
+        if self.suite is None:
+            return None
+
+        return str(self.suite)
