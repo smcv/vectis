@@ -617,7 +617,8 @@ class Config(_ConfigLike):
             value = self.qemu_image
 
         if '/' not in value:
-            return os.path.join(self.storage, value)
+            return os.path.join(self.storage, self.architecture,
+                    str(self.vendor), str(self.suite.hierarchy[-1]), value)
 
         return value
 
