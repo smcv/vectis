@@ -189,6 +189,8 @@ class Vendor(_ConfigLike):
         return self
 
     def get_suite(self, name, create=True):
+        original_name = name
+
         if name is None:
             return None
 
@@ -223,6 +225,11 @@ class Vendor(_ConfigLike):
             aliases.add(name)
             continue
 
+        s = self._suites.get(name)
+
+        if s is not None:
+            return s
+
         if raw is None and '-' in name:
             base, pocket = name.split('-', 1)
             base = self.get_suite(base, create=False)
@@ -241,6 +248,7 @@ class Vendor(_ConfigLike):
             return None
 
         s = Suite(name, self, self._raw, base=base, pattern=pattern)
+        self._suites[original_name] = s
         self._suites[name] = s
         return s
 
