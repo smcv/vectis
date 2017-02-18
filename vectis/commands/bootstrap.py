@@ -34,7 +34,11 @@ def run(args):
         version = Version(version)
 
     with TemporaryDirectory(prefix='vectis-bootstrap-') as scratch:
-        subprocess.check_call(['sudo',
+        subprocess.check_call([
+                os.path.join(os.path.dirname(__file__),
+                    os.pardir, 'vectis-command-wrapper'),
+                '--',
+                'sudo',
                 ] + vmdebootstrap_argv(version, args) + [
                 '--customize={}'.format(
                     os.path.join(os.path.dirname(__file__),
