@@ -202,7 +202,7 @@ class Worker:
     def __exit__(self, et, ev, tb):
         return self.stack.__exit__(et, ev, tb)
 
-    def set_up_apt(self, suite, components=()):
+    def set_up_apt(self, suite, *, components=(), mirror=None):
         logger.info('Configuring apt in %r for %s', self, suite)
 
         with TemporaryDirectory(prefix='vectis-worker-') as tmp:
@@ -214,9 +214,14 @@ class Worker:
                     else:
                         filtered_components = ancestor.components
 
+                    if mirror is None:
+                        m = ancestor.mirror
+                    else:
+                        m = mirror
+
                     line = '{mirror} {suite} {components}'.format(
                         components=' '.join(filtered_components),
-                        mirror=ancestor.mirror,
+                        mirror=m,
                         suite=ancestor.apt_suite,
                     )
                     logger.info('%s => deb %s', ancestor, line)

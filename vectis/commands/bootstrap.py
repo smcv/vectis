@@ -52,7 +52,8 @@ def run(args):
 
         try:
             with Worker(['qemu', '{}.new'.format(out)]) as worker:
-                worker.set_up_apt(args.suite)
+                worker.set_up_apt(args.suite,
+                        mirror=args.mirror)
                 worker.check_call([
                     'env',
                     'DEBIAN_FRONTEND=noninteractive',
