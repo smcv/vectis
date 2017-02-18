@@ -58,12 +58,18 @@ def run(args):
         debootstrap_args = []
 
         if worker.call(['test', '-f', args.apt_key]) == 0:
+            logger.info('Found apt key worker:{}'.format(args.apt_key))
             debootstrap_args.append('--keyring={}'.format(args.apt_key))
         elif os.path.exists(args.apt_key):
+            logger.info('Found apt key host:{}, copying to worker:{}'.format(
+                args.apt_key, '{}/apt-key.gpg'.format(worker.scratch)))
             worker.copy_to_guest(args.apt_key,
                     '{}/apt-key.gpg'.format(worker.scratch))
             debootstrap_args.append('--keyring={}/apt-key.gpg'.format(
                 worker.scratch))
+        else:
+            logger.warning('Apt key host:{} not found; leaving it out and '
+                    'hoping for the best'.format(args.apt_key))
 
         debootstrap_args.append('--components={}'.format(
             ','.join(args.components)))

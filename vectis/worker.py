@@ -140,6 +140,8 @@ class Worker:
     def copy_to_guest(self, host_path, guest_path, *, cache=False):
         assert host_path is not None
         assert guest_path is not None
+        logger.info('Copying host:{} to guest:{}'.format(
+            host_path, guest_path))
 
         if cache and self.__cached_copies.get(host_path) == guest_path:
             return
@@ -166,6 +168,9 @@ class Worker:
         if self.call(['test', '-e', guest_path]) != 0:
             raise WorkerError('Cannot copy guest:{!r} to host: it does '
                     'not exist'.format(guest_path))
+
+        logger.info('Copying guest:{} to host:{}'.format(
+            guest_path, host_path))
 
         self.virt_process.stdin.write('copyup {} {}\n'.format(
             urllib.parse.quote(guest_path),
