@@ -14,6 +14,9 @@ from vectis.debuild import (
         Build,
         Buildable,
         )
+from vectis.error import (
+        ArgumentError,
+        )
 from vectis.util import (
         AtomicWriter,
         )
@@ -242,6 +245,12 @@ def run(args):
         buildable = Buildable(a, vendor=args.vendor)
         buildable.select_suite(args.suite)
         buildables.append(buildable)
+
+    for suite in (args.suite, args.sbuild_worker_suite):
+        for ancestor in suite.hierarchy:
+            if ancestor.mirror is None:
+                raise ArgumentError('mirror or apt_cacher_ng must be '
+                        'configured for {}'.format(ancestor))
 
     with Worker(args.sbuild_worker.split()) as worker:
         _run(args, buildables, worker)

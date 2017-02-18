@@ -19,6 +19,15 @@ def run(args):
         else:
             raise ArgumentError('--suite must be specified')
 
+    if args.mirror is None:
+        raise ArgumentError('mirror or apt_cacher_ng must be configured')
+
+    for suite in (args.worker_suite, args.suite):
+        for ancestor in suite.hierarchy:
+            if ancestor.mirror is None:
+                raise ArgumentError('mirror or apt_cacher_ng must be '
+                        'configured for {}'.format(ancestor))
+
     minbase_tarball = '{arch}/{vendor}/{suite}/minbase.tar.gz'.format(
             arch=args.architecture,
             vendor=args.vendor,

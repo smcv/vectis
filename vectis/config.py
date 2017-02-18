@@ -69,10 +69,6 @@ class _ConfigLike:
         if value is None and self.apt_cacher_ng is not None:
             value = self.apt_cacher_ng + '/' + self.archive
 
-        if value is None:
-            raise ConfigError('{!r}: Either mirror or apt_cacher_ng must '
-                    'be set'.format(self))
-
         return value
 
     @property

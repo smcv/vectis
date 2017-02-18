@@ -20,6 +20,12 @@ def run(args):
         else:
             raise ArgumentError('--suite must be specified')
 
+    for suite in (args.suite,):
+        for ancestor in suite.hierarchy:
+            if ancestor.mirror is None:
+                raise ArgumentError('mirror or apt_cacher_ng must be '
+                        'configured for {}'.format(ancestor))
+
     with Worker(['qemu', args.qemu_image]) as worker:
         worker.set_up_apt(args.suite)
         if args._shell_command is not None:

@@ -77,6 +77,12 @@ def new_ubuntu_cloud(args, out):
         return image
 
 def new(args, out):
+    for suite in (args.vmdebootstrap_worker_suite, args.suite):
+        for ancestor in suite.hierarchy:
+            if ancestor.mirror is None:
+                raise ArgumentError('mirror or apt_cacher_ng must be '
+                        'configured for {}'.format(ancestor))
+
     with Worker(args.vmdebootstrap_worker.split()) as worker:
         worker.set_up_apt(args.vmdebootstrap_worker_suite)
         worker.check_call([

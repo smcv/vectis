@@ -119,7 +119,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(c.storage,
             '{}/vectis'.format(XDG_CACHE_HOME))
 
-        with self.assertRaises(ConfigError): c.mirror
+        self.assertIs(c.mirror, None)
 
     def test_substitutions(self):
         c = self.__config
