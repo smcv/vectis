@@ -103,7 +103,6 @@ def new(args, out):
         worker.check_call([
             'env',
             'DEBIAN_FRONTEND=noninteractive',
-            '--',
             'apt-get',
             '-y',
             '--no-install-recommends',
@@ -115,7 +114,6 @@ def new(args, out):
             worker.call([
                 'env',
                 'DEBIAN_FRONTEND=noninteractive',
-                '--',
                 'apt-get',
                 '-y',
                 '--no-install-recommends',
@@ -189,7 +187,6 @@ def run(args):
             worker.check_call([
                 'env',
                 'DEBIAN_FRONTEND=noninteractive',
-                '--',
                 'apt-get',
                 '-y',
                 '--no-install-recommends',
