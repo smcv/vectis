@@ -46,10 +46,10 @@ echo "1..1"
 
 $VECTIS --vendor=debian --storage="${storage}" sbuild-tarball \
     --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" \
-    --suite="${testing}"
+    --suite="${testing}" >&2
 $VECTIS --vendor=debian --storage="${storage}" sbuild \
     --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" \
-    --suite="${testing}" hello
+    --suite="${testing}" hello >&2
 rm -fr "${storage}"
 
 echo "ok 1"

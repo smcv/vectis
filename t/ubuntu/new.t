@@ -45,13 +45,13 @@ echo "1..1"
 $VECTIS --vendor=ubuntu --storage="${storage}" \
     new \
     --mirror="${VECTIS_TEST_UBUNTU_MIRROR}" \
-    --suite="${lts}"
+    --suite="${lts}" >&2
 
 $VECTIS --vendor=ubuntu --storage="${storage}" sbuild \
     --mirror="${VECTIS_TEST_UBUNTU_MIRROR}" \
     --worker-suite="${lts}" \
     --suite="${lts}" \
-    hello
+    hello >&2
 
 rm -fr "${storage}"
 
