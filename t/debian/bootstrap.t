@@ -12,7 +12,7 @@ else
 fi
 
 if [ -z "${VECTIS_TEST_SUDO:-}" ]; then
-    echo "1..0 # SKIP This test requires VECTIS_TEST_SUDO=sudo or similar"
+    echo "1..0 # SKIP This test requires VECTIS_TEST_SUDO=yes and ability to run commands with sudo"
     exit 0
 fi
 
@@ -26,21 +26,14 @@ if ! testing="$(debian-distro-info --testing)"; then
     exit 0
 fi
 
-arch="$(dpkg --print-architecture)"
-
 echo "1..1"
 
 storage="$(mktemp --tmpdir -d vectis-test-XXXXXXXXXX)"
-mkdir "$storage/root"
 
 ( cd "$storage"; apt-get --download-only source hello ) >&2
 
-"$VECTIS_TEST_SUDO" $VECTIS --storage="${storage}/root" bootstrap \
+$VECTIS --storage="${storage}" bootstrap \
     --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" --size=23G >&2
-test -d "${storage}/root/${arch}/debian/${testing}"
-mkdir -p "${storage}/${arch}/debian/${testing}"
-( cd "${storage}/${arch}/debian/${testing}";
-  ln -s ../../../root/${arch}/debian/${testing}/* . )
 
 $VECTIS --storage="${storage}" sbuild-tarball \
     --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" --suite="${testing}" >&2
