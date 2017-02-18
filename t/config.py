@@ -8,6 +8,7 @@ import os
 import subprocess
 import unittest
 
+import vectis.config
 from vectis.config import (
         Config,
         ConfigError,
@@ -317,6 +318,72 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(c.output_builds, '..')
         self.assertEqual(c.debootstrap_script, 'jessie')
         self.assertIs(c.suite, jessie)
+
+        try:
+            import distro_info
+        except ImportError:
+            return
+
+        testing = debian.get_suite('testing')
+        self.assertIs(c.worker_suite, testing)
+
+    def test_debian_buildd(self):
+        c = self.__config
+        c.vendor = 'debian'
+        c.suite = 'jessie-apt.buildd.debian.org'
+
+        debian = c._get_vendor('debian')
+        self.assertIs(c.vendor, debian)
+
+        jessie = debian.get_suite('jessie')
+        buildd = debian.get_suite('jessie-apt.buildd.debian.org')
+        self.assertIs(c.suite, buildd)
+
+        self.assertEqual(list(buildd.hierarchy), [buildd, jessie])
+        self.assertIs(buildd.base, jessie)
+        self.assertEqual(buildd.components, {'main'})
+        self.assertEqual(buildd.extra_components, {'contrib', 'non-free'})
+        self.assertEqual(buildd.all_components, {'main', 'contrib',
+            'non-free'})
+        self.assertIs(buildd.vendor, debian)
+        self.assertEqual(buildd.force_parallel, 1)
+        self.assertEqual(buildd.apt_suite, 'jessie')
+        self.assertEqual(buildd.apt_key,
+                os.path.join(os.path.dirname(vectis.config.__file__),
+                    'keys', 'buildd.debian.org_archive_key_2015_2016.gpg'))
+
+        # Properties of the Config determined by it being jessie
+        self.assertEqual(c.autopkgtest, ['qemu'])
+        self.assertEqual(c.default_suite, 'sid')
+        self.assertEqual(c.components, {'main'})
+        self.assertEqual(c.extra_components, {'contrib', 'non-free'})
+        self.assertEqual(c.all_components, {'main', 'contrib',
+            'non-free'})
+        self.assertIs(c.vendor, debian)
+        self.assertIs(c.worker_vendor, debian)
+        self.assertIs(c.sbuild_worker_vendor, debian)
+        self.assertIs(c.vmdebootstrap_worker_vendor, debian)
+        self.assertIs(c.sbuild_worker_suite, buildd)
+        self.assertEqual(c.archive, 'apt.buildd.debian.org')
+        self.assertEqual(c.apt_cacher_ng, 'http://192.168.122.1:3142')
+        self.assertEqual(c.mirror, 'http://192.168.122.1:3142/apt.buildd.debian.org')
+        self.assertEqual(c.bootstrap_mirror,
+                'http://192.168.122.1:3142/apt.buildd.debian.org')
+        self.assertEqual(c.qemu_image_size, '42G')
+        self.assertEqual(c.force_parallel, 1)
+        self.assertGreaterEqual(c.parallel, 1)
+        self.assertIs(c.sbuild_together, False)
+        self.assertEqual(c.sbuild_resolver, [])
+        #self.assertEqual(c.apt_key,
+        #        os.path.join(os.path.dirname(vectis.config.__file__),
+        #            'keys', 'buildd.debian.org_archive_key_2015_2016.gpg'))
+        self.assertEqual(c.apt_key, 'buildd.debian.org_archive_key_2015_2016.gpg')
+        self.assertIsNone(c.dpkg_source_diff_ignore)
+        self.assertEqual(c.dpkg_source_tar_ignore, [])
+        self.assertEqual(c.dpkg_source_extend_diff_ignore, [])
+        self.assertEqual(c.output_builds, '..')
+        # FIXME: this makes little sense
+        self.assertEqual(c.debootstrap_script, 'jessie-apt.buildd.debian.org')
 
         try:
             import distro_info
