@@ -231,6 +231,10 @@ class Suite(_ConfigLike):
         return self
 
     @property
+    def sbuild_resolver(self):
+        return self['sbuild_resolver']
+
+    @property
     def apt_key(self):
         value = self['apt_key']
 

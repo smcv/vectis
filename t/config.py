@@ -198,6 +198,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(sid.extra_components, {'contrib', 'non-free'})
         self.assertEqual(sid.all_components, {'main', 'contrib', 'non-free'})
         self.assertEqual(sid.apt_suite, 'sid')
+        self.assertEqual(sid.sbuild_resolver, [])
 
         # Properties of the Config determined by the suite being Debian sid
         self.assertEqual(c.autopkgtest, ['qemu'])
@@ -260,6 +261,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(list(experimental.hierarchy),
                 [experimental, debian.get_suite('sid')])
         self.assertIs(experimental.base, debian.get_suite('sid'))
+        self.assertEqual(experimental.sbuild_resolver[0],
+                '--build-dep-resolver=aspcud')
 
         # Properties of the Config determined by the suite being
         # Debian experimental
@@ -408,6 +411,8 @@ class DefaultsTestCase(unittest.TestCase):
                 debian_info.stable() + '-backports')
         self.assertEqual(backports.hierarchy[0], backports)
         self.assertEqual(str(backports.hierarchy[1]), str(stable))
+        self.assertEqual(backports.sbuild_resolver,
+                ['--build-dep-resolver=aptitude'])
 
         self.assertEqual(c.sbuild_resolver,
                 ['--build-dep-resolver=aptitude'])
