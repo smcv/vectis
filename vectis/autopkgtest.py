@@ -23,6 +23,8 @@ from vectis.util import (
 logger = logging.getLogger(__name__)
 
 def run_autopkgtest(args, *,
+        suite,
+        vendor,
         architecture=None,
         binaries=(),
         extra_repositories=(),
@@ -46,9 +48,9 @@ def run_autopkgtest(args, *,
             elif test == 'schroot':
                 tarball = os.path.join(
                         args.storage,
-                        args.architecture,
-                        str(args.vendor),
-                        str(args.suite.hierarchy[-1]),
+                        architecture,
+                        str(vendor),
+                        str(suite.hierarchy[-1]),
                         'minbase.tar.gz')
 
                 if not tarball or not os.path.exists(tarball):
@@ -91,7 +93,7 @@ def run_autopkgtest(args, *,
                 components=args.components,
                 extra_repositories=extra_repositories,
                 mirror=args.mirror,
-                suite=args.suite,
+                suite=suite,
                 virt=virt,
                 ))
 
