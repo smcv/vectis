@@ -10,7 +10,9 @@ from debian.debian_support import (
         )
 
 from vectis.error import ArgumentError
-from vectis.worker import Worker
+from vectis.worker import (
+        VirtWorker,
+        )
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +38,10 @@ def run(args):
             )
     logger.info('Creating tarball %s...', sbuild_tarball)
 
-    with Worker(args.worker.split()) as worker:
+    with VirtWorker(args.worker.split(),
+            suite=args.worker_suite,
+            ) as worker:
         logger.info('Installing debootstrap and sbuild')
-        worker.set_up_apt(args.worker_suite)
         worker.check_call([
             'env',
             'DEBIAN_FRONTEND=noninteractive',

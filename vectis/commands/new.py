@@ -11,7 +11,9 @@ from debian.debian_support import (
         )
 
 from vectis.error import ArgumentError
-from vectis.worker import Worker
+from vectis.worker import (
+        VirtWorker,
+        )
 
 logger = logging.getLogger(__name__)
 
@@ -83,8 +85,9 @@ def new(args, out):
                 raise ArgumentError('mirror or apt_cacher_ng must be '
                         'configured for {}'.format(ancestor))
 
-    with Worker(args.vmdebootstrap_worker.split()) as worker:
-        worker.set_up_apt(args.vmdebootstrap_worker_suite)
+    with VirtWorker(args.vmdebootstrap_worker.split(),
+            suite=args.vmdebootstrap_worker_suite,
+            ) as worker:
         worker.check_call([
             'env', 'DEBIAN_FRONTEND=noninteractive',
             'apt-get', '-y', 'upgrade',
@@ -196,8 +199,10 @@ def run(args):
         created = new(args, out)
 
     try:
-        with Worker(['qemu', created]) as worker:
-            worker.set_up_apt(args.suite)
+        with VirtWorker(['qemu', created],
+                suite=args.suite,
+                ) as worker:
+            worker.set_up_apt()
             worker.check_call(['apt-get', '-y', 'update'])
             worker.check_call([
                 'env',

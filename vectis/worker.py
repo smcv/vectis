@@ -4,12 +4,18 @@
 
 import logging
 import os
+import shlex
 import shutil
 import subprocess
+import uuid
 import urllib.parse
+from abc import abstractmethod, ABCMeta
 from contextlib import ExitStack
 from tempfile import TemporaryDirectory
 
+from debian.deb822 import (
+        Changes,
+        )
 from debian.debian_support import (
         Version,
         )
@@ -28,23 +34,266 @@ logger = logging.getLogger(__name__)
 class WorkerError(Error):
     pass
 
-class Worker:
-    def __init__(self, argv):
+class BaseWorker(metaclass=ABCMeta):
+    def __init__(self):
+        super().__init__()
+        self.__open = 0
+        self.stack = ExitStack()
+
+    def assert_open(self):
+        assert self.__open
+
+    def __enter__(self):
+        self.__open += 1
+
+        if self.__open == 1:
+            self._open()
+
+        return self
+
+    def _open(self):
+        pass
+
+    def __exit__(self, et, ev, tb):
+        self.__open -= 1
+        if self.__open:
+            return False
+        else:
+            return self.stack.__exit__(et, ev, tb)
+
+class ContainerWorker(BaseWorker, metaclass=ABCMeta):
+    def __init__(self):
+        super().__init__()
+        self.components = ()
+        self.extra_repositories = ()
+        self.mirror = None
+        self.suite = None
+
+    @abstractmethod
+    def install_apt_key(self, apt_key):
+        raise NotImplementedError
+
+    def install_apt_keys(self):
+        assert self.suite is not None
+
+        for ancestor in self.suite.hierarchy:
+            if ancestor.apt_key is not None:
+                self.install_apt_key(ancestor.apt_key)
+
+    @abstractmethod
+    def set_up_apt(self):
+        raise NotImplementedError
+
+    def write_sources_list(self, writer):
+        assert self.suite is not None
+
+        for ancestor in self.suite.hierarchy:
+            if self.components:
+                filtered_components = (set(self.components) &
+                        set(ancestor.all_components))
+            else:
+                filtered_components = ancestor.components
+
+            if self.mirror is None:
+                mirror = ancestor.mirror
+            else:
+                mirror = self.mirror
+
+            line = '{mirror} {suite} {components}'.format(
+                components=' '.join(filtered_components),
+                mirror=mirror,
+                suite=ancestor.apt_suite,
+            )
+            logger.info('%r: %s => deb %s', self, ancestor, line)
+
+            writer.write('deb {}\n'.format(line))
+            writer.write('deb-src {}\n'.format(line))
+
+        for line in self.extra_repositories:
+            writer.write('{}\n'.format(line))
+
+class FileProvider(BaseWorker, metaclass=ABCMeta):
+    @abstractmethod
+    def make_file_available(self, filename, unique=None, ext=None):
+        raise NotImplementedError
+
+    @abstractmethod
+    def new_directory(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def make_changes_file_available(self, filename):
+        raise NotImplementedError
+
+class AutopkgtestWorker(ContainerWorker, FileProvider):
+    def __init__(self,
+            components=(),
+            extra_repositories=(),
+            mirror=None,
+            suite=None,
+            virt=(),
+            worker=None):
+        super().__init__()
+
+        if worker is None:
+            worker = self.stack.enter_context(HostWorker())
+
+        self.argv = ['autopkgtest', '--apt-upgrade']
+        self.components = components
+        self.extra_repositories = extra_repositories
+        self.mirror = mirror
+        self.sources_list = None
+        self.suite = suite
+        self.virt = virt
+        self.worker = worker
+
+    def install_apt_key(self, apt_key):
+        to = '/etc/apt/trusted.gpg.d/{}-{}'.format(
+                uuid.uuid4(), os.path.basename(apt_key))
+        self.argv.append('--copy={}:{}'.format(
+            self.worker.make_file_available(apt_key), to))
+
+    def set_up_apt(self):
+        tmp = TemporaryDirectory(prefix='vectis-worker-')
+        tmp = self.stack.enter_context(tmp)
+        self.sources_list = os.path.join(tmp, 'sources.list')
+
+        with AtomicWriter(self.sources_list) as writer:
+            self.write_sources_list(writer)
+
+        sources_list = self.worker.make_file_available(self.sources_list)
+        self.argv.append('--copy={}:{}'.format(sources_list,
+            '/etc/apt/sources.list'))
+
+    def call_autopkgtest(self, arguments):
+        argv = self.argv[:]
+        argv.extend(arguments)
+        argv.append('--')
+        argv.extend(self.virt)
+        return self.worker.call(argv)
+
+    def new_directory(self, prefix=''):
+        # assume /tmp is initially empty and uuid4() won't collide
+        d = '/tmp/{}{}'.format(prefix, uuid.uuid4())
+        self.argv.append('--setup-commands=mkdir {}'.format(shlex.quote(d)))
+        return d
+
+    def make_file_available(self, filename, unique=None, ext=None):
+        if unique is None:
+            unique = str(uuid.uuid4())
+
+        if ext is None:
+            ext = os.path.splitext(filename)[-1]
+
+        filename = self.worker.make_file_available(filename,
+                unique, ext)
+        in_autopkgtest = '/tmp/{}{}'.format(unique, ext)
+        self.argv.append('--copy={}:{}'.format(filename, in_autopkgtest))
+        return in_autopkgtest
+
+    def make_changes_file_available(self, filename):
+        d = os.path.dirname(filename)
+
+        with open(filename) as reader:
+            changes = Changes(reader)
+
+        to = self.new_directory()
+        self.argv.append('--copy={}:{}'.format(filename,
+                '{}/{}'.format(to, os.path.basename(filename))))
+
+        for f in changes['files']:
+            self.argv.append('--copy={}:{}'.format(
+                    os.path.join(d, f['name']),
+                    '{}/{}'.format(to, f['name'])))
+
+        return '{}/{}'.format(to, os.path.basename(filename))
+
+    def _open(self):
+        super()._open()
+        self.set_up_apt()
+
+class InteractiveWorker(BaseWorker):
+    def __init__(self):
+        super().__init__()
+        self.__dpkg_architecture = None
+
+    def call(self, argv, **kwargs):
+        raise NotImplementedError
+
+    def check_call(self, argv, **kwargs):
+        raise NotImplementedError
+
+    def check_output(self, argv, **kwargs):
+        raise NotImplementedError
+
+    def dpkg_version(self, package):
+        v = self.check_output(['dpkg-query', '-W', '-f${Version}', package],
+                universal_newlines=True).rstrip('\n')
+        return Version(v)
+
+    @property
+    def dpkg_architecture(self):
+        if self.__dpkg_architecture is None:
+            self.__dpkg_architecture = self.check_output(['dpkg',
+                '--print-architecture'], universal_newlines=True).strip()
+
+        return self.__dpkg_architecture
+
+class HostWorker(InteractiveWorker, FileProvider):
+    def __init__(self):
+        super().__init__()
+
+    def call(self, argv, **kwargs):
+        logger.info('%r: %r', self, argv)
+        return subprocess.call(argv, **kwargs)
+
+    def check_call(self, argv, **kwargs):
+        logger.info('%r: %r', self, argv)
+        subprocess.check_call(argv, **kwargs)
+
+    def check_output(self, argv, **kwargs):
+        logger.info('%r: %r', self, argv)
+        return subprocess.check_output(argv, **kwargs)
+
+    def make_file_available(self, filename):
+        return filename
+
+    def new_directory(self, prefix=''):
+        if not prefix:
+            prefix = 'vectis-'
+
+        return self.stack.enter_context(self,
+                TemporaryDirectory(prefix=prefix))
+
+    def make_changes_file_available(self, filename):
+         return filename
+
+class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
+    def __init__(self, argv,
+            components=(),
+            extra_repositories=(),
+            mirror=None,
+            suite=None):
+        super().__init__()
+
         self.__cached_copies = {}
         self.__command_wrapper_enabled = False
-        self.__dpkg_architecture = None
+        self.argv = argv
         self.call_argv = None
         self.capabilities = set()
         self.command_wrapper = None
-        self.argv = argv
-        self.stack = ExitStack()
+        self.components = components
+        self.extra_repositories = extra_repositories
+        self.mirror = mirror
+        self.suite = suite
         self.user = 'user'
         self.virt_process = None
 
     def __repr__(self):
-        return '<Worker {}>'.format(self.argv)
+        return '<{} {}>'.format(self.__class__.__name__, self.argv)
 
-    def __enter__(self):
+    def _open(self):
+        super()._open()
         argv = list(map(os.path.expanduser, self.argv))
 
         for prefix in ('autopkgtest-virt-', 'adt-virt-', ''):
@@ -120,24 +369,19 @@ class Worker:
         self.check_call(['chmod', '+x', wrapper])
         self.command_wrapper = wrapper
 
-        return self
+        self.set_up_apt()
 
     def call(self, argv, **kwargs):
-        logger.info('%r', argv)
+        logger.info('%r: %r', self, argv)
         return subprocess.call(self.call_argv + list(argv), **kwargs)
 
     def check_call(self, argv, **kwargs):
-        logger.info('%r', argv)
+        logger.info('%r: %r', self, argv)
         subprocess.check_call(self.call_argv + list(argv), **kwargs)
 
     def check_output(self, argv, **kwargs):
-        logger.info('%r', argv)
+        logger.info('%r: %r', self, argv)
         return subprocess.check_output(self.call_argv + list(argv), **kwargs)
-
-    def dpkg_version(self, package):
-        v = self.check_output(['dpkg-query', '-W', '-f${Version}', package],
-                universal_newlines=True).rstrip('\n')
-        return Version(v)
 
     def copy_to_guest(self, host_path, guest_path, *, cache=False):
         assert host_path is not None
@@ -191,52 +435,59 @@ class Worker:
         if line != 'ok\n':
             logger.warning('Unable to open a shell in guest: %s', line.strip())
 
-    @property
-    def dpkg_architecture(self):
-        if self.__dpkg_architecture is None:
-            self.__dpkg_architecture = self.check_output(['dpkg',
-                '--print-architecture'], universal_newlines=True).strip()
-
-        return self.__dpkg_architecture
-
-    def __exit__(self, et, ev, tb):
-        return self.stack.__exit__(et, ev, tb)
-
-    def set_up_apt(self, suite, *, components=(), mirror=None):
-        logger.info('Configuring apt in %r for %s', self, suite)
+    def set_up_apt(self):
+        logger.info('Configuring apt in %r for %s', self, self.suite)
 
         with TemporaryDirectory(prefix='vectis-worker-') as tmp:
-            with AtomicWriter(os.path.join(tmp, 'sources.list')) as writer:
-                for ancestor in suite.hierarchy:
-                    if components:
-                        filtered_components = (set(components) &
-                                set(ancestor.all_components))
-                    else:
-                        filtered_components = ancestor.components
+            sources_list = os.path.join(tmp, 'sources.list')
 
-                    if mirror is None:
-                        m = ancestor.mirror
-                    else:
-                        m = mirror
+            with AtomicWriter(sources_list) as writer:
+                self.write_sources_list(writer)
 
-                    line = '{mirror} {suite} {components}'.format(
-                        components=' '.join(filtered_components),
-                        mirror=m,
-                        suite=ancestor.apt_suite,
-                    )
-                    logger.info('%s => deb %s', ancestor, line)
+            self.copy_to_guest(sources_list, '/etc/apt/sources.list')
 
-                    writer.write('deb {}\n'.format(line))
-                    writer.write('deb-src {}\n'.format(line))
+        self.install_apt_keys()
+        self.check_call([
+            'env', 'DEBIAN_FRONTEND=noninteractive',
+            'apt-get', '-y', 'update',
+            ])
 
-                    if ancestor.apt_key is not None:
-                        self.copy_to_guest(ancestor.apt_key,
-                            '/etc/apt/trusted.gpg.d/' +
-                            os.path.basename(ancestor.apt_key))
+    def install_apt_key(self, apt_key):
+        self.copy_to_guest(apt_key,
+                '/etc/apt/trusted.gpg.d/{}-{}'.format(
+                    uuid.uuid4(), os.path.basename(apt_key)))
 
-            self.copy_to_guest(os.path.join(tmp, 'sources.list'),
-                    '/etc/apt/sources.list')
-            self.check_call([
-                'env', 'DEBIAN_FRONTEND=noninteractive',
-                'apt-get', '-y', 'update',
-                ])
+    def make_file_available(self, filename, unique=None, ext=None):
+        if unique is None:
+            unique = str(uuid.uuid4())
+
+        if ext is None:
+            ext = os.path.splitext(filename)[-1]
+
+        in_guest = '{}/{}{}'.format(self.scratch, unique, ext)
+        self.copy_to_guest(filename, in_guest)
+        return in_guest
+
+    def new_directory(self, prefix=''):
+        if not prefix:
+            prefix = 'vectis-'
+
+        return self.check_output(['mktemp', '-d',
+            '--tmpdir={}'.format(self.scratch),
+            prefix + 'XXXXXXXXXX'], universal_newlines=True).rstrip('\n')
+
+    def make_changes_file_available(self, filename):
+        d = os.path.dirname(filename)
+
+        with open(filename) as reader:
+            changes = Changes(reader)
+
+        to = self.new_directory()
+        self.copy_to_guest(filename,
+                '{}/{}'.format(to, os.path.basename(filename)))
+
+        for f in changes['files']:
+            self.copy_to_guest(os.path.join(d, f['name']),
+                    '{}/{}'.format(to, f['name']))
+
+        return '{}/{}'.format(to, os.path.basename(filename))

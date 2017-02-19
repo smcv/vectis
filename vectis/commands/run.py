@@ -26,8 +26,8 @@ def run(args):
                 raise ArgumentError('mirror or apt_cacher_ng must be '
                         'configured for {}'.format(ancestor))
 
-    with Worker(['qemu', args.qemu_image]) as worker:
-        worker.set_up_apt(args.suite)
+    with Worker(['qemu', args.qemu_image],
+            suite=args.suite) as worker:
         if args._shell_command is not None:
             worker.check_call(['sh', '-c', args._shell_command] +
                     args._argv)

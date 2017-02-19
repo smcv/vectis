@@ -4,21 +4,14 @@
 
 import logging
 import os
-import subprocess
-import textwrap
-from tempfile import TemporaryDirectory
 
-from vectis.util import (
-        AtomicWriter,
+from vectis.worker import (
+        AutopkgtestWorker,
         )
 
 logger = logging.getLogger(__name__)
 
-def run_autopkgtest(args, testable, **kwargs):
-    with TemporaryDirectory(prefix='vectis-autopkgtest-') as tmp:
-        _run_autopkgtest(tmp, args, testable, **kwargs)
-
-def _run_autopkgtest(tmp, args, testable, *,
+def run_autopkgtest(args, testable, *,
         binaries=None,
         extra_repositories=()):
     all_ok = True
@@ -26,49 +19,10 @@ def _run_autopkgtest(tmp, args, testable, *,
     for test in args.autopkgtest:
         if test == 'qemu':
             image = args.autopkgtest_qemu_image
+            argv = ['--no-built-binaries']
 
             if not image or not os.path.exists(image):
                 continue
-
-            # Run this in the host system, to avoid nested virtualization.
-            argv = [
-                'autopkgtest',
-                '--apt-upgrade',
-                '--no-built-binaries',
-                # TODO: --output-dir
-                # TODO: --setup-commands
-                ]
-
-            # FIXME: duplicate of code in Worker
-            with AtomicWriter(os.path.join(tmp, 'sources.list')) as writer:
-                for ancestor in args.suite.hierarchy:
-                    if args.components:
-                        filtered_components = (set(args.components) &
-                                set(ancestor.all_components))
-                    else:
-                        filtered_components = ancestor.components
-
-                    writer.write(textwrap.dedent('''
-                    deb {mirror} {suite} {components}
-                    deb-src {mirror} {suite} {components}
-                    ''').format(
-                        components=' '.join(filtered_components),
-                        mirror=ancestor.mirror,
-                        suite=ancestor.apt_suite,
-                    ))
-
-                    if ancestor.apt_key is not None:
-                        argv.append('--copy={}:{}'.format(
-                            ancestor.apt_key,
-                            '/etc/apt/trusted.gpg.d/' +
-                            os.path.basename(ancestor.apt_key)))
-
-                for x in extra_repositories:
-                    writer.write('\n{}\n'.format(x))
-
-            argv.append('--copy={}:{}'.format(
-                        os.path.join(tmp, 'sources.list'),
-                        '/etc/apt/sources.list'))
 
             if binaries is not None:
                 for b in binaries:
@@ -76,11 +30,15 @@ def _run_autopkgtest(tmp, args, testable, *,
 
             argv.append(testable)
 
-            argv.append('--')
-            argv.append('qemu')
-            argv.append(args.autopkgtest_qemu_image)
+            with AutopkgtestWorker(
+                    components=args.components,
+                    extra_repositories=extra_repositories,
+                    mirror=args.mirror,
+                    suite=args.suite,
+                    virt=['qemu', args.autopkgtest_qemu_image],
+                    ) as worker:
+                status = worker.call_autopkgtest(argv)
 
-            status = subprocess.call(argv)
         else:
             logger.warning('Unknown autopkgtest setup: {}'.format(test))
             continue

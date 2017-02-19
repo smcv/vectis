@@ -14,7 +14,9 @@ from debian.debian_support import (
 
 from vectis.commands.new import vmdebootstrap_argv
 from vectis.error import ArgumentError
-from vectis.worker import Worker
+from vectis.worker import (
+        VirtWorker,
+        )
 
 def run(args):
     if args.suite is None:
@@ -55,9 +57,8 @@ def run(args):
         shutil.move('{}/output.qcow2'.format(scratch), out + '.new')
 
         try:
-            with Worker(['qemu', '{}.new'.format(out)]) as worker:
-                worker.set_up_apt(args.suite,
-                        mirror=args.mirror)
+            with VirtWorker(['qemu', '{}.new'.format(out)],
+                    suite=args.suite, mirror=args.mirror) as worker:
                 worker.check_call([
                     'env',
                     'DEBIAN_FRONTEND=noninteractive',

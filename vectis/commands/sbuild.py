@@ -20,7 +20,9 @@ from vectis.error import (
 from vectis.util import (
         AtomicWriter,
         )
-from vectis.worker import Worker
+from vectis.worker import (
+        VirtWorker,
+        )
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +70,6 @@ def get_dpkg_source_options(args):
 
 def _run(args, buildables, worker):
     logger.info('Installing sbuild')
-    worker.set_up_apt(args.sbuild_worker_suite)
     worker.check_call([
         'env',
         'DEBIAN_FRONTEND=noninteractive',
@@ -252,7 +253,9 @@ def run(args):
                 raise ArgumentError('mirror or apt_cacher_ng must be '
                         'configured for {}'.format(ancestor))
 
-    with Worker(args.sbuild_worker.split()) as worker:
+    with VirtWorker(args.sbuild_worker.split(),
+            suite=args.sbuild_worker_suite,
+            ) as worker:
         _run(args, buildables, worker)
 
     # We print these separately, right at the end, so that if you built more

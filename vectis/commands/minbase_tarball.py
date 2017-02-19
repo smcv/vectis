@@ -6,7 +6,9 @@ import logging
 import os
 
 from vectis.error import ArgumentError
-from vectis.worker import Worker
+from vectis.worker import (
+        VirtWorker,
+        )
 
 logger = logging.getLogger(__name__)
 
@@ -35,9 +37,10 @@ def run(args):
             )
     logger.info('Creating tarball %s...', minbase_tarball)
 
-    with Worker(args.worker.split()) as worker:
+    with VirtWorker(args.worker.split(),
+            suite=args.worker_suite,
+            ) as worker:
         logger.info('Installing debootstrap')
-        worker.set_up_apt(args.worker_suite)
         worker.check_call([
             'env',
             'DEBIAN_FRONTEND=noninteractive',
