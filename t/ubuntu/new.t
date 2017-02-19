@@ -51,7 +51,7 @@ $VECTIS --vendor=ubuntu --storage="${storage}" sbuild \
     --mirror="${VECTIS_TEST_UBUNTU_MIRROR}" \
     --worker-suite="${lts}" \
     --suite="${lts}" \
-    hello >&2
+    init-system-helpers >&2
 
 rm -fr "${storage}"
 

@@ -49,7 +49,7 @@ $VECTIS --vendor=debian --storage="${storage}" sbuild-tarball \
     --suite="${testing}" >&2
 $VECTIS --vendor=debian --storage="${storage}" sbuild \
     --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" \
-    --suite="${testing}" hello >&2
+    --suite="${testing}" init-system-helpers >&2
 rm -fr "${storage}"
 
 echo "ok 1"

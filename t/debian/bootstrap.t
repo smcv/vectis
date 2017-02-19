@@ -30,7 +30,7 @@ echo "1..1"
 
 storage="$(mktemp --tmpdir -d vectis-test-XXXXXXXXXX)"
 
-( cd "$storage"; apt-get --download-only source hello ) >&2
+( cd "$storage"; apt-get --download-only source init-system-helpers ) >&2
 
 $VECTIS --storage="${storage}" bootstrap \
     --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" --size=23G >&2
@@ -39,7 +39,7 @@ $VECTIS --storage="${storage}" sbuild-tarball \
     --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" --suite="${testing}" >&2
 $VECTIS --storage="${storage}" sbuild \
     --worker-suite="${testing}" \
-    --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" --suite="${testing}" "${storage}/"hello*.dsc >&2
+    --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" --suite="${testing}" "${storage}/"init-system-helpers*.dsc >&2
 rm -fr "${storage}"
 
 echo "ok 1"

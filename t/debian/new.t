@@ -58,7 +58,7 @@ test ! -L "${storage}/${arch}/debian/${testing}/autopkgtest.qcow2"
 $VECTIS --vendor=debian --storage="${storage}" sbuild \
     --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" \
     --suite="${testing}" \
-    hello >&2
+    init-system-helpers >&2
 rm -fr "${storage}"
 
 echo "ok 1"
