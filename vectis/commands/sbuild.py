@@ -264,6 +264,9 @@ def run(args):
         buildables.append(buildable)
 
     for suite in (args.suite, args.sbuild_worker_suite):
+        if suite is None:
+            continue
+
         for ancestor in suite.hierarchy:
             if ancestor.mirror is None:
                 raise ArgumentError('mirror or apt_cacher_ng must be '
