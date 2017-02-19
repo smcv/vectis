@@ -214,6 +214,7 @@ def _run(args, buildables, worker):
         for architecture in test_architectures:
             run_autopkgtest(args, source_changes=source_changes,
                     source_package=source_package,
+                    sbuild_worker=worker,
                     binaries=(buildable.merged_changes['binary'],),
                     extra_repositories=args._extra_repository,
                     architecture=architecture,

@@ -42,6 +42,7 @@ defaults:
     vmdebootstrap_options: []
 
     autopkgtest:
+        - schroot
         - qemu
     autopkgtest_qemu_image: null
 

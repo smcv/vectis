@@ -4,9 +4,20 @@
 
 import logging
 import os
+import textwrap
+from contextlib import (
+        ExitStack,
+        )
+from tempfile import (
+        TemporaryDirectory,
+        )
 
 from vectis.worker import (
         AutopkgtestWorker,
+        HostWorker,
+        )
+from vectis.util import (
+        AtomicWriter,
         )
 
 logger = logging.getLogger(__name__)
@@ -15,54 +26,92 @@ def run_autopkgtest(args, *,
         architecture=None,
         binaries=(),
         extra_repositories=(),
+        sbuild_worker=None,
         source_changes=None,
         source_package=None):
     all_ok = True
 
     for test in args.autopkgtest:
-        if test == 'qemu':
-            image = args.autopkgtest_qemu_image
-            argv = ['--no-built-binaries']
+        with ExitStack() as stack:
+            worker = None
 
-            if not image or not os.path.exists(image):
+            if test == 'qemu':
+                image = args.autopkgtest_qemu_image
+
+                if not image or not os.path.exists(image):
+                    continue
+
+                virt = ['qemu', image]
+
+            elif test == 'schroot':
+                tarball = os.path.join(
+                        args.storage,
+                        args.architecture,
+                        str(args.vendor),
+                        str(args.suite.hierarchy[-1]),
+                        'minbase.tar.gz')
+
+                if not tarball or not os.path.exists(tarball):
+                    continue
+
+                # FIXME: also allow testing i386 on amd64, etc.
+                if sbuild_worker.dpkg_architecture == architecture:
+                    worker = sbuild_worker
+                else:
+                    # FIXME: run new worker if needed
+                    logger.warning('Worker {} cannot test {}'.format(
+                        sbuild_worker, architecture))
+                    continue
+
+                with TemporaryDirectory(prefix='vectis-sbuild-') as tmp:
+                    with AtomicWriter(os.path.join(tmp, 'sbuild.conf')) as writer:
+                        writer.write(textwrap.dedent('''
+                        [autopkgtest]
+                        type=file
+                        description=Test
+                        file={tarball}
+                        groups=root,sbuild
+                        root-groups=root,sbuild
+                        profile=default
+                        ''').format(
+                            tarball=worker.make_file_available(tarball)))
+                    worker.copy_to_guest(os.path.join(tmp, 'sbuild.conf'),
+                            '/etc/schroot/chroot.d/autopkgtest')
+
+                virt = ['schroot', 'autopkgtest']
+            else:
+                logger.warning('Unknown autopkgtest setup: {}'.format(test))
                 continue
 
-            for b in binaries:
-                argv.append(b)
+        if worker is None:
+            worker = stack.enter_context(HostWorker())
 
-            if source_changes is not None:
-                argv.append(source_changes)
-            elif source_package is not None:
-                argv.append(source_package)
+        autopkgtest = stack.enter_context(
+            AutopkgtestWorker(
+                components=args.components,
+                extra_repositories=extra_repositories,
+                mirror=args.mirror,
+                suite=args.suite,
+                virt=virt,
+                ))
 
-            with AutopkgtestWorker(
-                    components=args.components,
-                    extra_repositories=extra_repositories,
-                    mirror=args.mirror,
-                    suite=args.suite,
-                    virt=['qemu', args.autopkgtest_qemu_image],
-                    ) as worker:
-                status = worker.call_autopkgtest(argv)
+        argv = ['--no-built-binaries']
 
+        for b in binaries:
+            if b.endswith('.changes'):
+                argv.append(worker.make_changes_file_available(b))
+            else:
+                argv.append(worker.make_file_available(b))
+
+        if source_changes is not None:
+            argv.append(worker.make_changes_file_available(source_changes))
+        elif source_package is not None:
+            argv.append(source_package)
         else:
-            logger.warning('Unknown autopkgtest setup: {}'.format(test))
+            logger.warning('Nothing to test')
             continue
 
-        if status == 0:
-            logger.info('{} autopkgtests passed'.format(test))
-        elif status == 2:
-            logger.info('{} autopkgtests passed or skipped'.format(test))
-        elif status == 8:
-            logger.info('No autopkgtests found in this package')
-        elif status == 12:
-            logger.warning('Failed to install test dependencies')
-            all_ok = False
-        elif status == 16:
-            logger.warning(
-                'Failed to set up testbed for {} autopkgtest'.format(test))
-            all_ok = False
-        else:
-            logger.error('{} autopkgtests failed'.format(test))
+        if not autopkgtest.call_autopkgtest(argv):
             all_ok = False
 
     return all_ok
