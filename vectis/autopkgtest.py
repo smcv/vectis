@@ -11,9 +11,12 @@ from vectis.worker import (
 
 logger = logging.getLogger(__name__)
 
-def run_autopkgtest(args, testable, *,
-        binaries=None,
-        extra_repositories=()):
+def run_autopkgtest(args, *,
+        architecture=None,
+        binaries=(),
+        extra_repositories=(),
+        source_changes=None,
+        source_package=None):
     all_ok = True
 
     for test in args.autopkgtest:
@@ -24,11 +27,13 @@ def run_autopkgtest(args, testable, *,
             if not image or not os.path.exists(image):
                 continue
 
-            if binaries is not None:
-                for b in binaries:
-                    argv.append(b)
+            for b in binaries:
+                argv.append(b)
 
-            argv.append(testable)
+            if source_changes is not None:
+                argv.append(source_changes)
+            elif source_package is not None:
+                argv.append(source_package)
 
             with AutopkgtestWorker(
                     components=args.components,

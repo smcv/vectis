@@ -186,10 +186,13 @@ def _run(args, buildables, worker):
                     stdout=writer)
 
     for buildable in buildables:
+        source_changes = None
+        source_package = None
+
         if 'source' in buildable.merged_changes:
-            source = buildable.merged_changes['source']
+            source_changes = buildable.merged_changes['source']
         elif buildable.source_from_archive:
-            source = buildable.source_package
+            source_package = buildable.source_package
         else:
             logger.warning('Unable to run autopkgtest on %s',
                     buildable.buildable)
@@ -199,10 +202,22 @@ def _run(args, buildables, worker):
             logger.info('No autopkgtests available')
             continue
 
-        run_autopkgtest(args, source,
-                binaries=(buildable.merged_changes['binary'],),
-                extra_repositories=args._extra_repository,
-                )
+        test_architectures = []
+
+        for arch in buildable.archs:
+            if arch != 'all' and arch != 'source':
+                test_architectures.append(arch)
+
+        if 'all' in buildable.archs and not test_architectures:
+            test_architectures.append(worker.architecture)
+
+        for architecture in test_architectures:
+            run_autopkgtest(args, source_changes=source_changes,
+                    source_package=source_package,
+                    binaries=(buildable.merged_changes['binary'],),
+                    extra_repositories=args._extra_repository,
+                    architecture=architecture,
+                    )
 
     for buildable in buildables:
         logger.info('Built changes files from %s:\n\t%s',
