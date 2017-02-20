@@ -36,7 +36,10 @@ def run_autopkgtest(args, *,
         source_package=None):
     all_ok = True
 
+    logger.info('Testing in modes: %r', args.autopkgtest)
+
     for test in args.autopkgtest:
+        logger.info('Testing in mode: %s', test)
         with ExitStack() as stack:
             worker = None
 
@@ -44,6 +47,7 @@ def run_autopkgtest(args, *,
                 image = args.autopkgtest_qemu_image
 
                 if not image or not os.path.exists(image):
+                    logger.info('Required image %s does not exist', image)
                     continue
 
                 virt = ['qemu', image]
@@ -57,6 +61,8 @@ def run_autopkgtest(args, *,
                         'minbase.tar.gz')
 
                 if not os.path.exists(tarball):
+                    logger.info('Required tarball %s does not exist',
+                                tarball)
                     continue
 
                 worker = stack.enter_context(
@@ -114,6 +120,8 @@ def run_autopkgtest(args, *,
                         'lxc-meta.tar.gz')
 
                 if not os.path.exists(rootfs) or not os.path.exists(meta):
+                    logger.info('Required tarball %s or %s does not exist',
+                                rootfs, meta)
                     continue
 
                 worker = stack.enter_context(

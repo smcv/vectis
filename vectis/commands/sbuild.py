@@ -192,8 +192,10 @@ def _autopkgtest(args, buildables, default_architecture):
 
         if 'source' in buildable.merged_changes:
             source_changes = buildable.merged_changes['source']
+            logger.info('Testing source changes file %s', source_changes)
         elif buildable.source_from_archive:
             source_package = buildable.source_package
+            logger.info('Testing source package %s', source_package)
         else:
             logger.warning('Unable to run autopkgtest on %s',
                     buildable.buildable)
@@ -211,6 +213,8 @@ def _autopkgtest(args, buildables, default_architecture):
 
         if 'all' in buildable.archs and not test_architectures:
             test_architectures.append(default_architecture)
+
+        logger.info('Testing on architectures: %r', test_architectures)
 
         for architecture in test_architectures:
             run_autopkgtest(args,
