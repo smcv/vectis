@@ -65,6 +65,18 @@ def run_autopkgtest(args, *,
                         sbuild_worker, architecture))
                     continue
 
+                worker.check_call([
+                    'env',
+                    'DEBIAN_FRONTEND=noninteractive',
+                    'apt-get',
+                    '-y',
+                    'install',
+
+                    'autopkgtest',
+                    'python3',
+                    'schroot',
+                    ])
+
                 with TemporaryDirectory(prefix='vectis-sbuild-') as tmp:
                     with AtomicWriter(os.path.join(tmp, 'sbuild.conf')) as writer:
                         writer.write(textwrap.dedent('''
