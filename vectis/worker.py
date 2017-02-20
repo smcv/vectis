@@ -201,7 +201,10 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
             unique = str(uuid.uuid4())
 
         if ext is None:
-            ext = os.path.splitext(filename)[-1]
+            basename, ext = os.path.splitext(filename)
+
+            if basename.endswith('.tar'):
+                ext = '.tar' + ext
 
         filename = self.worker.make_file_available(filename,
                 unique, ext)
@@ -480,7 +483,10 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
             unique = str(uuid.uuid4())
 
         if ext is None:
-            ext = os.path.splitext(filename)[-1]
+            basename, ext = os.path.splitext(filename)
+
+            if basename.endswith('.tar'):
+                ext = '.tar' + ext
 
         in_guest = '{}/{}{}'.format(self.scratch, unique, ext)
         self.copy_to_guest(filename, in_guest)
