@@ -53,7 +53,7 @@ def run_autopkgtest(args, *,
                         str(suite.hierarchy[-1]),
                         'minbase.tar.gz')
 
-                if not tarball or not os.path.exists(tarball):
+                if not os.path.exists(tarball):
                     continue
 
                 # FIXME: also allow testing i386 on amd64, etc.
