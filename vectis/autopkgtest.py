@@ -95,6 +95,7 @@ def run_autopkgtest(args, *,
                 mirror=args.mirror,
                 suite=suite,
                 virt=virt,
+                worker=worker,
                 ))
 
         argv = ['--no-built-binaries']
