@@ -85,36 +85,36 @@ def run_autopkgtest(args, *,
                 logger.warning('Unknown autopkgtest setup: {}'.format(test))
                 continue
 
-        if worker is None:
-            worker = stack.enter_context(HostWorker())
+            if worker is None:
+                worker = stack.enter_context(HostWorker())
 
-        autopkgtest = stack.enter_context(
-            AutopkgtestWorker(
-                components=args.components,
-                extra_repositories=extra_repositories,
-                mirror=args.mirror,
-                suite=suite,
-                virt=virt,
-                worker=worker,
-                ))
+            autopkgtest = stack.enter_context(
+                AutopkgtestWorker(
+                    components=args.components,
+                    extra_repositories=extra_repositories,
+                    mirror=args.mirror,
+                    suite=suite,
+                    worker=worker,
+                    virt=virt,
+                    ))
 
-        argv = ['--no-built-binaries']
+            argv = ['--no-built-binaries']
 
-        for b in binaries:
-            if b.endswith('.changes'):
-                argv.append(worker.make_changes_file_available(b))
+            for b in binaries:
+                if b.endswith('.changes'):
+                    argv.append(worker.make_changes_file_available(b))
+                else:
+                    argv.append(worker.make_file_available(b))
+
+            if source_changes is not None:
+                argv.append(worker.make_changes_file_available(source_changes))
+            elif source_package is not None:
+                argv.append(source_package)
             else:
-                argv.append(worker.make_file_available(b))
+                logger.warning('Nothing to test')
+                continue
 
-        if source_changes is not None:
-            argv.append(worker.make_changes_file_available(source_changes))
-        elif source_package is not None:
-            argv.append(source_package)
-        else:
-            logger.warning('Nothing to test')
-            continue
-
-        if not autopkgtest.call_autopkgtest(argv):
-            all_ok = False
+            if not autopkgtest.call_autopkgtest(argv):
+                all_ok = False
 
     return all_ok
