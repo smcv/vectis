@@ -32,7 +32,6 @@ def run_autopkgtest(args, *,
         architecture=None,
         binaries=(),
         extra_repositories=(),
-        sbuild_worker=None,
         source_changes=None,
         source_package=None):
     all_ok = True
@@ -60,14 +59,11 @@ def run_autopkgtest(args, *,
                 if not os.path.exists(tarball):
                     continue
 
-                # FIXME: also allow testing i386 on amd64, etc.
-                if sbuild_worker.dpkg_architecture == architecture:
-                    worker = sbuild_worker
-                else:
-                    # FIXME: run new worker if needed
-                    logger.warning('Worker {} cannot test {}'.format(
-                        sbuild_worker, architecture))
-                    continue
+                worker = stack.enter_context(
+                    VirtWorker(
+                        args.worker.split(),
+                        suite=args.worker_suite,
+                        ))
 
                 worker.check_call([
                     'env',

@@ -216,7 +216,6 @@ def _run(args, buildables, worker):
                     architecture=architecture,
                     binaries=(buildable.merged_changes['binary'],),
                     extra_repositories=args._extra_repository,
-                    sbuild_worker=worker,
                     source_changes=source_changes,
                     source_package=source_package,
                     suite=args.vendor.get_suite(buildable.suite),
