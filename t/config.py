@@ -93,7 +93,7 @@ class DefaultsTestCase(unittest.TestCase):
                     '{}/vectis/{}/debian/sid/autopkgtest.qcow2'.format(
                         XDG_CACHE_HOME, ARCHITECTURE))
 
-        self.assertEqual(c.autopkgtest, ['schroot', 'qemu'])
+        self.assertEqual(c.autopkgtest, ['lxc', 'qemu'])
         self.assertEqual(c.suite, None)
 
         try:
@@ -201,7 +201,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(sid.sbuild_resolver, [])
 
         # Properties of the Config determined by the suite being Debian sid
-        self.assertEqual(c.autopkgtest, ['schroot', 'qemu'])
+        self.assertEqual(c.autopkgtest, ['lxc', 'qemu'])
         self.assertIs(c.worker_vendor, debian)
         self.assertIs(c.sbuild_worker_vendor, debian)
         self.assertIs(c.vmdebootstrap_worker_vendor, debian)
@@ -289,7 +289,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(jessie.apt_suite, 'jessie')
 
         # Properties of the Config determined by it being jessie
-        self.assertEqual(c.autopkgtest, ['schroot', 'qemu'])
+        self.assertEqual(c.autopkgtest, ['lxc', 'qemu'])
         self.assertEqual(c.default_suite, 'sid')
         self.assertEqual(c.components, {'main'})
         self.assertEqual(c.extra_components, {'contrib', 'non-free'})
@@ -352,7 +352,7 @@ class DefaultsTestCase(unittest.TestCase):
                     'keys', 'buildd.debian.org_archive_key_2015_2016.gpg'))
 
         # Properties of the Config determined by it being jessie
-        self.assertEqual(c.autopkgtest, ['schroot', 'qemu'])
+        self.assertEqual(c.autopkgtest, ['lxc', 'qemu'])
         self.assertEqual(c.default_suite, 'sid')
         self.assertEqual(c.components, {'main'})
         self.assertEqual(c.extra_components, {'contrib', 'non-free'})
@@ -487,7 +487,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.vmdebootstrap_worker_vendor, ubuntu)
         self.assertEqual(c.archive, 'ubuntu')
         self.assertEqual(c.mirror, 'http://192.168.122.1:3142/ubuntu')
-        self.assertEqual(c.autopkgtest, ['schroot', 'qemu'])
+        self.assertEqual(c.autopkgtest, ['lxc', 'qemu'])
         self.assertEqual(c.components, {'main', 'universe'})
         self.assertEqual(c.extra_components, {'restricted',
             'multiverse'})
@@ -667,6 +667,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.vmdebootstrap_worker_vendor, debian)
         self.assertEqual(c.archive, 'steamos')
         self.assertEqual(c.mirror, 'http://192.168.122.1:3142/steamos')
+        self.assertEqual(c.autopkgtest, ['schroot', 'qemu'])
 
         self.assertIsNone(steamos.get_suite('xyzzy', create=False))
         self.assertIsNotNone(steamos.get_suite('xyzzy'))

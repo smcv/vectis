@@ -17,7 +17,7 @@ from vectis.worker import (
 logger = logging.getLogger(__name__)
 
 def set_up_lxc_net(worker, subnet):
-    with TemporaryDirectory('vectis-lxc-') as tmp:
+    with TemporaryDirectory(prefix='vectis-lxc-') as tmp:
         with AtomicWriter(os.path.join(tmp, 'lxc-net')) as writer:
             writer.write(textwrap.dedent('''\
             USE_LXC_BRIDGE="true"
@@ -32,8 +32,6 @@ def set_up_lxc_net(worker, subnet):
             ''').format(subnet=subnet))
         worker.copy_to_guest(os.path.join(tmp, 'lxc-net'),
                 '/etc/default/lxc-net')
-        worker.check_call(['systemctl', 'enable', 'lxc-net'])
-        worker.check_call(['systemctl', 'start', 'lxc-net'])
 
         with AtomicWriter(os.path.join(tmp, 'default.conf')) as writer:
             writer.write(textwrap.dedent('''\
@@ -44,6 +42,10 @@ def set_up_lxc_net(worker, subnet):
             '''))
         worker.copy_to_guest(os.path.join(tmp, 'default.conf'),
                 '/etc/lxc/default.conf')
+
+    worker.check_call(['systemctl', 'enable', 'lxc-net'])
+    worker.check_call(['systemctl', 'stop', 'lxc-net'])
+    worker.check_call(['systemctl', 'start', 'lxc-net'])
 
 def create_tarballs(args):
     os.makedirs(args.storage, exist_ok=True)

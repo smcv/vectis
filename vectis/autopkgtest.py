@@ -12,9 +12,13 @@ from tempfile import (
         TemporaryDirectory,
         )
 
+from vectis.lxc import (
+        set_up_lxc_net,
+        )
 from vectis.worker import (
         AutopkgtestWorker,
         HostWorker,
+        VirtWorker,
         )
 from vectis.util import (
         AtomicWriter,
@@ -93,6 +97,70 @@ def run_autopkgtest(args, *,
                             '/etc/schroot/chroot.d/autopkgtest')
 
                 virt = ['schroot', 'autopkgtest']
+
+            elif test == 'lxc':
+                container = '{}-{}-{}'.format(
+                        vendor,
+                        suite.hierarchy[-1],
+                        architecture,
+                        )
+                rootfs = os.path.join(
+                        args.storage,
+                        architecture,
+                        str(vendor),
+                        str(suite.hierarchy[-1]),
+                        'lxc-rootfs.tar.gz')
+                meta = os.path.join(
+                        args.storage,
+                        architecture,
+                        str(vendor),
+                        str(suite.hierarchy[-1]),
+                        'lxc-meta.tar.gz')
+
+                if not os.path.exists(rootfs) or not os.path.exists(meta):
+                    continue
+
+                worker = stack.enter_context(
+                    VirtWorker(
+                        args.lxc_worker.split(),
+                        suite=args.lxc_worker_suite,
+                        ))
+
+                worker.check_call([
+                    'env',
+                    'DEBIAN_FRONTEND=noninteractive',
+                    'apt-get',
+                    '-y',
+                    'install',
+
+                    'autopkgtest',
+                    'lxc',
+                    'python3',
+                    ])
+                set_up_lxc_net(worker, args.lxc_24bit_subnet)
+                worker.check_call(['mkdir', '-p',
+                    '/var/lib/lxc/vectis-new/rootfs'])
+                worker.copy_to_guest(
+                    os.path.join(args.storage, rootfs),
+                    '{}/rootfs.tar.gz'.format(worker.scratch))
+                worker.check_call(['tar', '-x', '-z',
+                    '-C', '/var/lib/lxc/vectis-new/rootfs',
+                    '-f', '{}/rootfs.tar.gz'.format(worker.scratch)])
+                worker.check_call(['rm', '-f',
+                    '{}/rootfs.tar.gz'.format(worker.scratch)])
+                worker.copy_to_guest(
+                    os.path.join(args.storage, meta),
+                    '{}/meta.tar.gz'.format(worker.scratch))
+                worker.check_call(['tar', '-x', '-z',
+                    '-C', '/var/lib/lxc/vectis-new',
+                    '-f', '{}/meta.tar.gz'.format(worker.scratch)])
+                worker.check_call(['rm', '-f',
+                    '{}/meta.tar.gz'.format(worker.scratch)])
+                worker.check_call(['mv', '/var/lib/lxc/vectis-new',
+                    '/var/lib/lxc/{}'.format(container)])
+
+                virt = ['lxc', container]
+
             else:
                 logger.warning('Unknown autopkgtest setup: {}'.format(test))
                 continue

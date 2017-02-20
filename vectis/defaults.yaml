@@ -75,6 +75,9 @@ defaults:
 
 vendors:
     debian:
+        autopkgtest:
+            - lxc
+            - qemu
         extra_components: contrib non-free
         sbuild_worker_suite: jessie-apt.buildd.debian.org
         worker_vendor: debian
@@ -124,6 +127,9 @@ vendors:
     ubuntu:
         apt_key_package: ubuntu-archive-keyring
         apt_key: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+        autopkgtest:
+            - lxc
+            - qemu
         worker_vendor: ubuntu
         components: main universe
         extra_components: restricted multiverse
