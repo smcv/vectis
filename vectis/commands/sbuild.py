@@ -68,7 +68,7 @@ def get_dpkg_source_options(args):
 
     return argv
 
-def _run(args, buildables, worker):
+def _sbuild(args, buildables, worker):
     logger.info('Installing sbuild')
     worker.check_call([
         'env',
@@ -185,6 +185,7 @@ def _run(args, buildables, worker):
                     ],
                     stdout=writer)
 
+def _autopkgtest(args, buildables, default_architecture):
     for buildable in buildables:
         source_changes = None
         source_package = None
@@ -209,7 +210,7 @@ def _run(args, buildables, worker):
                 test_architectures.append(arch)
 
         if 'all' in buildable.archs and not test_architectures:
-            test_architectures.append(worker.architecture)
+            test_architectures.append(default_architecture)
 
         for architecture in test_architectures:
             run_autopkgtest(args,
@@ -222,6 +223,7 @@ def _run(args, buildables, worker):
                     vendor=args.vendor,
                     )
 
+def _summarize(buildables):
     for buildable in buildables:
         logger.info('Built changes files from %s:\n\t%s',
                 buildable,
@@ -233,12 +235,20 @@ def _run(args, buildables, worker):
                 '\n\t'.join(sorted(buildable.logs.values())),
                 )
 
+def _lintian(buildables):
+    for buildable in buildables:
         # Run lintian near the end for better visibility
         for x in 'source+binary', 'binary', 'source':
             if x in buildable.merged_changes:
                 subprocess.call(['lintian', '-I', '-i',
                     buildable.merged_changes[x]])
 
+                break
+
+def _publish(args, buildables):
+    for buildable in buildables:
+        for x in 'source+binary', 'binary', 'source':
+            if x in buildable.merged_changes:
                 reprepro_suite = args._reprepro_suite
 
                 if reprepro_suite is None:
@@ -277,7 +287,13 @@ def run(args):
     with VirtWorker(args.sbuild_worker.split(),
             suite=args.sbuild_worker_suite,
             ) as worker:
-        _run(args, buildables, worker)
+        default_architecture = worker.dpkg_architecture
+        _sbuild(args, buildables, worker)
+
+    _autopkgtest(args, buildables, default_architecture)
+    _summarize(buildables)
+    _lintian(buildables)
+    _publish(args, buildables)
 
     # We print these separately, right at the end, so that if you built more
     # than one thing, the last screenful of information is the really
