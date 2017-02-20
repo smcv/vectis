@@ -44,7 +44,14 @@ def run_autopkgtest(args, *,
             worker = None
 
             if test == 'qemu':
-                image = args.autopkgtest_qemu_image
+                # FIXME: in practice image is None, because its getter raises
+                # AttributeError, because suite is None; so we fall back
+                image = os.path.join(
+                    args.storage,
+                    architecture,
+                    str(vendor),
+                    str(suite.hierarchy[-1]),
+                    'autopkgtest.qcow2')
 
                 if not image or not os.path.exists(image):
                     logger.info('Required image %s does not exist', image)

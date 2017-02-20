@@ -627,19 +627,6 @@ class Config(_ConfigLike):
         return self.vmdebootstrap_worker_vendor.get_suite(value, True)
 
     @property
-    def autopkgtest_qemu_image(self):
-        value = self['autopkgtest_qemu_image']
-
-        if value is None:
-            value = self.qemu_image
-
-        if '/' not in value:
-            return os.path.join(self.storage, self.architecture,
-                    str(self.vendor), str(self.suite.hierarchy[-1]), value)
-
-        return value
-
-    @property
     def qemu_image(self):
         value = self['qemu_image']
 

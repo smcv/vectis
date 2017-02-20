@@ -50,7 +50,6 @@ defaults:
     autopkgtest:
         - schroot
         - qemu
-    autopkgtest_qemu_image: null
 
     force_parallel: 0
     parallel: null
