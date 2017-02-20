@@ -170,7 +170,25 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
         argv.extend(arguments)
         argv.append('--')
         argv.extend(self.virt)
-        return self.worker.call(argv)
+        status = self.worker.call(argv)
+        if status == 0:
+            logger.info('autopkgtests passed')
+            return True
+        elif status == 2:
+            logger.info('autopkgtests passed or skipped')
+            return True
+        elif status == 8:
+            logger.info('No autopkgtests found in this package')
+            return True
+        elif status == 12:
+            logger.warning('Failed to install test dependencies')
+            return False
+        elif status == 16:
+            logger.warning('Failed to set up testbed for autopkgtest')
+            return False
+        else:
+            logger.error('autopkgtests failed')
+            return False
 
     def new_directory(self, prefix=''):
         # assume /tmp is initially empty and uuid4() won't collide
