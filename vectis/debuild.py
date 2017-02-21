@@ -281,8 +281,11 @@ class Build:
             dpkg_buildpackage_options,
             dpkg_source_options,
             output_builds,
+            profiles,
             storage,
             suite,
+            deb_build_options=(),
+            environ=None,
             components=(),
             extra_repositories=()):
         self.arch = arch
@@ -290,11 +293,20 @@ class Build:
         self.components = components
         self.dpkg_buildpackage_options = dpkg_buildpackage_options
         self.dpkg_source_options = dpkg_source_options
+        self.environ = {}
         self.extra_repositories = extra_repositories
+        assert not isinstance(profiles, str), profiles
+        self.profiles = set(profiles)
         self.worker = worker
         self.output_builds = output_builds
         self.storage = storage
         self.suite = suite
+
+        if environ is not None:
+            for k, v in environ.items():
+                self.environ[k] = v
+
+        self.environ['DEB_BUILD_OPTIONS'] = ' '.join(deb_build_options)
 
     def sbuild(self):
         self.worker.check_call(['install', '-d', '-m755',
@@ -378,11 +390,21 @@ class Build:
                 'runuser',
                 '-u', 'sbuild',
                 '--',
+                'env',
+        ]
+
+        for k, v in sorted(self.environ.items()):
+            argv.append('{}={}'.format(k, v))
+
+        argv.extend((
                 'sbuild',
                 '-c', chroot,
                 '-d', str(self.buildable.nominal_suite),
                 '--no-run-lintian',
-        ]
+        ))
+
+        if self.profiles:
+            argv.append('--profiles={}'.format(','.join(self.profiles)))
 
         for x in self.dpkg_buildpackage_options:
             argv.append('--debbuildopt=' + x)

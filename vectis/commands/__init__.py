@@ -236,6 +236,15 @@ p.add_argument('--autopkgtest', action='store_true',
 p.add_argument('--no-autopkgtest', dest='autopkgtest', action='store_const',
         const=(),
         help='Do not run autopkgtest after building')
+p.add_argument('--build-profiles', '-P', dest='_build_profiles',
+        default=None, metavar='PROFILE[,PROFILE...]',
+        help='Use comma-separated build profiles')
+p.add_argument('--add-build-profile', dest='_add_build_profile',
+        action='append', default=[], metavar='PROFILE',
+        help='Use individually specified build profile')
+p.add_argument('--add-deb-build-option', dest='_add_deb_build_option',
+        action='append', default=[], metavar='OPTION[=VALUE]',
+        help='Set something in DEB_BUILD_OPTIONS')
 
 def main():
     logging.basicConfig()

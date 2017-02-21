@@ -73,11 +73,13 @@ def _sbuild(args, buildables, *,
         components,
         indep,
         output_builds,
+        profiles,
         rebuild_source,
         source_only,
         storage,
         vendor,
         worker,
+        deb_build_options=(),
         extra_repositories=(),
         together=False):
 
@@ -114,10 +116,12 @@ def _sbuild(args, buildables, *,
         def new_build(arch, output_builds=output_builds):
             return Build(buildable, arch, worker,
                     components=components,
+                    deb_build_options=deb_build_options,
                     extra_repositories=extra_repositories,
                     dpkg_buildpackage_options=dpkg_buildpackage_options,
                     dpkg_source_options=dpkg_source_options,
                     output_builds=output_builds,
+                    profiles=profiles,
                     storage=storage,
                     suite=suite)
 
@@ -308,6 +312,27 @@ def run(args):
     storage = args.storage
     vendor = args.vendor
 
+    deb_build_options = set()
+
+    if 'DEB_BUILD_OPTIONS' in os.environ:
+        for arg in os.environ['DEB_BUILD_OPTIONS'].split():
+            deb_build_options.add(arg)
+
+    for arg in args._add_deb_build_option:
+        deb_build_options.add(arg)
+
+    profiles = set()
+
+    if args._build_profiles is not None:
+        for arg in args._build_profiles.split(','):
+            profiles.add(arg)
+    elif 'DEB_BUILD_PROFILES' in os.environ:
+        for arg in os.environ['DEB_BUILD_PROFILES'].split():
+            profiles.add(arg)
+
+    for arg in args._add_build_profile:
+        profiles.add(arg)
+
     buildables = []
 
     for a in (args._buildables or ['.']):
@@ -331,9 +356,11 @@ def run(args):
         _sbuild(args, buildables,
                 archs=args._archs,
                 components=components,
+                deb_build_options=deb_build_options,
                 extra_repositories=args._extra_repository,
                 indep=args._indep,
                 output_builds=output_builds,
+                profiles=profiles,
                 rebuild_source=args._rebuild_source,
                 source_only=args._source_only,
                 storage=storage,
