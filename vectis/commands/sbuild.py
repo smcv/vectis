@@ -217,11 +217,14 @@ def _autopkgtest(args, buildables, default_architecture):
         logger.info('Testing on architectures: %r', test_architectures)
 
         for architecture in test_architectures:
-            run_autopkgtest(args,
+            run_autopkgtest(
                     architecture=architecture,
                     binaries=(buildable.merged_changes['binary'],),
                     components=args.components,
                     extra_repositories=args._extra_repository,
+                    lxc_24bit_subnet=args.lxc_24bit_subnet,
+                    lxc_worker=args.lxc_worker,
+                    lxc_worker_suite=args.lxc_worker_suite,
                     mirror=args.mirror,
                     modes=args.autopkgtest,
                     source_changes=source_changes,
@@ -229,6 +232,8 @@ def _autopkgtest(args, buildables, default_architecture):
                     storage=args.storage,
                     suite=args.vendor.get_suite(buildable.suite),
                     vendor=args.vendor,
+                    worker=args.worker,
+                    worker_suite=args.worker_suite,
                     )
 
 def _summarize(buildables):

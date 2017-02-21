@@ -170,8 +170,10 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
         super()._open()
         self.set_up_apt()
 
-def run_autopkgtest(args, *,
+def run_autopkgtest(*,
         components,
+        worker_argv,
+        worker_suite,
         modes,
         storage,
         suite,
@@ -179,10 +181,19 @@ def run_autopkgtest(args, *,
         architecture=None,
         binaries=(),
         extra_repositories=(),
+        lxc_24bit_subnet=None,
+        lxc_worker=None,
+        lxc_worker_suite=None,
         mirror=None,
         source_changes=None,
         source_package=None):
     all_ok = True
+
+    if lxc_worker is None:
+        lxc_worker = worker_argv
+
+    if lxc_worker_suite is None:
+        lxc_worker_suite = worker_suite
 
     logger.info('Testing in modes: %r', modes)
 
@@ -220,8 +231,8 @@ def run_autopkgtest(args, *,
 
                 worker = stack.enter_context(
                     VirtWorker(
-                        args.worker.split(),
-                        suite=args.worker_suite,
+                        worker_argv.split(),
+                        suite=worker_suite,
                         ))
 
                 worker.check_call([
@@ -280,8 +291,8 @@ def run_autopkgtest(args, *,
 
                 worker = stack.enter_context(
                     VirtWorker(
-                        args.lxc_worker.split(),
-                        suite=args.lxc_worker_suite,
+                        lxc_worker.split(),
+                        suite=lxc_worker_suite,
                         ))
 
                 worker.check_call([
@@ -295,7 +306,7 @@ def run_autopkgtest(args, *,
                     'lxc',
                     'python3',
                     ])
-                set_up_lxc_net(worker, args.lxc_24bit_subnet)
+                set_up_lxc_net(worker, lxc_24bit_subnet)
                 worker.check_call(['mkdir', '-p',
                     '/var/lib/lxc/vectis-new/rootfs'])
                 worker.copy_to_guest(
