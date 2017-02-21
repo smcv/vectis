@@ -4,7 +4,9 @@
 
 import logging
 import os
+import shlex
 import textwrap
+import uuid
 from contextlib import (
         ExitStack,
         )
@@ -12,11 +14,16 @@ from tempfile import (
         TemporaryDirectory,
         )
 
+from debian.deb822 import (
+        Changes,
+        )
+
 from vectis.lxc import (
         set_up_lxc_net,
         )
 from vectis.worker import (
-        AutopkgtestWorker,
+        ContainerWorker,
+        FileProvider,
         HostWorker,
         VirtWorker,
         )
@@ -25,6 +32,114 @@ from vectis.util import (
         )
 
 logger = logging.getLogger(__name__)
+
+class AutopkgtestWorker(ContainerWorker, FileProvider):
+    def __init__(self,
+            components=(),
+            extra_repositories=(),
+            mirror=None,
+            suite=None,
+            virt=(),
+            worker=None):
+        super().__init__()
+
+        if worker is None:
+            worker = self.stack.enter_context(HostWorker())
+
+        self.argv = ['autopkgtest', '--apt-upgrade']
+        self.components = components
+        self.extra_repositories = extra_repositories
+        self.mirror = mirror
+        self.sources_list = None
+        self.suite = suite
+        self.virt = virt
+        self.worker = worker
+
+    def install_apt_key(self, apt_key):
+        to = '/etc/apt/trusted.gpg.d/{}-{}'.format(
+                uuid.uuid4(), os.path.basename(apt_key))
+        self.argv.append('--copy={}:{}'.format(
+            self.worker.make_file_available(apt_key), to))
+
+    def set_up_apt(self):
+        tmp = TemporaryDirectory(prefix='vectis-worker-')
+        tmp = self.stack.enter_context(tmp)
+        self.sources_list = os.path.join(tmp, 'sources.list')
+
+        with AtomicWriter(self.sources_list) as writer:
+            self.write_sources_list(writer)
+
+        sources_list = self.worker.make_file_available(self.sources_list)
+        self.argv.append('--copy={}:{}'.format(sources_list,
+            '/etc/apt/sources.list'))
+
+    def call_autopkgtest(self, arguments):
+        argv = self.argv[:]
+        argv.extend(arguments)
+        argv.append('--')
+        argv.extend(self.virt)
+        status = self.worker.call(argv)
+        if status == 0:
+            logger.info('autopkgtests passed')
+            return True
+        elif status == 2:
+            logger.info('autopkgtests passed or skipped')
+            return True
+        elif status == 8:
+            logger.info('No autopkgtests found in this package')
+            return True
+        elif status == 12:
+            logger.warning('Failed to install test dependencies')
+            return False
+        elif status == 16:
+            logger.warning('Failed to set up testbed for autopkgtest')
+            return False
+        else:
+            logger.error('autopkgtests failed')
+            return False
+
+    def new_directory(self, prefix=''):
+        # assume /tmp is initially empty and uuid4() won't collide
+        d = '/tmp/{}{}'.format(prefix, uuid.uuid4())
+        self.argv.append('--setup-commands=mkdir {}'.format(shlex.quote(d)))
+        return d
+
+    def make_file_available(self, filename, unique=None, ext=None):
+        if unique is None:
+            unique = str(uuid.uuid4())
+
+        if ext is None:
+            basename, ext = os.path.splitext(filename)
+
+            if basename.endswith('.tar'):
+                ext = '.tar' + ext
+
+        filename = self.worker.make_file_available(filename,
+                unique, ext)
+        in_autopkgtest = '/tmp/{}{}'.format(unique, ext)
+        self.argv.append('--copy={}:{}'.format(filename, in_autopkgtest))
+        return in_autopkgtest
+
+    def make_changes_file_available(self, filename):
+        d = os.path.dirname(filename)
+
+        with open(filename) as reader:
+            changes = Changes(reader)
+
+        to = self.new_directory()
+        self.argv.append('--copy={}:{}'.format(filename,
+                '{}/{}'.format(to, os.path.basename(filename))))
+
+        for f in changes['files']:
+            self.argv.append('--copy={}:{}'.format(
+                    os.path.join(d, f['name']),
+                    '{}/{}'.format(to, f['name'])))
+
+        return '{}/{}'.format(to, os.path.basename(filename))
+
+    def _open(self):
+        super()._open()
+        self.set_up_apt()
 
 def run_autopkgtest(args, *,
         suite,
