@@ -171,25 +171,29 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
         self.set_up_apt()
 
 def run_autopkgtest(args, *,
+        components,
+        modes,
+        storage,
         suite,
         vendor,
         architecture=None,
         binaries=(),
         extra_repositories=(),
+        mirror=None,
         source_changes=None,
         source_package=None):
     all_ok = True
 
-    logger.info('Testing in modes: %r', args.autopkgtest)
+    logger.info('Testing in modes: %r', modes)
 
-    for test in args.autopkgtest:
+    for test in modes:
         logger.info('Testing in mode: %s', test)
         with ExitStack() as stack:
             worker = None
 
             if test == 'qemu':
                 image = os.path.join(
-                    args.storage,
+                    storage,
                     architecture,
                     str(vendor),
                     str(suite.hierarchy[-1]),
@@ -203,7 +207,7 @@ def run_autopkgtest(args, *,
 
             elif test == 'schroot':
                 tarball = os.path.join(
-                        args.storage,
+                        storage,
                         architecture,
                         str(vendor),
                         str(suite.hierarchy[-1]),
@@ -257,13 +261,13 @@ def run_autopkgtest(args, *,
                         architecture,
                         )
                 rootfs = os.path.join(
-                        args.storage,
+                        storage,
                         architecture,
                         str(vendor),
                         str(suite.hierarchy[-1]),
                         'lxc-rootfs.tar.gz')
                 meta = os.path.join(
-                        args.storage,
+                        storage,
                         architecture,
                         str(vendor),
                         str(suite.hierarchy[-1]),
@@ -295,7 +299,7 @@ def run_autopkgtest(args, *,
                 worker.check_call(['mkdir', '-p',
                     '/var/lib/lxc/vectis-new/rootfs'])
                 worker.copy_to_guest(
-                    os.path.join(args.storage, rootfs),
+                    os.path.join(storage, rootfs),
                     '{}/rootfs.tar.gz'.format(worker.scratch))
                 worker.check_call(['tar', '-x', '-z',
                     '-C', '/var/lib/lxc/vectis-new/rootfs',
@@ -303,7 +307,7 @@ def run_autopkgtest(args, *,
                 worker.check_call(['rm', '-f',
                     '{}/rootfs.tar.gz'.format(worker.scratch)])
                 worker.copy_to_guest(
-                    os.path.join(args.storage, meta),
+                    os.path.join(storage, meta),
                     '{}/meta.tar.gz'.format(worker.scratch))
                 worker.check_call(['tar', '-x', '-z',
                     '-C', '/var/lib/lxc/vectis-new',
@@ -324,9 +328,9 @@ def run_autopkgtest(args, *,
 
             autopkgtest = stack.enter_context(
                 AutopkgtestWorker(
-                    components=args.components,
+                    components=components,
                     extra_repositories=extra_repositories,
-                    mirror=args.mirror,
+                    mirror=mirror,
                     suite=suite,
                     worker=worker,
                     virt=virt,

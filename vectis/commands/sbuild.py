@@ -220,9 +220,13 @@ def _autopkgtest(args, buildables, default_architecture):
             run_autopkgtest(args,
                     architecture=architecture,
                     binaries=(buildable.merged_changes['binary'],),
+                    components=args.components,
                     extra_repositories=args._extra_repository,
+                    mirror=args.mirror,
+                    modes=args.autopkgtest,
                     source_changes=source_changes,
                     source_package=source_package,
+                    storage=args.storage,
                     suite=args.vendor.get_suite(buildable.suite),
                     vendor=args.vendor,
                     )
