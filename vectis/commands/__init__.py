@@ -233,7 +233,8 @@ p.add_argument('--extend-diff-ignore', metavar='PATTERN',
         help='Build with --dpkg-source-opt=--extend-diff-ignore=PATTERN')
 p.add_argument('--autopkgtest', action='store_true',
         help='Run autopkgtest after building')
-p.add_argument('--no-autopkgtest', dest='autopkgtest', action='store_false',
+p.add_argument('--no-autopkgtest', dest='autopkgtest', action='store_const',
+        const=(),
         help='Do not run autopkgtest after building')
 
 def main():
