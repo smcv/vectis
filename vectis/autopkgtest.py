@@ -44,8 +44,6 @@ def run_autopkgtest(args, *,
             worker = None
 
             if test == 'qemu':
-                # FIXME: in practice image is None, because its getter raises
-                # AttributeError, because suite is None; so we fall back
                 image = os.path.join(
                     args.storage,
                     architecture,
