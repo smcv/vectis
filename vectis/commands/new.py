@@ -17,57 +17,64 @@ from vectis.worker import (
 
 logger = logging.getLogger(__name__)
 
-def vmdebootstrap_argv(version, args):
+def vmdebootstrap_argv(version, *,
+        architecture,
+        kernel_package,
+        mirror,
+        qemu_image_size,
+        suite):
     argv = ['env',
             # We use apt-cacher-ng in non-proxy mode, to make it easier to
             # add extra apt sources later that can't go via this proxy.
             'AUTOPKGTEST_APT_PROXY=DIRECT',
-            'MIRROR={}'.format(args.mirror),
-            'RELEASE={}'.format(args.suite),
+            'MIRROR={}'.format(mirror),
+            'RELEASE={}'.format(suite),
 
             'vmdebootstrap',
             '--log=/dev/stderr',
             '--verbose',
             '--serial-console',
-            '--distribution={}'.format(args.suite),
+            '--distribution={}'.format(suite),
             '--user=user',
             '--hostname=host',
             '--sparse',
-            '--size={}'.format(args.qemu_image_size),
-            '--mirror={}'.format(args.mirror),
-            '--arch={}'.format(args.architecture),
+            '--size={}'.format(qemu_image_size),
+            '--mirror={}'.format(mirror),
+            '--arch={}'.format(architecture),
             '--grub',
             '--no-extlinux',
         ]
 
-    kernel = args.get_kernel_package(args.architecture)
-
-    if kernel is not None:
+    if kernel_package is not None:
         if version >= Version('1.4'):
-            argv.append('--kernel-package={}'.format(kernel))
+            argv.append('--kernel-package={}'.format(kernel_package))
         else:
             argv.append('--no-kernel')
-            argv.append('--package={}'.format(kernel))
-
-    argv.extend(args.vmdebootstrap_options)
+            argv.append('--package={}'.format(kernel_package))
 
     return argv
 
-def new_ubuntu_cloud(args, out):
+def new_ubuntu_cloud(*,
+        architecture,
+        mirror,
+        out,
+        qemu_image_size,
+        suite,
+        vendor):
     out_dir = os.path.dirname(out)
     argv = ['autopkgtest-buildvm-ubuntu-cloud']
-    suite = str(args.vendor.get_suite(args.suite))
+    suite = str(vendor.get_suite(suite))
 
-    argv.append('--arch={}'.format(args.architecture))
-    argv.append('--disk-size={}'.format(args.qemu_image_size))
-    argv.append('--mirror={}'.format(args.mirror))
+    argv.append('--arch={}'.format(architecture))
+    argv.append('--disk-size={}'.format(qemu_image_size))
+    argv.append('--mirror={}'.format(mirror))
     argv.append('--proxy=DIRECT')
     argv.append('--release={}'.format(suite))
     argv.append('--verbose')
     argv.append('--output-dir={}'.format(out_dir))
 
     image = '{}/autopkgtest-{}-{}.img'.format(out_dir, suite,
-            args.architecture)
+            architecture)
 
     try:
         subprocess.check_call(argv)
@@ -78,15 +85,28 @@ def new_ubuntu_cloud(args, out):
     else:
         return image
 
-def new(args, out):
-    for suite in (args.vmdebootstrap_worker_suite, args.suite):
+def new(*,
+        apt_key,
+        apt_key_package,
+        architecture,
+        components,
+        kernel_package,
+        mirror,
+        out,
+        qemu_image_size,
+        suite,
+        vmdebootstrap_options,
+        vmdebootstrap_worker,
+        vmdebootstrap_worker_suite):
+
+    for suite in (vmdebootstrap_worker_suite, suite):
         for ancestor in suite.hierarchy:
             if ancestor.mirror is None:
                 raise ArgumentError('mirror or apt_cacher_ng must be '
                         'configured for {}'.format(ancestor))
 
-    with VirtWorker(args.vmdebootstrap_worker.split(),
-            suite=args.vmdebootstrap_worker_suite,
+    with VirtWorker(vmdebootstrap_worker.split(),
+            suite=vmdebootstrap_worker_suite,
             ) as worker:
         worker.check_call([
             'env', 'DEBIAN_FRONTEND=noninteractive',
@@ -107,7 +127,7 @@ def new(args, out):
             'mbr',
             ]
 
-        keyring = args.apt_key_package
+        keyring = apt_key_package
 
         if keyring is not None:
             optional_worker_packages.append(keyring)
@@ -134,26 +154,33 @@ def new(args, out):
 
         version = worker.dpkg_version('vmdebootstrap')
 
-        argv = vmdebootstrap_argv(version, args)
+        argv = vmdebootstrap_argv(version,
+                architecture=architecture,
+                kernel_package=kernel_package,
+                mirror=mirror,
+                qemu_image_size=qemu_image_size,
+                suite=suite,
+                )
+        argv.extend(vmdebootstrap_options)
 
         debootstrap_args = []
 
-        if worker.call(['test', '-f', args.apt_key]) == 0:
-            logger.info('Found apt key worker:{}'.format(args.apt_key))
-            debootstrap_args.append('keyring={}'.format(args.apt_key))
-        elif os.path.exists(args.apt_key):
+        if worker.call(['test', '-f', apt_key]) == 0:
+            logger.info('Found apt key worker:{}'.format(apt_key))
+            debootstrap_args.append('keyring={}'.format(apt_key))
+        elif os.path.exists(apt_key):
             logger.info('Found apt key host:{}, copying to worker:{}'.format(
-                args.apt_key, '{}/apt-key.gpg'.format(worker.scratch)))
-            worker.copy_to_guest(args.apt_key,
+                apt_key, '{}/apt-key.gpg'.format(worker.scratch)))
+            worker.copy_to_guest(apt_key,
                     '{}/apt-key.gpg'.format(worker.scratch))
             debootstrap_args.append('keyring={}/apt-key.gpg'.format(
                 worker.scratch))
         else:
             logger.warning('Apt key host:{} not found; leaving it out and '
-                    'hoping for the best'.format(args.apt_key))
+                    'hoping for the best'.format(apt_key))
 
         debootstrap_args.append('components={}'.format(
-            ','.join(args.components)))
+            ','.join(components)))
 
         if debootstrap_args:
             argv.append('--debootstrapopts={}'.format(
@@ -190,17 +217,51 @@ def run(args):
         else:
             raise ArgumentError('--suite must be specified')
 
+    apt_key = args.apt_key
+    apt_key_package = args.apt_key_package
+    architecture = args.architecture
+    components = args.components
+    keep = args._keep
+    kernel_package = args.get_kernel_package(architecture)
+    mirror = args.mirror
     out = args.write_qemu_image
+    qemu_image_size = args.qemu_image_size
+    suite = args.suite
+    vendor = args.vendor
+    vmdebootstrap_options = args.vmdebootstrap_options
+    vmdebootstrap_worker = args.vmdebootstrap_worker
+    vmdebootstrap_worker_suite = args.vmdebootstrap_worker_suite
+
     os.makedirs(os.path.dirname(out), exist_ok=True)
 
     if False:
-        created = new_ubuntu_cloud(args, out)
+        created = new_ubuntu_cloud(
+                architecture=architecture,
+                mirror=mirror,
+                out=out,
+                qemu_image_size=qemu_image_size,
+                suite=suite,
+                vendor=vendor,
+                )
     else:
-        created = new(args, out)
+        created = new(
+                apt_key=apt_key,
+                apt_key_package=apt_key_package,
+                architecture=architecture,
+                components=components,
+                kernel_package=kernel_package,
+                mirror=mirror,
+                out=out,
+                qemu_image_size=qemu_image_size,
+                suite=suite,
+                vmdebootstrap_options=vmdebootstrap_options,
+                vmdebootstrap_worker=vmdebootstrap_worker,
+                vmdebootstrap_worker_suite=vmdebootstrap_worker_suite,
+                )
 
     try:
         with VirtWorker(['qemu', created],
-                suite=args.suite,
+                suite=suite,
                 ) as worker:
             worker.set_up_apt()
             worker.check_call(['apt-get', '-y', 'update'])
@@ -217,7 +278,7 @@ def run(args):
                 'schroot',
                 ])
     except:
-        if args._keep:
+        if keep:
             if created != out + '.new':
                 os.rename(created, out + '.new')
         else:

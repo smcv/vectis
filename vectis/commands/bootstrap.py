@@ -25,6 +25,15 @@ def run(args):
         else:
             raise ArgumentError('--suite must be specified')
 
+    architecture = args.architecture
+    keep = args._keep
+    kernel_package = args.get_kernel_package(architecture)
+    mirror = args.mirror
+    out = args.write_qemu_image
+    qemu_image_size = args.qemu_image_size
+    suite = args.suite
+    vmdebootstrap_options = args.vmdebootstrap_options
+
     try:
         version = subprocess.check_output(
                 ['dpkg-query', '-W', '-f${Version}', 'vmdebootstrap'],
@@ -36,29 +45,37 @@ def run(args):
         version = Version(version)
 
     with TemporaryDirectory(prefix='vectis-bootstrap-') as scratch:
-        subprocess.check_call([
+        argv = [
                 'sudo',
                 os.path.join(os.path.dirname(__file__),
                     os.pardir, 'vectis-command-wrapper'),
                 '--',
-                ] + vmdebootstrap_argv(version, args) + [
-                '--customize={}'.format(
+                ]
+        argv.extend(vmdebootstrap_argv(version,
+                architecture=architecture,
+                kernel_package=kernel_package,
+                mirror=mirror,
+                qemu_image_size=qemu_image_size,
+                suite=suite,
+                ))
+        argv.extend(vmdebootstrap_options)
+        argv.append('--customize={}'.format(
                     os.path.join(os.path.dirname(__file__),
-                        os.pardir, 'setup-testbed')),
-                '--owner={}'.format(pwd.getpwuid(os.getuid())[0]),
-                '--image={}/output.raw'.format(scratch),
-                ])
+                        os.pardir, 'setup-testbed')))
+        argv.append('--owner={}'.format(pwd.getpwuid(os.getuid())[0]))
+        argv.append('--image={}/output.raw'.format(scratch))
+
+        subprocess.check_call(argv)
         subprocess.check_call(['qemu-img', 'convert', '-f', 'raw',
             '-O', 'qcow2', '-c', '-p',
             '{}/output.raw'.format(scratch),
             '{}/output.qcow2'.format(scratch)])
-        out = args.write_qemu_image
         os.makedirs(os.path.dirname(out), exist_ok=True)
         shutil.move('{}/output.qcow2'.format(scratch), out + '.new')
 
         try:
             with VirtWorker(['qemu', '{}.new'.format(out)],
-                    suite=args.suite, mirror=args.mirror) as worker:
+                    suite=suite, mirror=mirror) as worker:
                 worker.check_call([
                     'env',
                     'DEBIAN_FRONTEND=noninteractive',
@@ -72,7 +89,7 @@ def run(args):
                     'schroot',
                     ])
         except:
-            if not args._keep:
+            if not keep:
                 os.remove(out + '.new')
             raise
         else:

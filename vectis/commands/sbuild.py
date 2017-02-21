@@ -68,7 +68,19 @@ def get_dpkg_source_options(args):
 
     return argv
 
-def _sbuild(args, buildables, worker):
+def _sbuild(args, buildables, *,
+        archs,
+        components,
+        indep,
+        output_builds,
+        rebuild_source,
+        source_only,
+        storage,
+        vendor,
+        worker,
+        extra_repositories=(),
+        together=False):
+
     logger.info('Installing sbuild')
     worker.check_call([
         'env',
@@ -90,26 +102,26 @@ def _sbuild(args, buildables, worker):
 
         if buildable.suite == 'UNRELEASED':
             logger.info('Replacing UNRELEASED with {}'.format(
-                args.vendor.default_suite))
-            suite = args.vendor.get_suite(args.vendor.default_suite)
+                vendor.default_suite))
+            suite = vendor.get_suite(vendor.default_suite)
         else:
             logger.info('Using suite {}'.format(buildable.suite))
-            suite = args.vendor.get_suite(buildable.suite)
+            suite = vendor.get_suite(buildable.suite)
 
         dpkg_buildpackage_options = get_dpkg_buildpackage_options(args, suite)
         dpkg_source_options = get_dpkg_source_options(args)
 
-        def new_build(arch, output_builds=args.output_builds):
+        def new_build(arch, output_builds=output_builds):
             return Build(buildable, arch, worker,
-                    components=args.components,
-                    extra_repositories=args._extra_repository,
+                    components=components,
+                    extra_repositories=extra_repositories,
                     dpkg_buildpackage_options=dpkg_buildpackage_options,
                     dpkg_source_options=dpkg_source_options,
                     output_builds=output_builds,
-                    storage=args.storage,
+                    storage=storage,
                     suite=suite)
 
-        if args._rebuild_source:
+        if rebuild_source:
             new_build('source').sbuild()
         elif buildable.source_from_archive:
             # We need to get some information from the .dsc, which we do by
@@ -119,15 +131,15 @@ def _sbuild(args, buildables, worker):
             # We're building from a directory; get a .dsc
             new_build('source').sbuild()
 
-        if not args._source_only:
-            buildable.select_archs(worker.dpkg_architecture, args._archs,
-                    args._indep, args.sbuild_together)
+        if not source_only:
+            buildable.select_archs(worker.dpkg_architecture, archs, indep,
+                    together)
 
             for arch in buildable.archs:
                 new_build(arch).sbuild()
 
         if buildable.sourceful_changes_name:
-            c = os.path.join(args.output_builds,
+            c = os.path.join(output_builds,
                     '{}_source.changes'.format(buildable.product_prefix))
             if 'source' not in buildable.changes_produced:
                 with AtomicWriter(c) as writer:
@@ -143,7 +155,7 @@ def _sbuild(args, buildables, worker):
 
         if ('all' in buildable.changes_produced and
                 'source' in buildable.merged_changes):
-            c = os.path.join(args.output_builds,
+            c = os.path.join(output_builds,
                     '{}_source+all.changes'.format(buildable.product_prefix))
             buildable.merged_changes['source+all'] = c
             with AtomicWriter(c) as writer:
@@ -153,7 +165,7 @@ def _sbuild(args, buildables, worker):
                     buildable.merged_changes['source'],
                     ], stdout=writer)
 
-        c = os.path.join(args.output_builds,
+        c = os.path.join(output_builds,
                 '{}_binary.changes'.format(buildable.product_prefix))
 
         binary_changes = []
@@ -173,7 +185,7 @@ def _sbuild(args, buildables, worker):
 
         if ('source' in buildable.merged_changes and
                 'binary' in buildable.merged_changes):
-            c = os.path.join(args.output_builds,
+            c = os.path.join(output_builds,
                     '{}_source+binary.changes'.format(buildable.product_prefix))
             buildable.merged_changes['source+binary'] = c
 
@@ -185,7 +197,18 @@ def _sbuild(args, buildables, worker):
                     ],
                     stdout=writer)
 
-def _autopkgtest(args, buildables, default_architecture):
+def _autopkgtest(args, buildables, default_architecture, *,
+        components,
+        lxc_24bit_subnet,
+        lxc_worker,
+        lxc_worker_suite,
+        mirror,
+        modes,
+        storage,
+        vendor,
+        worker_argv,
+        worker_suite,
+        extra_repositories=()):
     for buildable in buildables:
         source_changes = None
         source_package = None
@@ -220,20 +243,20 @@ def _autopkgtest(args, buildables, default_architecture):
             run_autopkgtest(
                     architecture=architecture,
                     binaries=(buildable.merged_changes['binary'],),
-                    components=args.components,
-                    extra_repositories=args._extra_repository,
-                    lxc_24bit_subnet=args.lxc_24bit_subnet,
-                    lxc_worker=args.lxc_worker,
-                    lxc_worker_suite=args.lxc_worker_suite,
-                    mirror=args.mirror,
-                    modes=args.autopkgtest,
+                    components=components,
+                    extra_repositories=extra_repositories,
+                    lxc_24bit_subnet=lxc_24bit_subnet,
+                    lxc_worker=lxc_worker,
+                    lxc_worker_suite=lxc_worker_suite,
+                    mirror=mirror,
+                    modes=modes,
                     source_changes=source_changes,
                     source_package=source_package,
-                    storage=args.storage,
-                    suite=args.vendor.get_suite(buildable.suite),
-                    vendor=args.vendor,
-                    worker=args.worker,
-                    worker_suite=args.worker_suite,
+                    storage=storage,
+                    suite=vendor.get_suite(buildable.suite),
+                    vendor=vendor,
+                    worker_argv=worker_argv,
+                    worker_suite=worker_suite,
                     )
 
 def _summarize(buildables):
@@ -258,33 +281,37 @@ def _lintian(buildables):
 
                 break
 
-def _publish(args, buildables):
+def _publish(buildables, output_builds,
+        reprepro_dir, default_reprepro_suite=None):
     for buildable in buildables:
         for x in 'source+binary', 'binary', 'source':
             if x in buildable.merged_changes:
-                reprepro_suite = args._reprepro_suite
+                reprepro_suite = default_reprepro_suite
 
                 if reprepro_suite is None:
                     reprepro_suite = buildable.nominal_suite
 
-                if args._reprepro_dir:
-                    subprocess.call(['reprepro', '-b', args._reprepro_dir,
-                        'removesrc', str(reprepro_suite),
-                        buildable.source_package])
-                    subprocess.call(['reprepro', '--ignore=wrongdistribution',
-                        '--ignore=missingfile',
-                        '-b', args._reprepro_dir, 'include',
-                        str(reprepro_suite),
-                        os.path.join(args.output_builds,
-                            buildable.merged_changes[x])])
-
+                subprocess.call(['reprepro', '-b', reprepro_dir,
+                    'removesrc', str(reprepro_suite),
+                    buildable.source_package])
+                subprocess.call(['reprepro', '--ignore=wrongdistribution',
+                    '--ignore=missingfile',
+                    '-b', reprepro_dir, 'include',
+                    str(reprepro_suite),
+                    os.path.join(output_builds,
+                        buildable.merged_changes[x])])
                 break
 
 def run(args):
+    components = args.components
+    output_builds = args.output_builds
+    storage = args.storage
+    vendor = args.vendor
+
     buildables = []
 
     for a in (args._buildables or ['.']):
-        buildable = Buildable(a, vendor=args.vendor)
+        buildable = Buildable(a, vendor=vendor)
         buildable.select_suite(args.suite)
         buildables.append(buildable)
 
@@ -301,12 +328,39 @@ def run(args):
             suite=args.sbuild_worker_suite,
             ) as worker:
         default_architecture = worker.dpkg_architecture
-        _sbuild(args, buildables, worker)
+        _sbuild(args, buildables,
+                archs=args._archs,
+                components=components,
+                extra_repositories=args._extra_repository,
+                indep=args._indep,
+                output_builds=output_builds,
+                rebuild_source=args._rebuild_source,
+                source_only=args._source_only,
+                storage=storage,
+                together=args.sbuild_together,
+                vendor=vendor,
+                worker=worker,
+                )
 
-    _autopkgtest(args, buildables, default_architecture)
+    _autopkgtest(args, buildables, default_architecture,
+            components=components,
+            extra_repositories=args._extra_repository,
+            lxc_24bit_subnet=args.lxc_24bit_subnet,
+            lxc_worker=args.lxc_worker,
+            lxc_worker_suite=args.lxc_worker_suite,
+            mirror=args.mirror,
+            modes=args.autopkgtest,
+            storage=storage,
+            vendor=vendor,
+            worker_argv=args.worker,
+            worker_suite=args.worker_suite,
+            )
     _summarize(buildables)
     _lintian(buildables)
-    _publish(args, buildables)
+
+    if args._reprepro_dir:
+        _publish(buildables, args.output_builds, args._reprepro_dir,
+                args._reprepro_suite)
 
     # We print these separately, right at the end, so that if you built more
     # than one thing, the last screenful of information is the really
