@@ -113,7 +113,8 @@ class ContainerWorker(BaseWorker, metaclass=ABCMeta):
 
 class FileProvider(BaseWorker, metaclass=ABCMeta):
     @abstractmethod
-    def make_file_available(self, filename, unique=None, ext=None):
+    def make_file_available(self, filename, unique=None, ext=None,
+            cache=False):
         raise NotImplementedError
 
     @abstractmethod
@@ -167,7 +168,8 @@ class HostWorker(InteractiveWorker, FileProvider):
         logger.info('%r: %r', self, argv)
         return subprocess.check_output(argv, **kwargs)
 
-    def make_file_available(self, filename):
+    def make_file_available(self, filename, unique=None, ext=None,
+            cache=False):
         return filename
 
     def new_directory(self, prefix=''):
@@ -369,7 +371,13 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
                 '/etc/apt/trusted.gpg.d/{}-{}'.format(
                     uuid.uuid4(), os.path.basename(apt_key)))
 
-    def make_file_available(self, filename, unique=None, ext=None):
+    def make_file_available(self, filename, unique=None, ext=None,
+            cache=False):
+        if cache:
+            in_guest = self.__cached_copies.get(filename)
+            if in_guest is not None:
+                return in_guest
+
         if unique is None:
             unique = str(uuid.uuid4())
 

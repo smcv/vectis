@@ -46,6 +46,7 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
         if worker is None:
             worker = self.stack.enter_context(HostWorker())
 
+        self.__cached_copies = {}
         self.argv = ['autopkgtest', '--apt-upgrade']
         self.components = components
         self.extra_repositories = extra_repositories
@@ -122,7 +123,13 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
         self.argv.append('--setup-commands=mkdir {}'.format(shlex.quote(d)))
         return d
 
-    def make_file_available(self, filename, unique=None, ext=None):
+    def make_file_available(self, filename, unique=None, ext=None,
+            cache=False):
+        if cache:
+            in_guest = self.__cached_copies.get(filename)
+            if in_guest is not None:
+                return in_guest
+
         if unique is None:
             unique = str(uuid.uuid4())
 
@@ -133,9 +140,13 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
                 ext = '.tar' + ext
 
         filename = self.worker.make_file_available(filename,
-                unique, ext)
+                unique, ext, cache=cache)
         in_autopkgtest = '/tmp/{}{}'.format(unique, ext)
         self.argv.append('--copy={}:{}'.format(filename, in_autopkgtest))
+
+        if cache:
+            self.__cached_copies[filename] = in_autopkgtest
+
         return in_autopkgtest
 
     def make_changes_file_available(self, filename):
@@ -232,7 +243,8 @@ def run_autopkgtest(args, *,
                         root-groups=root,sbuild
                         profile=default
                         ''').format(
-                            tarball=worker.make_file_available(tarball)))
+                            tarball=worker.make_file_available(tarball,
+                                cache=True)))
                     worker.copy_to_guest(os.path.join(tmp, 'sbuild.conf'),
                             '/etc/schroot/chroot.d/autopkgtest')
 
