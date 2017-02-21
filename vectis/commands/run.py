@@ -5,7 +5,9 @@
 import logging
 
 from vectis.error import ArgumentError
-from vectis.worker import Worker
+from vectis.worker import (
+        VirtWorker,
+        )
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +33,7 @@ def run(args):
                 raise ArgumentError('mirror or apt_cacher_ng must be '
                         'configured for {}'.format(ancestor))
 
-    with Worker(['qemu', qemu_image], suite=suite) as worker:
+    with VirtWorker(['qemu', qemu_image], suite=suite) as worker:
         if shell_command is not None:
             worker.check_call(['sh', '-c', shell_command] + argv)
         else:
