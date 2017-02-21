@@ -73,9 +73,27 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
         self.argv.append('--copy={}:{}'.format(sources_list,
             '/etc/apt/sources.list'))
 
-    def call_autopkgtest(self, arguments):
+    def call_autopkgtest(self,
+            *,
+            binaries,
+            source_changes=None,
+            source_package=None):
         argv = self.argv[:]
-        argv.extend(arguments)
+
+        for b in binaries:
+            if b.endswith('.changes'):
+                argv.append(self.worker.make_changes_file_available(b))
+            else:
+                argv.append(self.worker.make_file_available(b))
+
+        if source_changes is not None:
+            argv.append(self.worker.make_changes_file_available(source_changes))
+        elif source_package is not None:
+            argv.append(source_package)
+        else:
+            logger.warning('Nothing to test')
+            return False
+
         argv.append('--')
         argv.extend(self.virt)
         status = self.worker.call(argv)
@@ -302,23 +320,11 @@ def run_autopkgtest(args, *,
                     virt=virt,
                     ))
 
-            argv = ['--no-built-binaries']
-
-            for b in binaries:
-                if b.endswith('.changes'):
-                    argv.append(worker.make_changes_file_available(b))
-                else:
-                    argv.append(worker.make_file_available(b))
-
-            if source_changes is not None:
-                argv.append(worker.make_changes_file_available(source_changes))
-            elif source_package is not None:
-                argv.append(source_package)
-            else:
-                logger.warning('Nothing to test')
-                continue
-
-            if not autopkgtest.call_autopkgtest(argv):
+            if not autopkgtest.call_autopkgtest(
+                    binaries=binaries,
+                    source_changes=source_changes,
+                    source_package=source_package,
+                    ):
                 all_ok = False
 
     return all_ok
