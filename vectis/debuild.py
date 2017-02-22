@@ -260,18 +260,30 @@ class Buildable:
             logger.info('Architecture-independent packages will be built '
                         'alongside %s', self.together_with)
 
-    def select_suite(self, suite):
-        self.suite = self.nominal_suite
+    def select_suite(self, override):
+        suite_name = override
 
-        if suite is not None:
-            self.suite = suite
+        if suite_name is None:
+            suite_name = self.nominal_suite
 
-            if self.nominal_suite is None:
-                self.nominal_suite = suite
-
-        if self.suite is None:
+        if suite_name is None:
             raise ArgumentError('Must specify --suite when building from '
                     '{!r}'.format(self.buildable))
+
+        if suite_name == 'UNRELEASED':
+            logger.info('Replacing UNRELEASED with {}'.format(
+                self.vendor.default_suite))
+            suite_name = self.vendor.default_suite
+
+        if suite_name.endswith('-UNRELEASED'):
+            suite_name = suite_name[:-len('-UNRELEASED')]
+            logger.info('Replacing {}-UNRELEASED with {}'.format(suite_name,
+                suite_name))
+
+        self.suite = self.vendor.get_suite(suite_name)
+
+        if self.nominal_suite is None:
+            self.nominal_suite = suite_name
 
     def __str__(self):
         return self.buildable
@@ -281,7 +293,6 @@ class Build:
             output_builds,
             profiles,
             storage,
-            suite,
             deb_build_options=(),
             dpkg_buildpackage_options=(),
             dpkg_source_options=(),
@@ -300,7 +311,6 @@ class Build:
         self.worker = worker
         self.output_builds = output_builds
         self.storage = storage
-        self.suite = suite
 
         if environ is not None:
             for k, v in environ.items():
@@ -323,7 +333,7 @@ class Build:
         else:
             use_arch = self.arch
 
-        hierarchy = self.suite.hierarchy
+        hierarchy = self.buildable.suite.hierarchy
 
         sbuild_tarball_dir = (
                 '{arch}/{vendor}/{base}'.format(

@@ -10,6 +10,9 @@ import subprocess
 from vectis.autopkgtest import (
         run_autopkgtest,
         )
+from vectis.config import (
+        Suite,
+        )
 from vectis.debuild import (
         Build,
         Buildable,
@@ -62,14 +65,6 @@ def _sbuild(args, buildables, *,
 
         buildable.copy_source_to(worker)
 
-        if buildable.suite == 'UNRELEASED':
-            logger.info('Replacing UNRELEASED with {}'.format(
-                vendor.default_suite))
-            suite = vendor.get_suite(vendor.default_suite)
-        else:
-            logger.info('Using suite {}'.format(buildable.suite))
-            suite = vendor.get_suite(buildable.suite)
-
         def new_build(arch, output_builds=output_builds):
             return Build(buildable, arch, worker,
                     components=components,
@@ -80,7 +75,7 @@ def _sbuild(args, buildables, *,
                     output_builds=output_builds,
                     profiles=profiles,
                     storage=storage,
-                    suite=suite)
+                    )
 
         if rebuild_source:
             new_build('source').sbuild()
@@ -214,7 +209,7 @@ def _autopkgtest(args, buildables, default_architecture, *,
                     source_changes=source_changes,
                     source_package=source_package,
                     storage=storage,
-                    suite=vendor.get_suite(buildable.suite),
+                    suite=buildable.suite,
                     vendor=vendor,
                     worker_argv=worker_argv,
                     worker_suite=worker_suite,
@@ -325,14 +320,13 @@ def run(args):
         buildable.select_suite(args.suite)
         buildables.append(buildable)
 
-    for suite in (args.suite, args.sbuild_worker_suite):
-        if suite is None:
-            continue
+        for suite in (buildable.suite, args.sbuild_worker_suite):
+            assert isinstance(suite, Suite)
 
-        for ancestor in suite.hierarchy:
-            if ancestor.mirror is None:
-                raise ArgumentError('mirror or apt_cacher_ng must be '
-                        'configured for {}'.format(ancestor))
+            for ancestor in suite.hierarchy:
+                if ancestor.mirror is None:
+                    raise ArgumentError('mirror or apt_cacher_ng must be '
+                            'configured for {}'.format(ancestor))
 
     with VirtWorker(args.sbuild_worker.split(),
             suite=args.sbuild_worker_suite,
