@@ -26,22 +26,11 @@ from vectis.worker import (
 
 logger = logging.getLogger(__name__)
 
-def get_dpkg_buildpackage_options(args, suite):
+def get_dpkg_buildpackage_options(args):
     argv = []
 
     if args._versions_since:
         argv.append('-v{}'.format(args._versions_since))
-
-    force_parallel = args.force_parallel or suite.force_parallel
-
-    if force_parallel:
-        argv.append('-j{}'.format(force_parallel))
-    elif args.parallel == 1:
-        argv.append('-j1')
-    elif args.parallel:
-        argv.append('-J{}'.format(args.parallel))
-    else:
-        argv.append('-Jauto')
 
     for a in get_dpkg_source_options(args):
         argv.append('--source-option=' + a)
@@ -110,7 +99,7 @@ def _sbuild(args, buildables, *,
             logger.info('Using suite {}'.format(buildable.suite))
             suite = vendor.get_suite(buildable.suite)
 
-        dpkg_buildpackage_options = get_dpkg_buildpackage_options(args, suite)
+        dpkg_buildpackage_options = get_dpkg_buildpackage_options(args)
         dpkg_source_options = get_dpkg_source_options(args)
 
         def new_build(arch, output_builds=output_builds):
@@ -320,6 +309,12 @@ def run(args):
 
     for arg in args._add_deb_build_option:
         deb_build_options.add(arg)
+
+    for arg in deb_build_options:
+        if arg == 'parallel' or arg.startswith('parallel='):
+            break
+    else:
+        deb_build_options.add('parallel={}'.format(args.parallel))
 
     profiles = set()
 

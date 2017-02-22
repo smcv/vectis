@@ -50,10 +50,6 @@ class _ConfigLike:
         return self._get_string_set('extra_components')
 
     @property
-    def force_parallel(self):
-        return self._get_int('force_parallel')
-
-    @property
     def archive(self):
         value = self['archive']
 

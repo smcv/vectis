@@ -52,7 +52,6 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.vmdebootstrap_worker_vendor, debian)
         self.assertEqual(c.archive, 'debian')
         self.assertEqual(c.apt_cacher_ng, None)
-        self.assertEqual(c.force_parallel, 0)
         self.assertIs(c.sbuild_together, False)
         self.assertEqual(c.output_builds, '..')
         self.assertEqual(c.qemu_image_size, '42G')
@@ -189,7 +188,6 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(sid.apt_key,
                 '/usr/share/keyrings/debian-archive-keyring.gpg')
         self.assertEqual(sid.mirror, 'http://192.168.122.1:3142/debian')
-        self.assertEqual(sid.force_parallel, 0)
         self.assertIs(sid.base, None)
         self.assertEqual(sid.components, {'main'})
         self.assertEqual(sid.extra_components, {'contrib', 'non-free'})
@@ -208,7 +206,6 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(c.apt_cacher_ng, 'http://192.168.122.1:3142')
         self.assertEqual(c.mirror, 'http://192.168.122.1:3142/debian')
         self.assertEqual(c.qemu_image_size, '42G')
-        self.assertEqual(c.force_parallel, 0)
         self.assertGreaterEqual(c.parallel, 1)
         self.assertIs(c.sbuild_together, False)
         self.assertEqual(c.sbuild_resolver, [])
@@ -265,27 +262,26 @@ class DefaultsTestCase(unittest.TestCase):
         # Debian experimental
         self.assertEqual(c.sbuild_resolver[0], '--build-dep-resolver=aspcud')
 
-    def test_debian_jessie(self):
+    def test_debian_wheezy(self):
         c = self.__config
         c.vendor = 'debian'
-        c.suite = 'jessie'
+        c.suite = 'wheezy'
 
         debian = c._get_vendor('debian')
         self.assertIs(c.vendor, debian)
 
-        jessie = debian.get_suite('jessie', True)
-        self.assertEqual(list(jessie.hierarchy), [jessie])
-        self.assertIs(c.suite, jessie)
-        self.assertEqual(jessie.components, {'main'})
-        self.assertEqual(jessie.extra_components, {'contrib', 'non-free'})
-        self.assertEqual(jessie.all_components, {'main', 'contrib',
+        wheezy = debian.get_suite('wheezy', True)
+        self.assertEqual(list(wheezy.hierarchy), [wheezy])
+        self.assertIs(c.suite, wheezy)
+        self.assertEqual(wheezy.components, {'main'})
+        self.assertEqual(wheezy.extra_components, {'contrib', 'non-free'})
+        self.assertEqual(wheezy.all_components, {'main', 'contrib',
             'non-free'})
-        self.assertIs(jessie.vendor, debian)
-        self.assertEqual(jessie.force_parallel, 1)
-        self.assertIs(jessie.base, None)
-        self.assertEqual(jessie.apt_suite, 'jessie')
+        self.assertIs(wheezy.vendor, debian)
+        self.assertIs(wheezy.base, None)
+        self.assertEqual(wheezy.apt_suite, 'wheezy')
 
-        # Properties of the Config determined by it being jessie
+        # Properties of the Config determined by it being wheezy
         self.assertEqual(c.autopkgtest, ['lxc', 'qemu'])
         self.assertEqual(c.default_suite, 'sid')
         self.assertEqual(c.components, {'main'})
@@ -296,13 +292,17 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.worker_vendor, debian)
         self.assertIs(c.sbuild_worker_vendor, debian)
         self.assertIs(c.vmdebootstrap_worker_vendor, debian)
+        self.assertIs(c.vmdebootstrap_worker_suite,
+                debian.get_suite('jessie'))
+        self.assertEqual(c.vmdebootstrap_options,
+                ['--boottype=ext3', '--extlinux', '--mbr', '--no-grub',
+                    '--enable-dhcp'])
         self.assertIs(c.sbuild_worker_suite,
                 debian.get_suite('jessie-apt.buildd.debian.org'))
         self.assertEqual(c.archive, 'debian')
         self.assertEqual(c.apt_cacher_ng, 'http://192.168.122.1:3142')
         self.assertEqual(c.mirror, 'http://192.168.122.1:3142/debian')
         self.assertEqual(c.qemu_image_size, '42G')
-        self.assertEqual(c.force_parallel, 1)
         self.assertGreaterEqual(c.parallel, 1)
         self.assertIs(c.sbuild_together, False)
         self.assertEqual(c.sbuild_resolver, [])
@@ -312,8 +312,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(c.dpkg_source_tar_ignore, [])
         self.assertEqual(c.dpkg_source_extend_diff_ignore, [])
         self.assertEqual(c.output_builds, '..')
-        self.assertEqual(c.debootstrap_script, 'jessie')
-        self.assertIs(c.suite, jessie)
+        self.assertEqual(c.debootstrap_script, 'wheezy')
+        self.assertIs(c.suite, wheezy)
 
         try:
             import distro_info
@@ -342,7 +342,6 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(buildd.all_components, {'main', 'contrib',
             'non-free'})
         self.assertIs(buildd.vendor, debian)
-        self.assertEqual(buildd.force_parallel, 1)
         self.assertEqual(buildd.apt_suite, 'jessie')
         self.assertEqual(buildd.apt_key,
                 os.path.join(os.path.dirname(vectis.config.__file__),
@@ -364,7 +363,6 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(c.apt_cacher_ng, 'http://192.168.122.1:3142')
         self.assertEqual(c.mirror, 'http://192.168.122.1:3142/apt.buildd.debian.org')
         self.assertEqual(c.qemu_image_size, '42G')
-        self.assertEqual(c.force_parallel, 1)
         self.assertGreaterEqual(c.parallel, 1)
         self.assertIs(c.sbuild_together, False)
         self.assertEqual(c.sbuild_resolver, [])
@@ -443,23 +441,27 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(c.mirror,
                 'http://192.168.122.1:3142/security.debian.org')
 
-    def test_debian_jessie_security(self):
+    def test_debian_wheezy_security(self):
         c = self.__config
         c.vendor = 'debian'
-        c.suite = 'jessie-security'
+        c.suite = 'wheezy-security'
 
         debian = c._get_vendor('debian')
         self.assertIs(c.vendor, debian)
 
-        jessie = debian.get_suite('jessie', True)
-        sec = debian.get_suite('jessie-security', True)
-        self.assertEqual(list(jessie.hierarchy), [jessie])
-        self.assertEqual(list(sec.hierarchy), [sec, jessie])
+        wheezy = debian.get_suite('wheezy', True)
+        sec = debian.get_suite('wheezy-security', True)
+        self.assertEqual(list(wheezy.hierarchy), [wheezy])
+        self.assertEqual(list(sec.hierarchy), [sec, wheezy])
         self.assertIs(c.suite, sec)
 
-        # Properties of the Config determined by it being jessie-security
-        # We inherit force_parallel = 1 from jessie
-        self.assertEqual(c.force_parallel, 1)
+        # Properties of the Config determined by it being wheezy-security
+        # We inherit these from wheezy
+        self.assertIs(c.vmdebootstrap_worker_suite,
+                debian.get_suite('jessie'))
+        self.assertEqual(c.vmdebootstrap_options,
+                ['--boottype=ext3', '--extlinux', '--mbr', '--no-grub',
+                    '--enable-dhcp'])
 
     def test_ubuntu(self):
         c = self.__config
@@ -495,7 +497,6 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(c.apt_cacher_ng, 'http://192.168.122.1:3142')
         self.assertEqual(c.mirror, 'http://192.168.122.1:3142/ubuntu')
         self.assertEqual(c.qemu_image_size, '42G')
-        self.assertEqual(c.force_parallel, 0)
         self.assertGreaterEqual(c.parallel, 1)
         self.assertIs(c.sbuild_together, False)
         self.assertEqual(c.sbuild_resolver, [])
@@ -541,7 +542,6 @@ class DefaultsTestCase(unittest.TestCase):
             'restricted'})
         self.assertEqual(xenial.all_components, {'main', 'universe',
             'multiverse', 'restricted'})
-        self.assertEqual(xenial.force_parallel, 0)
         self.assertIs(xenial.base, None)
         self.assertEqual(xenial.mirror, 'http://192.168.122.1:3142/ubuntu')
         self.assertEqual(xenial.apt_key,
@@ -562,7 +562,6 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(c.apt_cacher_ng, 'http://192.168.122.1:3142')
         self.assertEqual(c.mirror, 'http://192.168.122.1:3142/ubuntu')
         self.assertEqual(c.qemu_image_size, '42G')
-        self.assertEqual(c.force_parallel, 0)
         self.assertGreaterEqual(c.parallel, 1)
         self.assertIs(c.sbuild_together, False)
         self.assertEqual(c.sbuild_resolver, [])
@@ -613,13 +612,11 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(sec.apt_key,
                 '/usr/share/keyrings/ubuntu-archive-keyring.gpg')
         self.assertEqual(sec.apt_suite, 'xenial-security')
-        self.assertEqual(sec.force_parallel, 0)
 
         self.assertEqual(c.archive, 'ubuntu')
         self.assertEqual(c.apt_cacher_ng, 'http://192.168.122.1:3142')
         self.assertEqual(c.mirror, 'http://192.168.122.1:3142/ubuntu')
         self.assertEqual(c.qemu_image_size, '42G')
-        self.assertEqual(c.force_parallel, 0)
         self.assertGreaterEqual(c.parallel, 1)
         self.assertIs(c.sbuild_together, False)
         self.assertEqual(c.sbuild_resolver, [])

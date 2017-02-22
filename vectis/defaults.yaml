@@ -51,7 +51,6 @@ defaults:
         - schroot
         - qemu
 
-    force_parallel: 0
     parallel: null
     sbuild_together: false
     output_builds: ".."
@@ -84,7 +83,6 @@ vendors:
         apt_key: /usr/share/keyrings/debian-archive-keyring.gpg
         suites:
             wheezy:
-                force_parallel: 1
                 vmdebootstrap_worker_suite: jessie
                 vmdebootstrap_options:
                     - "--boottype=ext3"
@@ -92,8 +90,6 @@ vendors:
                     - "--mbr"
                     - "--no-grub"
                     - "--enable-dhcp"
-            jessie:
-                force_parallel: 1
             sid: {}
             unstable:
                 alias_for: sid
@@ -135,10 +131,6 @@ vendors:
         kernel_package:
             null: linux-image-generic
         suites:
-            trusty:
-                force_parallel: 1
-            precise:
-                force_parallel: 1
             "*-backports":
                 null: null
             "*-proposed":
