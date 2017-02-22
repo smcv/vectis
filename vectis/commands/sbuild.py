@@ -26,37 +26,6 @@ from vectis.worker import (
 
 logger = logging.getLogger(__name__)
 
-def get_dpkg_buildpackage_options(args):
-    argv = []
-
-    if args._versions_since:
-        argv.append('-v{}'.format(args._versions_since))
-
-    for a in get_dpkg_source_options(args):
-        argv.append('--source-option=' + a)
-
-    return argv
-
-def get_dpkg_source_options(args):
-    argv = []
-
-    if args.dpkg_source_diff_ignore is ...:
-        argv.append('-i')
-    elif args.dpkg_source_diff_ignore is not None:
-        argv.append('-i{}'.format(
-            args.dpkg_source_diff_ignore))
-
-    for pattern in args.dpkg_source_tar_ignore:
-        if pattern is ...:
-            argv.append('-I')
-        else:
-            argv.append('-I{}'.format(pattern))
-
-    for pattern in args.dpkg_source_extend_diff_ignore:
-        argv.append('--extend-diff-ignore={}'.format(pattern))
-
-    return argv
-
 def _sbuild(args, buildables, *,
         archs,
         components,
@@ -69,6 +38,8 @@ def _sbuild(args, buildables, *,
         vendor,
         worker,
         deb_build_options=(),
+        dpkg_buildpackage_options=(),
+        dpkg_source_options=(),
         extra_repositories=(),
         together=False):
 
@@ -99,16 +70,13 @@ def _sbuild(args, buildables, *,
             logger.info('Using suite {}'.format(buildable.suite))
             suite = vendor.get_suite(buildable.suite)
 
-        dpkg_buildpackage_options = get_dpkg_buildpackage_options(args)
-        dpkg_source_options = get_dpkg_source_options(args)
-
         def new_build(arch, output_builds=output_builds):
             return Build(buildable, arch, worker,
                     components=components,
                     deb_build_options=deb_build_options,
-                    extra_repositories=extra_repositories,
                     dpkg_buildpackage_options=dpkg_buildpackage_options,
                     dpkg_source_options=dpkg_source_options,
+                    extra_repositories=extra_repositories,
                     output_builds=output_builds,
                     profiles=profiles,
                     storage=storage,
@@ -328,6 +296,28 @@ def run(args):
     for arg in args._add_build_profile:
         profiles.add(arg)
 
+    db_options = []
+
+    if args._versions_since:
+        db_options.append('-v{}'.format(args._versions_since))
+
+    ds_options = []
+
+    if args.dpkg_source_diff_ignore is ...:
+        ds_options.append('-i')
+    elif args.dpkg_source_diff_ignore is not None:
+        ds_options.append('-i{}'.format(
+            args.dpkg_source_diff_ignore))
+
+    for pattern in args.dpkg_source_tar_ignore:
+        if pattern is ...:
+            ds_options.append('-I')
+        else:
+            ds_options.append('-I{}'.format(pattern))
+
+    for pattern in args.dpkg_source_extend_diff_ignore:
+        ds_options.append('--extend-diff-ignore={}'.format(pattern))
+
     buildables = []
 
     for a in (args._buildables or ['.']):
@@ -352,6 +342,8 @@ def run(args):
                 archs=args._archs,
                 components=components,
                 deb_build_options=deb_build_options,
+                dpkg_buildpackage_options=db_options,
+                dpkg_source_options=ds_options,
                 extra_repositories=args._extra_repository,
                 indep=args._indep,
                 output_builds=output_builds,

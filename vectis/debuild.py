@@ -278,13 +278,13 @@ class Buildable:
 
 class Build:
     def __init__(self, buildable, arch, worker, *,
-            dpkg_buildpackage_options,
-            dpkg_source_options,
             output_builds,
             profiles,
             storage,
             suite,
             deb_build_options=(),
+            dpkg_buildpackage_options=(),
+            dpkg_source_options=(),
             environ=None,
             components=(),
             extra_repositories=()):
@@ -409,9 +409,6 @@ class Build:
         for x in self.dpkg_buildpackage_options:
             argv.append('--debbuildopt=' + x)
 
-        for x in self.dpkg_source_options:
-            argv.append('--dpkg-source-opt=' + x)
-
         for child in hierarchy[:-1]:
             argv.append('--extra-repository=deb {} {} {}'.format(
                 child.mirror,
@@ -441,6 +438,10 @@ class Build:
             argv.append(self.arch)
         elif self.arch == 'source':
             logger.info('Source-only')
+            argv.append('--source')
+
+            for x in self.dpkg_source_options:
+                argv.append('--debbuildopt=--source-option={}'.format(x))
 
             if sbuild_version < Version('0.67.0'):
                 # Backwards compatibility for Debian jessie buildd backport
@@ -482,7 +483,6 @@ class Build:
                 argv.append(
                     '--finished-build-commands=perl -e {} %p'.format(perl))
 
-            argv.append('--source')
         else:
             logger.info('Architecture: %s only', self.arch)
             argv.append('--arch')
@@ -490,29 +490,40 @@ class Build:
 
         if self.buildable.dsc_name is not None:
             if 'source' in self.buildable.changes_produced:
+                # We rebuilt the source already. Use the rebuilt version
+                # for all subsequent builds.
                 argv.append('{}/out/{}'.format(self.worker.scratch,
                     os.path.basename(self.buildable.dsc_name)))
             else:
+                # We got a .dsc from outside Vectis and are not
+                # rebuilding it.
                 argv.append('{}/in/{}'.format(self.worker.scratch,
                     os.path.basename(self.buildable.dsc_name)))
         elif self.buildable.source_from_archive:
             argv.append(self.buildable.buildable)
         else:
             # Build a clean source package as a side-effect of the first
-            # build (in practice this will be the 'source' build).
-            if '--source' not in argv:
-                argv.append('--source')
+            # build. We have set it up so the first build is always the
+            # source build, so we added the necessary options to argv
+            # already.
+            assert '--source' in argv
 
             # jessie sbuild doesn't support --no-clean-source so build
             # the temporary source package ourselves.
-            self.worker.check_call([
+            ds_argv = [
                 self.worker.command_wrapper,
                 '--chdir',
                 '{}/in/{}_source'.format(self.worker.scratch,
                     self.buildable.product_prefix),
                 '--',
-                'dpkg-source', '-b', '.'])
+                'dpkg-source',
+                ]
 
+            for x in self.dpkg_source_options:
+                ds_argv.append(x)
+
+            ds_argv.extend(('-b', '.'))
+            self.worker.check_call(ds_argv)
             argv.append('{}/in/{}.dsc'.format(self.worker.scratch,
                 self.buildable.product_prefix))
 
