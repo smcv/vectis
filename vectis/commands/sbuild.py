@@ -29,7 +29,7 @@ from vectis.worker import (
 
 logger = logging.getLogger(__name__)
 
-def _sbuild(args, buildables, *,
+def _sbuild(buildables, *,
         archs,
         components,
         indep,
@@ -153,7 +153,7 @@ def _sbuild(args, buildables, *,
                     ],
                     stdout=writer)
 
-def _autopkgtest(args, buildables, default_architecture, *,
+def _autopkgtest(buildables, default_architecture, *,
         components,
         lxc_24bit_subnet,
         lxc_worker,
@@ -332,7 +332,7 @@ def run(args):
             suite=args.sbuild_worker_suite,
             ) as worker:
         default_architecture = worker.dpkg_architecture
-        _sbuild(args, buildables,
+        _sbuild(buildables,
                 archs=args._archs,
                 components=components,
                 deb_build_options=deb_build_options,
@@ -350,7 +350,7 @@ def run(args):
                 worker=worker,
                 )
 
-    _autopkgtest(args, buildables, default_architecture,
+    _autopkgtest(buildables, default_architecture,
             components=components,
             extra_repositories=args._extra_repository,
             lxc_24bit_subnet=args.lxc_24bit_subnet,
