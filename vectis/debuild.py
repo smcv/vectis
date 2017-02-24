@@ -25,6 +25,9 @@ from debian.debian_support import (
         Version,
         )
 
+from vectis.config import (
+        Suite,
+        )
 from vectis.error import (
         ArgumentError,
         CannotHappen,
@@ -270,20 +273,23 @@ class Buildable:
             raise ArgumentError('Must specify --suite when building from '
                     '{!r}'.format(self.buildable))
 
-        if suite_name == 'UNRELEASED':
-            logger.info('Replacing UNRELEASED with {}'.format(
-                self.vendor.default_suite))
-            suite_name = self.vendor.default_suite
+        if isinstance(suite_name, Suite):
+            self.suite = suite_name
+        else:
+            if suite_name == 'UNRELEASED':
+                logger.info('Replacing UNRELEASED with {}'.format(
+                    self.vendor.default_suite))
+                suite_name = self.vendor.default_suite
 
-        if suite_name.endswith('-UNRELEASED'):
-            suite_name = suite_name[:-len('-UNRELEASED')]
-            logger.info('Replacing {}-UNRELEASED with {}'.format(suite_name,
-                suite_name))
+            if suite_name.endswith('-UNRELEASED'):
+                suite_name = suite_name[:-len('-UNRELEASED')]
+                logger.info('Replacing {}-UNRELEASED with {}'.format(suite_name,
+                    suite_name))
 
-        self.suite = self.vendor.get_suite(suite_name)
+            self.suite = self.vendor.get_suite(suite_name)
 
         if self.nominal_suite is None:
-            self.nominal_suite = suite_name
+            self.nominal_suite = str(self.suite)
 
     def __str__(self):
         return self.buildable
