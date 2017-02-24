@@ -252,7 +252,7 @@ class Buildable:
                 else:
                     self.together_with = self.archs[0]
             else:
-                self.archs.insert(0, 'all')
+                self.archs.append('all')
 
         logger.info('Selected architectures: %r', self.archs)
 
