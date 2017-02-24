@@ -15,6 +15,7 @@ from tempfile import TemporaryDirectory
 
 from debian.deb822 import (
         Changes,
+        Dsc,
         )
 from debian.debian_support import (
         Version,
@@ -126,6 +127,10 @@ class FileProvider(BaseWorker, metaclass=ABCMeta):
     def make_changes_file_available(self, filename):
         raise NotImplementedError
 
+    @abstractmethod
+    def make_dsc_file_available(self, filename):
+        raise NotImplementedError
+
 class InteractiveWorker(BaseWorker, metaclass=ABCMeta):
     def __init__(self):
         super().__init__()
@@ -179,6 +184,9 @@ class HostWorker(InteractiveWorker, FileProvider):
 
         return self.stack.enter_context(self,
                 TemporaryDirectory(prefix=prefix))
+
+    def make_dsc_file_available(self, filename):
+         return filename
 
     def make_changes_file_available(self, filename):
          return filename
@@ -522,6 +530,22 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
         return self.check_output(['mktemp', '-d',
             '--tmpdir={}'.format(self.scratch),
             prefix + 'XXXXXXXXXX'], universal_newlines=True).rstrip('\n')
+
+    def make_dsc_file_available(self, filename):
+        d = os.path.dirname(filename)
+
+        with open(filename) as reader:
+            dsc = Dsc(reader)
+
+        to = self.new_directory()
+        self.copy_to_guest(filename,
+                '{}/{}'.format(to, os.path.basename(filename)))
+
+        for f in dsc['files']:
+            self.copy_to_guest(os.path.join(d, f['name']),
+                    '{}/{}'.format(to, f['name']))
+
+        return '{}/{}'.format(to, os.path.basename(filename))
 
     def make_changes_file_available(self, filename):
         d = os.path.dirname(filename)

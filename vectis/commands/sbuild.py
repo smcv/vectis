@@ -175,12 +175,12 @@ def _autopkgtest(buildables, default_architecture, *,
         worker_suite,
         extra_repositories=()):
     for buildable in buildables:
-        source_changes = None
+        source_dsc = None
         source_package = None
 
-        if 'source' in buildable.merged_changes:
-            source_changes = buildable.merged_changes['source']
-            logger.info('Testing source changes file %s', source_changes)
+        if buildable.dsc_name is not None:
+            source_dsc = buildable.dsc_name
+            logger.info('Testing source changes file %s', source_dsc)
         elif buildable.source_from_archive:
             source_package = buildable.source_package
             logger.info('Testing source package %s', source_package)
@@ -215,7 +215,7 @@ def _autopkgtest(buildables, default_architecture, *,
                     lxc_worker_suite=lxc_worker_suite,
                     mirror=mirror,
                     modes=modes,
-                    source_changes=source_changes,
+                    source_dsc=source_dsc,
                     source_package=source_package,
                     storage=storage,
                     suite=buildable.suite,

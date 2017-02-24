@@ -16,6 +16,7 @@ from tempfile import (
 
 from debian.deb822 import (
         Changes,
+        Dsc,
         )
 
 from vectis.lxc import (
@@ -77,7 +78,7 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
     def call_autopkgtest(self,
             *,
             binaries,
-            source_changes=None,
+            source_dsc=None,
             source_package=None):
         argv = self.argv[:]
 
@@ -87,8 +88,8 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
             else:
                 argv.append(self.worker.make_file_available(b))
 
-        if source_changes is not None:
-            argv.append(self.worker.make_changes_file_available(source_changes))
+        if source_dsc is not None:
+            argv.append(self.worker.make_dsc_file_available(source_dsc))
         elif source_package is not None:
             argv.append(source_package)
         else:
@@ -149,6 +150,23 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
 
         return in_autopkgtest
 
+    def make_dsc_file_available(self, filename):
+        d = os.path.dirname(filename)
+
+        with open(filename) as reader:
+            dsc = Dsc(reader)
+
+        to = self.new_directory()
+        self.argv.append('--copy={}:{}'.format(filename,
+                '{}/{}'.format(to, os.path.basename(filename))))
+
+        for f in dsc['files']:
+            self.argv.append('--copy={}:{}'.format(
+                    os.path.join(d, f['name']),
+                    '{}/{}'.format(to, f['name'])))
+
+        return '{}/{}'.format(to, os.path.basename(filename))
+
     def make_changes_file_available(self, filename):
         d = os.path.dirname(filename)
 
@@ -185,7 +203,7 @@ def run_autopkgtest(*,
         lxc_worker=None,
         lxc_worker_suite=None,
         mirror=None,
-        source_changes=None,
+        source_dsc=None,
         source_package=None):
     all_ok = True
 
@@ -341,7 +359,7 @@ def run_autopkgtest(*,
 
             if not autopkgtest.call_autopkgtest(
                     binaries=binaries,
-                    source_changes=source_changes,
+                    source_dsc=source_dsc,
                     source_package=source_package,
                     ):
                 all_ok = False
