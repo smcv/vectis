@@ -309,22 +309,14 @@ def run_autopkgtest(*,
                 set_up_lxc_net(worker, lxc_24bit_subnet)
                 worker.check_call(['mkdir', '-p',
                     '/var/lib/lxc/vectis-new/rootfs'])
-                worker.copy_to_guest(
-                    os.path.join(storage, rootfs),
-                    '{}/rootfs.tar.gz'.format(worker.scratch))
-                worker.check_call(['tar', '-x', '-z',
-                    '-C', '/var/lib/lxc/vectis-new/rootfs',
-                    '-f', '{}/rootfs.tar.gz'.format(worker.scratch)])
-                worker.check_call(['rm', '-f',
-                    '{}/rootfs.tar.gz'.format(worker.scratch)])
-                worker.copy_to_guest(
-                    os.path.join(storage, meta),
-                    '{}/meta.tar.gz'.format(worker.scratch))
-                worker.check_call(['tar', '-x', '-z',
-                    '-C', '/var/lib/lxc/vectis-new',
-                    '-f', '{}/meta.tar.gz'.format(worker.scratch)])
-                worker.check_call(['rm', '-f',
-                    '{}/meta.tar.gz'.format(worker.scratch)])
+                with open(rootfs, 'rb') as reader:
+                    worker.check_call(['tar', '-x', '-z',
+                        '-C', '/var/lib/lxc/vectis-new/rootfs',
+                        '-f', '-'], stdin=reader)
+                with open(meta, 'rb') as reader:
+                    worker.check_call(['tar', '-x', '-z',
+                        '-C', '/var/lib/lxc/vectis-new',
+                        '-f', '-'], stdin=reader)
                 worker.check_call(['mv', '/var/lib/lxc/vectis-new',
                     '/var/lib/lxc/{}'.format(container)])
 
