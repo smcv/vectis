@@ -77,17 +77,20 @@ def _sbuild(buildables, *,
                     storage=storage,
                     )
 
-        if rebuild_source:
-            new_build('source').sbuild()
-        elif buildable.source_from_archive:
+        if buildable.source_from_archive:
             # We need to get some information from the .dsc, which we do by
-            # building one and throwing it away.
-            new_build('source', output_builds=None).sbuild()
-        elif buildable.dsc is None:
-            # We're building from a directory; get a .dsc
+            # building one and (usually) throwing it away.
+            # TODO: With jessie's sbuild, this doesn't work for
+            # sources that only build Architecture: all binaries.
+            if rebuild_source:
+                new_build('source').sbuild()
+            else:
+                new_build('source', output_builds=None).sbuild()
+        elif source_only:
+            # TODO: With jessie's sbuild, this doesn't work for
+            # sources that only build Architecture: all binaries.
             new_build('source').sbuild()
-
-        if not source_only:
+        else:
             buildable.select_archs(worker.dpkg_architecture, archs, indep,
                     together)
 

@@ -84,7 +84,7 @@ class Buildable:
                 self.dirname = os.path.dirname(self.buildable)
                 self.sourceful_changes_name = self.buildable
                 sourceful_changes = Changes(open(self.buildable))
-                if 'source' not in sourceful_changes['architecture']:
+                if 'source' not in sourceful_changes['architecture'].split():
                     raise ArgumentError('Changes file {!r} must be '
                             'sourceful'.format(self.buildable))
 
@@ -471,6 +471,8 @@ class Build:
                 # If we only build 'all', and we don't build 'all',
                 # then logically we build nothing (except source).
                 # sbuild >= 0.69.0 deprecates this syntax.
+                # TODO: This trick doesn't work with sources that only
+                # build Architecture: all binaries.
                 argv.append('--arch-all-only')
                 argv.append('--no-arch-all')
             else:
@@ -526,10 +528,12 @@ class Build:
             argv.append(self.buildable.buildable)
         else:
             # Build a clean source package as a side-effect of the first
-            # build. We have set it up so the first build is always the
-            # source build, so we added the necessary options to argv
-            # already.
-            assert '--source' in argv
+            # build.
+            if '--source' not in argv:
+                argv.append('--source')
+
+                for x in self.dpkg_source_options:
+                    argv.append('--debbuildopt=--source-option={}'.format(x))
 
             # jessie sbuild doesn't support --no-clean-source so build
             # the temporary source package ourselves.
@@ -650,7 +654,7 @@ class Build:
 
         changes_out = Changes(open(copied_back))
 
-        if self.arch == 'source':
+        if 'source' in changes_out['architecture'].split():
             self.buildable.dsc_name = None
             self.buildable.sourceful_changes_name = copied_back
 
