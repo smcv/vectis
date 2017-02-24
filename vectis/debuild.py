@@ -390,7 +390,10 @@ class Build:
                     '/etc/schroot/chroot.d/{}'.format(chroot))
 
         # Backwards compatibility goo for Debian jessie buildd backport:
-        # it can't do "sbuild hello", only "sbuild hello_2.10-1"
+        # it can't do "sbuild hello", only "sbuild hello_2.10-1".
+        # FIXME: this setup only works for standalone suites, not for
+        # partial suites, because the chroot doesn't have the extra
+        # apt sources already set up
         if (self.buildable.source_from_archive and
                 self.buildable.version is None and
                 sbuild_version < Version('0.69.0')):
