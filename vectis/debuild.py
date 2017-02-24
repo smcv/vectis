@@ -288,6 +288,19 @@ class Buildable:
     def __str__(self):
         return self.buildable
 
+    def get_debs(self):
+        ret = set()
+
+        for k, v in self.merged_changes.items():
+            changes = Changes(open(v))
+
+            for f in changes['files']:
+                if f['name'].endswith('.deb'):
+                    assert '/' not in f['name']
+                    ret.add(os.path.join(os.path.dirname(v), f['name']))
+
+        return sorted(ret)
+
 class Build:
     def __init__(self, buildable, arch, worker, *,
             output_builds,
