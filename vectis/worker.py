@@ -6,6 +6,7 @@ import logging
 import os
 import shutil
 import subprocess
+import textwrap
 import uuid
 import urllib.parse
 from abc import abstractmethod, ABCMeta
@@ -125,7 +126,7 @@ class FileProvider(BaseWorker, metaclass=ABCMeta):
     def make_changes_file_available(self, filename):
         raise NotImplementedError
 
-class InteractiveWorker(BaseWorker):
+class InteractiveWorker(BaseWorker, metaclass=ABCMeta):
     def __init__(self):
         super().__init__()
         self.__dpkg_architecture = None
@@ -181,6 +182,129 @@ class HostWorker(InteractiveWorker, FileProvider):
 
     def make_changes_file_available(self, filename):
          return filename
+
+class SchrootWorker(ContainerWorker, InteractiveWorker):
+    def __init__(self, *,
+            architecture,
+            suite,
+            worker,
+            chroot=None,
+            components=(),
+            extra_repositories=(),
+            mirror=None,
+            storage=None,
+            tarball=None):
+        super().__init__()
+
+        if chroot is None:
+            chroot = '{}-{}-{}'.format(suite.vendor, suite, architecture)
+
+        if tarball is None:
+            assert storage is not None
+
+            tarball = os.path.join(storage, architecture, str(suite.vendor),
+                    str(suite.hierarchy[-1]), 'sbuild.tar.gz')
+
+        self.chroot = chroot
+        self.components = components
+        self.__dpkg_architecture = architecture
+        self.extra_repositories = extra_repositories
+        self.mirror = mirror
+        self.suite = suite
+        self.tarball = tarball
+        self.worker = worker
+
+        # We currently assume that copy_to_guest() works, and that we can
+        # write in /etc/schroot/
+        assert isinstance(self.worker, VirtWorker)
+
+    @property
+    def dpkg_architecture(self):
+        if self.__dpkg_architecture is not None:
+            return self.__dpkg_architecture
+        else:
+            return super().dpkg_architecture
+
+    def _open(self):
+        super()._open()
+        self.set_up_apt()
+
+    def set_up_apt(self):
+        tarball_in_guest = self.worker.make_file_available(
+                self.tarball, cache=True)
+
+        tmp = TemporaryDirectory(prefix='vectis-worker-')
+        tmp = self.stack.enter_context(tmp)
+        self.sources_list = os.path.join(tmp, 'sources.list')
+
+        with AtomicWriter(self.sources_list) as writer:
+            self.write_sources_list(writer)
+        self.worker.check_call(['mkdir', '-p', '/etc/schroot/sources.list.d'])
+        self.worker.copy_to_guest(self.sources_list,
+                '/etc/schroot/sources.list.d/{}'.format(self.chroot))
+
+        with AtomicWriter(os.path.join(tmp, 'sbuild.conf')) as writer:
+            writer.write(textwrap.dedent('''
+            [{chroot}]
+            type=file
+            description=An autobuilder
+            file={tarball_in_guest}
+            groups=root,sbuild
+            root-groups=root,sbuild
+            profile=sbuild
+            ''').format(
+                chroot=self.chroot,
+                tarball_in_guest=tarball_in_guest))
+        self.worker.copy_to_guest(os.path.join(tmp, 'sbuild.conf'),
+                '/etc/schroot/chroot.d/{}'.format(self.chroot))
+
+        with AtomicWriter(os.path.join(tmp, '60vectis-sources')) as writer:
+            writer.write(textwrap.dedent('''\
+            #!/bin/sh
+            set -e
+            set -u
+            if [ $1 = setup-start ] || [ $1 = setup-recover ]; then
+                echo "$0: Setting up ${CHROOT_ALIAS}" >&2
+
+                if [ -f /etc/schroot/sources.list.d/${CHROOT_ALIAS} ]; then
+                    echo "$0: Copying /etc/schroot/sources.list.d/${CHROOT_ALIAS} into ${CHROOT_PATH}" >&2
+                    cp /etc/schroot/sources.list.d/${CHROOT_ALIAS} ${CHROOT_PATH}/etc/apt/sources.list
+                fi
+                if [ -d /etc/schroot/apt-keys.d/${CHROOT_ALIAS} ]; then
+                    echo "$0: Copying /etc/schroot/apt-keys.d/${CHROOT_ALIAS}/ into ${CHROOT_PATH}" >&2
+                    cp /etc/schroot/apt-keys.d/${CHROOT_ALIAS}/* ${CHROOT_PATH}/etc/apt/trusted.gpg.d/
+                fi
+            fi
+            '''))
+        self.worker.copy_to_guest(os.path.join(tmp, '60vectis-sources'),
+                '/etc/schroot/setup.d/60vectis-sources')
+        self.worker.check_call(['chmod', '0755',
+            '/etc/schroot/setup.d/60vectis-sources'])
+
+    def install_apt_key(self, apt_key):
+        self.worker.check_call(['mkdir', '-p',
+            '/etc/schroot/apt-keys.d/{}'.format(self.chroot)])
+        self.worker.copy_to_guest(apt_key,
+                '/etc/schroot/apt-keys.d/{}/{}-{}'.format(
+                    self.chroot, uuid.uuid4(), os.path.basename(apt_key)))
+
+    def call(self, argv, **kwargs):
+        return self.worker.call([
+            'schroot', '-c', self.chroot,
+            '--',
+            ] + list(argv), **kwargs)
+
+    def check_call(self, argv, **kwargs):
+        return self.worker.check_call([
+            'schroot', '-c', self.chroot,
+            '--',
+            ] + list(argv), **kwargs)
+
+    def check_output(self, argv, **kwargs):
+        return self.worker.check_output([
+            'schroot', '-c', self.chroot,
+            '--',
+            ] + list(argv), **kwargs)
 
 class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
     def __init__(self, argv,

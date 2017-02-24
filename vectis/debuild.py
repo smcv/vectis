@@ -6,7 +6,6 @@ import glob
 import logging
 import os
 import subprocess
-import textwrap
 import time
 from collections import (
         OrderedDict,
@@ -32,8 +31,8 @@ from vectis.error import (
         ArgumentError,
         CannotHappen,
         )
-from vectis.util import (
-        AtomicWriter,
+from vectis.worker import (
+        SchrootWorker,
         )
 
 logger = logging.getLogger(__name__)
@@ -342,8 +341,6 @@ class Build:
             '-osbuild', '-gsbuild',
             '{}/out'.format(self.worker.scratch)])
 
-        sbuild_version = self.worker.dpkg_version('sbuild')
-
         logger.info('Building architecture: %s', self.arch)
 
         if self.arch in ('all', 'source'):
@@ -352,54 +349,25 @@ class Build:
         else:
             use_arch = self.arch
 
-        hierarchy = self.buildable.suite.hierarchy
+        with SchrootWorker(storage=self.storage,
+                architecture=use_arch,
+                chroot='{}-{}-sbuild'.format(self.buildable.suite, use_arch),
+                components=self.components,
+                extra_repositories=self.extra_repositories,
+                suite=self.buildable.suite,
+                worker=self.worker,
+                ) as chroot:
+            self._sbuild(chroot)
 
-        sbuild_tarball_dir = (
-                '{arch}/{vendor}/{base}'.format(
-                    arch=use_arch,
-                    vendor=self.buildable.vendor,
-                    base=hierarchy[-1],
-                    ))
-
-        self.worker.check_call(['mkdir', '-p',
-            '{}/in/{}'.format(self.worker.scratch, sbuild_tarball_dir)])
-        sbuild_tarball = sbuild_tarball_dir + '/sbuild.tar.gz'
-        self.worker.copy_to_guest(os.path.join(self.storage,
-                    sbuild_tarball),
-                '{}/in/{}'.format(self.worker.scratch, sbuild_tarball),
-                cache=True)
-
-        chroot = '{base}-{arch}-sbuild'.format(base=hierarchy[-1],
-                arch=use_arch)
-
-        with TemporaryDirectory(prefix='vectis-sbuild-') as tmp:
-            with AtomicWriter(os.path.join(tmp, 'sbuild.conf')) as writer:
-                writer.write(textwrap.dedent('''
-                [{chroot}]
-                type=file
-                description=An autobuilder
-                file={scratch}/in/{sbuild_tarball}
-                groups=root,sbuild
-                root-groups=root,sbuild
-                profile=sbuild
-                ''').format(
-                    chroot=chroot,
-                    sbuild_tarball=sbuild_tarball,
-                    scratch=self.worker.scratch))
-            self.worker.copy_to_guest(os.path.join(tmp, 'sbuild.conf'),
-                    '/etc/schroot/chroot.d/{}'.format(chroot))
+    def _sbuild(self, chroot):
+        sbuild_version = self.worker.dpkg_version('sbuild')
 
         # Backwards compatibility goo for Debian jessie buildd backport:
         # it can't do "sbuild hello", only "sbuild hello_2.10-1".
-        # FIXME: this setup only works for standalone suites, not for
-        # partial suites, because the chroot doesn't have the extra
-        # apt sources already set up
         if (self.buildable.source_from_archive and
                 self.buildable.version is None and
                 sbuild_version < Version('0.69.0')):
-            lines = self.worker.check_output([
-                        'schroot', '-c', chroot,
-                        '--',
+            lines = chroot.check_output([
                         'sh', '-c',
                         'apt-get update >&2 && '
                         '( apt-cache showsrc --only-source "$1" || '
@@ -430,7 +398,7 @@ class Build:
 
         argv.extend((
                 'sbuild',
-                '-c', chroot,
+                '-c', chroot.chroot,
                 '-d', str(self.buildable.nominal_suite),
                 '--no-run-lintian',
         ))
@@ -441,18 +409,11 @@ class Build:
         for x in self.dpkg_buildpackage_options:
             argv.append('--debbuildopt=' + x)
 
-        for child in hierarchy[:-1]:
-            argv.append('--extra-repository=deb {} {} {}'.format(
-                child.mirror,
-                child.apt_suite,
-                ' '.join(set(self.components or child.components) &
-                    child.all_components)))
-
+        for child in chroot.suite.hierarchy[:-1]:
+            # The schroot already has the apt sources, we just need the
+            # resolver
             if child.sbuild_resolver:
                 argv.extend(child.sbuild_resolver)
-
-        for x in self.extra_repositories:
-            argv.append('--extra-repository={}'.format(x))
 
         if self.arch == 'all':
             logger.info('Architecture: all')
@@ -567,14 +528,15 @@ class Build:
         try:
             self.worker.check_call(argv)
         finally:
-            # Note that we mix use_arch and arch here: an Architecture: all
-            # build produces foo_1.2_amd64.build, which we rename.
+            # Note that we mix chroot.dpkg_architecture and arch here: an
+            # Architecture: all build produces foo_1.2_amd64.build, which we
+            # rename.
             # We also check for foo_amd64.build because
             # that's what comes out if we do "vectis sbuild --suite=sid hello".
             for prefix in (self.buildable.source_package,
                     self.buildable.product_prefix):
                 product = '{}/out/{}_{}.build'.format(self.worker.scratch,
-                        prefix, use_arch)
+                        prefix, chroot.dpkg_architecture)
                 product = self.worker.check_output(['readlink', '-f', product],
                         universal_newlines=True).rstrip('\n')
 
