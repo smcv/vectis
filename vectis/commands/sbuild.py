@@ -124,22 +124,28 @@ def _sbuild(buildables, *,
                     buildable.merged_changes['source'],
                     ], stdout=writer)
 
-        c = os.path.join(output_builds,
-                '{}_binary.changes'.format(buildable.product_prefix))
+        binary_group = 'binary'
 
         binary_changes = []
         for k, v in buildable.changes_produced.items():
             if k != 'source':
                 binary_changes.append(v)
 
+            if v == buildable.sourceful_changes_name:
+                binary_group = 'source+binary'
+
+        c = os.path.join(output_builds,
+                '{}_{}.changes'.format(buildable.product_prefix,
+                    binary_group))
+
         if len(binary_changes) > 1:
             with AtomicWriter(c) as writer:
                 subprocess.check_call(['mergechanges'] + binary_changes,
                     stdout=writer)
-            buildable.merged_changes['binary'] = c
+            buildable.merged_changes[binary_group] = c
         elif len(binary_changes) == 1:
             shutil.copy(binary_changes[0], c)
-            buildable.merged_changes['binary'] = c
+            buildable.merged_changes[binary_group] = c
         # else it was source-only: no binary changes
 
         if ('source' in buildable.merged_changes and
