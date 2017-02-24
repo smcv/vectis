@@ -102,6 +102,7 @@ def run(args):
         worker.check_call(['tar', '-C',
             '/var/lib/lxc/{}-{}-{}/rootfs'.format(vendor, suite, architecture),
             '-f', '{}/rootfs.tar.gz'.format(worker.scratch),
+            '--exclude=./var/cache/apt/archives/*.deb',
             '-z', '-c', '.'])
         worker.check_call(['tar', '-C',
             '/var/lib/lxc/{}-{}-{}'.format(vendor, suite, architecture),
