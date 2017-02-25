@@ -342,12 +342,13 @@ class Config(_ConfigLike):
         try:
             import distro_info
         except ImportError:
-            pass
+            d['vendors']['debian']['default_worker_suite'] = 'sid'
         else:
             debian = distro_info.DebianDistroInfo()
             ubuntu = distro_info.UbuntuDistroInfo()
             d['vendors']['debian']['default_suite'] = 'sid'
-            d['vendors']['debian']['default_worker_suite'] = debian.testing()
+            d['vendors']['debian']['default_worker_suite'] = (
+                    debian.stable() + '-backports')
             d['vendors']['debian']['suites']['stable'] = {
                     'alias_for': debian.stable(),
             }
@@ -367,7 +368,8 @@ class Config(_ConfigLike):
                 ubuntu_devel = ubuntu.stable()
 
             d['vendors']['ubuntu']['default_suite'] = ubuntu.devel()
-            d['vendors']['ubuntu']['default_worker_suite'] = ubuntu.lts()
+            d['vendors']['ubuntu']['default_worker_suite'] = (
+                    ubuntu.lts() + '-backports')
             d['vendors']['ubuntu']['suites']['devel'] = {
                     'alias_for': ubuntu_devel,
             }

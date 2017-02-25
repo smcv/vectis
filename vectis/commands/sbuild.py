@@ -52,6 +52,7 @@ def _sbuild(buildables, *,
         'DEBIAN_FRONTEND=noninteractive',
         'apt-get',
         '-y',
+        '-t', worker.suite.apt_suite,
         '--no-install-recommends',
         'install',
 

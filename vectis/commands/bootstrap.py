@@ -82,6 +82,7 @@ def run(args):
                     'apt-get',
                     '-y',
                     '--no-install-recommends',
+                    '-t', suite.apt_suite,
                     'install',
 
                     'python3',

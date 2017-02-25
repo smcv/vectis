@@ -57,6 +57,7 @@ def run(args):
             'DEBIAN_FRONTEND=noninteractive',
             'apt-get',
             '-y',
+            '-t', worker_suite.apt_suite,
             '--no-install-recommends',
             'install',
 
@@ -70,6 +71,7 @@ def run(args):
                 'DEBIAN_FRONTEND=noninteractive',
                 'apt-get',
                 '-y',
+                '-t', worker_suite.apt_suite,
                 '--no-install-recommends',
                 'install',
 

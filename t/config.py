@@ -99,9 +99,9 @@ class DefaultsTestCase(unittest.TestCase):
         else:
             self.assertEqual(c.worker_suite,
                     c.vendor.get_suite(
-                        distro_info.DebianDistroInfo().testing()))
+                        distro_info.DebianDistroInfo().stable() + '-backports'))
             self.assertEqual(c.default_worker_suite,
-                        distro_info.DebianDistroInfo().testing())
+                        distro_info.DebianDistroInfo().stable() + '-backports')
 
         jb = c.vendor.get_suite('jessie-apt.buildd.debian.org')
         self.assertEqual(c.sbuild_worker_suite, jb)
@@ -225,8 +225,10 @@ class DefaultsTestCase(unittest.TestCase):
             return
 
         debian_info = distro_info.DebianDistroInfo()
-        self.assertEqual(debian.default_worker_suite, debian_info.testing())
-        self.assertIs(c.worker_suite, debian.get_suite('testing'))
+        self.assertEqual(debian.default_worker_suite,
+                debian_info.stable() + '-backports')
+        self.assertIs(c.worker_suite, debian.get_suite(
+            debian_info.stable() + '-backports'))
 
         self.assertEqual(str(debian.get_suite('unstable')),
                 'sid')
@@ -320,8 +322,8 @@ class DefaultsTestCase(unittest.TestCase):
         except ImportError:
             return
 
-        testing = debian.get_suite('testing')
-        self.assertIs(c.worker_suite, testing)
+        sbp = debian.get_suite('stable-backports')
+        self.assertIs(c.worker_suite, sbp)
 
     def test_debian_buildd(self):
         c = self.__config
@@ -381,8 +383,8 @@ class DefaultsTestCase(unittest.TestCase):
         except ImportError:
             return
 
-        testing = debian.get_suite('testing')
-        self.assertIs(c.worker_suite, testing)
+        sbp = debian.get_suite('stable-backports')
+        self.assertIs(c.worker_suite, sbp)
 
     def test_debian_backports(self):
         try:
@@ -522,12 +524,13 @@ class DefaultsTestCase(unittest.TestCase):
 
         self.assertEqual(str(ubuntu.get_suite('devel')), ubuntu_devel)
         self.assertEqual(ubuntu.default_suite, ubuntu_devel)
-        self.assertEqual(ubuntu.default_worker_suite, ubuntu_info.lts())
+        self.assertEqual(ubuntu.default_worker_suite,
+                ubuntu_info.lts() + '-backports')
 
-        lts = ubuntu.get_suite(ubuntu_info.lts())
-        self.assertEqual(c.worker_suite, lts)
-        self.assertEqual(c.sbuild_worker_suite, lts)
-        self.assertEqual(c.vmdebootstrap_worker_suite, lts)
+        backports = ubuntu.get_suite(ubuntu_info.lts() + '-backports')
+        self.assertEqual(c.worker_suite, backports)
+        self.assertEqual(c.sbuild_worker_suite, backports)
+        self.assertEqual(c.vmdebootstrap_worker_suite, backports)
 
     def test_ubuntu_xenial(self):
         c = self.__config
@@ -580,10 +583,10 @@ class DefaultsTestCase(unittest.TestCase):
             return
 
         ubuntu_info = distro_info.UbuntuDistroInfo()
-        lts = ubuntu.get_suite(ubuntu_info.lts())
-        self.assertIs(c.worker_suite, lts)
-        self.assertIs(c.sbuild_worker_suite, lts)
-        self.assertIs(c.vmdebootstrap_worker_suite, lts)
+        backports = ubuntu.get_suite(ubuntu_info.lts() + '-backports')
+        self.assertIs(c.worker_suite, backports)
+        self.assertIs(c.sbuild_worker_suite, backports)
+        self.assertIs(c.vmdebootstrap_worker_suite, backports)
 
         try:
             ubuntu_devel = ubuntu_info.devel()
@@ -635,10 +638,10 @@ class DefaultsTestCase(unittest.TestCase):
             return
 
         ubuntu_info = distro_info.UbuntuDistroInfo()
-        lts = ubuntu.get_suite(ubuntu_info.lts())
-        self.assertIs(c.worker_suite, lts)
-        self.assertIs(c.sbuild_worker_suite, lts)
-        self.assertIs(c.vmdebootstrap_worker_suite, lts)
+        backports = ubuntu.get_suite(ubuntu_info.lts() + '-backports')
+        self.assertIs(c.worker_suite, backports)
+        self.assertIs(c.sbuild_worker_suite, backports)
+        self.assertIs(c.vmdebootstrap_worker_suite, backports)
 
     def test_unknown_vendor(self):
         c = self.__config
@@ -674,7 +677,7 @@ class DefaultsTestCase(unittest.TestCase):
 
         debian_info = distro_info.DebianDistroInfo()
         self.assertIs(c.worker_suite,
-                debian.get_suite(debian_info.testing()))
+                debian.get_suite(debian_info.stable() + '-backports'))
 
     def tearDown(self):
         pass

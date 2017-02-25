@@ -65,6 +65,7 @@ def run(args):
             'apt-get',
             '-y',
             '--no-install-recommends',
+            '-t', worker_suite.apt_suite,
             'install',
 
             'debootstrap',
@@ -81,6 +82,7 @@ def run(args):
                 'DEBIAN_FRONTEND=noninteractive',
                 'apt-get',
                 '-y',
+                '-t', worker_suite.apt_suite,
                 '--no-install-recommends',
                 'install',
 
