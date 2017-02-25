@@ -44,6 +44,7 @@ class Buildable:
         self._product_prefix = None
         self.arch_wildcards = set()
         self.archs = []
+        self.autopkgtest_failures = []
         self.binary_packages = []
         self.changes_produced = {}
         self.dirname = None

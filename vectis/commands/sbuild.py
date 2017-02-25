@@ -205,7 +205,7 @@ def _autopkgtest(buildables, default_architecture, *,
         logger.info('Testing on architectures: %r', test_architectures)
 
         for architecture in test_architectures:
-            run_autopkgtest(
+            buildable.autopkgtest_failures = run_autopkgtest(
                     architecture=architecture,
                     binaries=buildable.get_debs(),
                     components=components,
@@ -387,3 +387,7 @@ def run(args):
                 buildable,
                 '\n\t'.join(buildable.merged_changes.values()),
                 )
+
+        if buildable.autopkgtest_failures:
+            logger.error('Autopkgtest failures for %s: %s', buildable,
+                    buildable.autopkgtest_failures)

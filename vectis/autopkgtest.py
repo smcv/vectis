@@ -205,7 +205,7 @@ def run_autopkgtest(*,
         mirror=None,
         source_dsc=None,
         source_package=None):
-    all_ok = True
+    failures = []
 
     if lxc_worker is None:
         lxc_worker = worker_argv
@@ -362,6 +362,6 @@ def run_autopkgtest(*,
                     source_dsc=source_dsc,
                     source_package=source_package,
                     ):
-                all_ok = False
+                failures.append(test)
 
-    return all_ok
+    return failures
