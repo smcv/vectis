@@ -78,9 +78,13 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
     def call_autopkgtest(self,
             *,
             binaries,
+            built_binaries,
             source_dsc=None,
             source_package=None):
         argv = self.argv[:]
+
+        if not built_binaries:
+            argv.append('-B')
 
         for b in binaries:
             if b.endswith('.changes'):
@@ -198,6 +202,7 @@ def run_autopkgtest(*,
         vendor,
         architecture=None,
         binaries=(),
+        built_binaries=None,
         extra_repositories=(),
         lxc_24bit_subnet=None,
         lxc_worker=None,
@@ -359,6 +364,7 @@ def run_autopkgtest(*,
 
             if not autopkgtest.call_autopkgtest(
                     binaries=binaries,
+                    built_binaries=built_binaries,
                     source_dsc=source_dsc,
                     source_package=source_package,
                     ):
