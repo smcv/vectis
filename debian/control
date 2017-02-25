@@ -29,6 +29,7 @@ Depends:
 Recommends:
  apt-cacher-ng,
  libvirt-daemon-system,
+ python3-colorlog,
  python3-distro-info,
 Suggests:
  eatmydata,

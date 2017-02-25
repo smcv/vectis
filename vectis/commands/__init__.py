@@ -245,8 +245,22 @@ p.add_argument('--add-deb-build-option', dest='_add_deb_build_option',
         help='Set something in DEB_BUILD_OPTIONS')
 
 def main():
-    logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
+
+    if sys.stderr.isatty():
+        try:
+            import colorlog
+        except ImportError:
+            pass
+        else:
+            formatter = colorlog.ColoredFormatter(
+                '%(log_color)s%(levelname)s:%(name)s:%(reset)s %(message)s')
+            handler = logging.StreamHandler()
+            handler.setFormatter(formatter)
+            logging.getLogger().addHandler(handler)
+
+    # This is a no-op if we already attached a (coloured log) handler
+    logging.basicConfig()
 
     parser.parse_args(namespace=args)
 

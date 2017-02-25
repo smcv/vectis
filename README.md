@@ -32,6 +32,7 @@ Requirements
 * Recommended to have on the host system:
   - apt-cacher-ng
   - libvirt-daemon-system's default virtual network (host is 192.168.122.1)
+  - python3-colorlog
   - python3-distro-info
 
 * In the host system, but only once (to bootstrap an autopkgtest VM):
