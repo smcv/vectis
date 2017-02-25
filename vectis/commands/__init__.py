@@ -6,6 +6,7 @@ import argparse
 import importlib
 import logging
 import subprocess
+import sys
 
 from vectis.config import (Config)
 from vectis.error import (Error)
@@ -243,6 +244,33 @@ p.add_argument('--add-build-profile', dest='_add_build_profile',
 p.add_argument('--add-deb-build-option', dest='_add_deb_build_option',
         action='append', default=[], metavar='OPTION[=VALUE]',
         help='Set something in DEB_BUILD_OPTIONS')
+
+help = 'Run autopkgtest tests'
+p = subparsers.add_parser('autopkgtest',
+        help=help, description=help,
+        argument_default=argparse.SUPPRESS,
+        conflict_handler='resolve',
+        parents=(base,),
+        )
+add_worker_options(p)
+add_worker_options(p, context='lxc')
+p.add_argument('--suite',
+        help='Distribution release suite to be tested '
+            '[default: auto-detect from input]')
+p.add_argument('--extra-repository', action='append', default=[],
+        dest='_extra_repository',
+        help='Add an apt source')
+p.add_argument('--built-binaries', action='store_const', const=True,
+        dest='_built_binaries', default=None,
+        help='Build and install given source package [default: if no '
+            'other binaries given]')
+p.add_argument('--no-built-binaries', '-B', action='store_const', const=False,
+        dest='_built_binaries', default=None,
+        help="Don't build and install given source package [default: if no "
+            'other binaries given]')
+p.add_argument('_things', metavar='CHANGES_OR_DSC_OR_DIR',
+        help='Things to test (source or binary .changes, source .dsc, etc.',
+        nargs='+', default=[])
 
 def main():
     logging.getLogger().setLevel(logging.INFO)
