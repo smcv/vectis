@@ -254,7 +254,7 @@ def run_autopkgtest(*,
 
                 worker = stack.enter_context(
                     VirtWorker(
-                        worker_argv.split(),
+                        worker_argv,
                         suite=worker_suite,
                         ))
 
@@ -315,7 +315,7 @@ def run_autopkgtest(*,
 
                 worker = stack.enter_context(
                     VirtWorker(
-                        lxc_worker.split(),
+                        lxc_worker,
                         suite=lxc_worker_suite,
                         ))
 

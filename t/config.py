@@ -79,12 +79,12 @@ class DefaultsTestCase(unittest.TestCase):
                         XDG_CACHE_HOME, ARCHITECTURE))
             self.assertEqual(c.worker_architecture, ARCHITECTURE)
             self.assertEqual(c.worker,
-                    'qemu {}'.format(c.worker_qemu_image))
+                    ['qemu', c.worker_qemu_image])
             self.assertEqual(c.worker_qemu_image,
                     '{}/vectis/{}/debian/sid/autopkgtest.qcow2'.format(
                         XDG_CACHE_HOME, ARCHITECTURE))
             self.assertEqual(c.sbuild_worker,
-                    'qemu {}'.format(c.sbuild_worker_qemu_image))
+                    ['qemu', c.sbuild_worker_qemu_image])
             self.assertEqual(c.sbuild_worker_qemu_image,
                     '{}/vectis/{}/debian/sid/autopkgtest.qcow2'.format(
                         XDG_CACHE_HOME, ARCHITECTURE))
@@ -144,8 +144,8 @@ class DefaultsTestCase(unittest.TestCase):
                 '{}/m68k/debian/sarge/autopkgtest.qcow2'.format(
                     c.storage))
         self.assertEqual(c.worker,
-                'qemu {}/m68k/debian/sarge/autopkgtest.qcow2'.format(
-                    c.storage))
+                ['qemu', '{}/m68k/debian/sarge/autopkgtest.qcow2'.format(
+                    c.storage)])
 
         self.assertEqual(c.sbuild_worker_qemu_image,
                 '{}/m68k/steamos/alchemist/autopkgtest.qcow2'.format(

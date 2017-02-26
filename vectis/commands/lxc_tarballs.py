@@ -43,7 +43,8 @@ def run(args):
             )
     logger.info('Creating tarballs %s, %s...', rootfs_tarball, meta_tarball)
 
-    with VirtWorker(worker_argv.split(),
+    with VirtWorker(
+            worker_argv,
             suite=worker_suite,
             ) as worker:
         logger.info('Installing debootstrap etc.')

@@ -315,7 +315,9 @@ class SchrootWorker(ContainerWorker, InteractiveWorker):
             ] + list(argv), **kwargs)
 
 class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
-    def __init__(self, argv,
+    def __init__(
+            self,
+            argv,
             components=(),
             extra_repositories=(),
             mirror=None,

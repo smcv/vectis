@@ -704,7 +704,7 @@ class Config(_ConfigLike):
         value = self['worker']
 
         if value is None:
-            value = 'qemu ' + self.worker_qemu_image
+            value = ['qemu', self.worker_qemu_image]
 
         return value
 
@@ -713,7 +713,7 @@ class Config(_ConfigLike):
         value = self['lxc_worker']
 
         if value is None:
-            value = 'qemu ' + self.lxc_worker_qemu_image
+            value = ['qemu', self.lxc_worker_qemu_image]
 
         return value
 
@@ -722,7 +722,7 @@ class Config(_ConfigLike):
         value = self['sbuild_worker']
 
         if value is None:
-            value = 'qemu ' + self.sbuild_worker_qemu_image
+            value = ['qemu', self.sbuild_worker_qemu_image]
 
         return value
 
@@ -747,7 +747,7 @@ class Config(_ConfigLike):
         value = self['vmdebootstrap_worker']
 
         if value is None:
-            value = 'qemu ' + self.vmdebootstrap_worker_qemu_image
+            value = ['qemu', self.vmdebootstrap_worker_qemu_image]
 
         return value
 

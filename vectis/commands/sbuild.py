@@ -338,7 +338,8 @@ def run(args):
                     raise ArgumentError('mirror or apt_cacher_ng must be '
                             'configured for {}'.format(ancestor))
 
-    with VirtWorker(args.sbuild_worker.split(),
+    with VirtWorker(
+            args.sbuild_worker,
             suite=args.sbuild_worker_suite,
             ) as worker:
         default_architecture = worker.dpkg_architecture

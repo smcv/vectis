@@ -105,7 +105,8 @@ def new(*,
                 raise ArgumentError('mirror or apt_cacher_ng must be '
                         'configured for {}'.format(ancestor))
 
-    with VirtWorker(vmdebootstrap_worker.split(),
+    with VirtWorker(
+            vmdebootstrap_worker,
             suite=vmdebootstrap_worker_suite,
             ) as worker:
         worker.check_call([
@@ -262,7 +263,8 @@ def run(args):
                 )
 
     try:
-        with VirtWorker(['qemu', created],
+        with VirtWorker(
+                ['qemu', created],
                 suite=suite,
                 ) as worker:
             worker.set_up_apt()
