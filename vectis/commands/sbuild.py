@@ -33,7 +33,6 @@ def _sbuild(buildables, *,
         archs,
         components,
         indep,
-        output_builds,
         profiles,
         rebuild_source,
         source_only,
@@ -66,14 +65,14 @@ def _sbuild(buildables, *,
 
         buildable.copy_source_to(worker)
 
-        def new_build(arch, output_builds=output_builds):
+        def new_build(arch, output_builds=buildable.output_builds):
             return Build(buildable, arch, worker,
                     components=components,
                     deb_build_options=deb_build_options,
                     dpkg_buildpackage_options=dpkg_buildpackage_options,
                     dpkg_source_options=dpkg_source_options,
                     extra_repositories=extra_repositories,
-                    output_builds=output_builds,
+                    output_builds=buildable.output_builds,
                     profiles=profiles,
                     storage=storage,
                     )
@@ -99,7 +98,7 @@ def _sbuild(buildables, *,
                 new_build(arch).sbuild()
 
         if buildable.sourceful_changes_name:
-            c = os.path.join(output_builds,
+            c = os.path.join(buildable.output_builds,
                     '{}_source.changes'.format(buildable.product_prefix))
             if 'source' not in buildable.changes_produced:
                 with AtomicWriter(c) as writer:
@@ -115,7 +114,7 @@ def _sbuild(buildables, *,
 
         if ('all' in buildable.changes_produced and
                 'source' in buildable.merged_changes):
-            c = os.path.join(output_builds,
+            c = os.path.join(buildable.output_builds,
                     '{}_source+all.changes'.format(buildable.product_prefix))
             buildable.merged_changes['source+all'] = c
             with AtomicWriter(c) as writer:
@@ -135,7 +134,7 @@ def _sbuild(buildables, *,
             if v == buildable.sourceful_changes_name:
                 binary_group = 'source+binary'
 
-        c = os.path.join(output_builds,
+        c = os.path.join(buildable.output_builds,
                 '{}_{}.changes'.format(buildable.product_prefix,
                     binary_group))
 
@@ -151,7 +150,7 @@ def _sbuild(buildables, *,
 
         if ('source' in buildable.merged_changes and
                 'binary' in buildable.merged_changes):
-            c = os.path.join(output_builds,
+            c = os.path.join(buildable.output_builds,
                     '{}_source+binary.changes'.format(buildable.product_prefix))
             buildable.merged_changes['source+binary'] = c
 
@@ -206,7 +205,7 @@ def _autopkgtest(buildables, default_architecture, *,
         logger.info('Testing on architectures: %r', test_architectures)
 
         for architecture in test_architectures:
-            buildable.autopkgtest_failures = run_autopkgtest(
+            buildable.autopkgtest_failures.extend(run_autopkgtest(
                     architecture=architecture,
                     binaries=buildable.get_debs(architecture),
                     components=components,
@@ -216,6 +215,7 @@ def _autopkgtest(buildables, default_architecture, *,
                     lxc_worker_suite=lxc_worker_suite,
                     mirror=mirror,
                     modes=modes,
+                    output_logs=buildable.output_builds,
                     source_dsc=source_dsc,
                     source_package=source_package,
                     storage=storage,
@@ -223,7 +223,7 @@ def _autopkgtest(buildables, default_architecture, *,
                     vendor=vendor,
                     worker_argv=worker_argv,
                     worker_suite=worker_suite,
-                    )
+                    ))
 
 def _summarize(buildables):
     for buildable in buildables:
@@ -247,7 +247,7 @@ def _lintian(buildables):
 
                 break
 
-def _publish(buildables, output_builds,
+def _publish(buildables,
         reprepro_dir, default_reprepro_suite=None):
     for buildable in buildables:
         for x in 'source+binary', 'binary', 'source':
@@ -264,7 +264,7 @@ def _publish(buildables, output_builds,
                     '--ignore=missingfile',
                     '-b', reprepro_dir, 'include',
                     str(reprepro_suite),
-                    os.path.join(output_builds,
+                    os.path.join(buildable.output_builds,
                         buildable.merged_changes[x])])
                 break
 
@@ -326,7 +326,7 @@ def run(args):
     buildables = []
 
     for a in (args._buildables or ['.']):
-        buildable = Buildable(a, vendor=vendor)
+        buildable = Buildable(a, output_builds=output_builds, vendor=vendor)
         buildable.select_suite(args.suite)
         buildables.append(buildable)
 
@@ -351,7 +351,6 @@ def run(args):
                 dpkg_source_options=ds_options,
                 extra_repositories=args._extra_repository,
                 indep=args._indep,
-                output_builds=output_builds,
                 profiles=profiles,
                 rebuild_source=args._rebuild_source,
                 source_only=args._source_only,
@@ -378,8 +377,7 @@ def run(args):
     _lintian(buildables)
 
     if args._reprepro_dir:
-        _publish(buildables, args.output_builds, args._reprepro_dir,
-                args._reprepro_suite)
+        _publish(buildables, args._reprepro_dir, args._reprepro_suite)
 
     # We print these separately, right at the end, so that if you built more
     # than one thing, the last screenful of information is the really
@@ -391,5 +389,6 @@ def run(args):
                 )
 
         if buildable.autopkgtest_failures:
-            logger.error('Autopkgtest failures for %s: %s', buildable,
-                    buildable.autopkgtest_failures)
+            logger.error('Autopkgtest failures for %s:', buildable)
+            for x in buildable.autopkgtest_failures:
+                logger.error('- %s', x)

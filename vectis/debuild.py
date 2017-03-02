@@ -38,7 +38,7 @@ from vectis.worker import (
 logger = logging.getLogger(__name__)
 
 class Buildable:
-    def __init__(self, buildable, *, vendor):
+    def __init__(self, buildable, *, output_builds, vendor):
         self.buildable = buildable
 
         self._product_prefix = None
@@ -54,6 +54,7 @@ class Buildable:
         self.logs = {}
         self.merged_changes = OrderedDict()
         self.nominal_suite = None
+        self.output_builds = None
         self.source_from_archive = False
         self.source_package = None
         self.sourceful_changes_name = None
@@ -135,6 +136,20 @@ class Buildable:
             self.arch_wildcards = set(self.dsc['architecture'].split())
             self.binary_packages = [p.strip()
                     for p in self.dsc['binary'].split(',')]
+
+        timestamp = time.strftime('%Y%m%dt%H%M%S', time.gmtime())
+
+        if self._version is None:
+            dirname = '{}_{}'.format(self.source_package, timestamp)
+        else:
+            dirname = '{}_{}_{}'.format(
+                    self.source_package,
+                    self._version,
+                    timestamp)
+
+        self.output_builds = os.path.join(output_builds, dirname)
+        # If someone already created this, we'll just crash out.
+        os.mkdir(self.output_builds)
 
     @property
     def product_prefix(self):

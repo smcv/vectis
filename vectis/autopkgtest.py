@@ -79,12 +79,17 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
             *,
             binaries,
             built_binaries,
+            output_dir=None,
             source_dsc=None,
             source_package=None):
         argv = self.argv[:]
 
         if not built_binaries:
             argv.append('-B')
+
+        if output_dir is not None:
+            argv.append('-o')
+            argv.append(output_dir)
 
         for b in binaries:
             if b.endswith('.changes'):
@@ -200,6 +205,7 @@ def run_autopkgtest(*,
         lxc_worker=None,
         lxc_worker_suite=None,
         mirror=None,
+        output_logs=None,
         source_dsc=None,
         source_package=None):
     failures = []
@@ -216,6 +222,13 @@ def run_autopkgtest(*,
         logger.info('Testing in mode: %s', test)
         with ExitStack() as stack:
             worker = None
+
+            if output_logs is None:
+                output_dir = None
+            else:
+                output_dir = os.path.join(
+                        output_logs,
+                        'autopkgtest_{}_{}'.format(test, architecture))
 
             if test == 'qemu':
                 image = os.path.join(
@@ -359,9 +372,13 @@ def run_autopkgtest(*,
             if not autopkgtest.call_autopkgtest(
                     binaries=binaries,
                     built_binaries=built_binaries,
+                    output_dir=output_dir,
                     source_dsc=source_dsc,
                     source_package=source_package,
                     ):
-                failures.append(test)
+                if output_dir is None:
+                    failures.append(test)
+                else:
+                    failures.append(output_dir)
 
     return failures
