@@ -294,14 +294,15 @@ class Buildable:
     def __str__(self):
         return self.buildable
 
-    def get_debs(self):
+    def get_debs(self, architecture):
         ret = set()
 
         for k, v in self.merged_changes.items():
             changes = Changes(open(v))
 
             for f in changes['files']:
-                if f['name'].endswith('.deb'):
+                if (f['name'].endswith('_{}.deb'.format(architecture)) or
+                        f['name'].endswith('_all.deb')):
                     assert '/' not in f['name']
                     ret.add(os.path.join(os.path.dirname(v), f['name']))
 

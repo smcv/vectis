@@ -208,7 +208,7 @@ def _autopkgtest(buildables, default_architecture, *,
         for architecture in test_architectures:
             buildable.autopkgtest_failures = run_autopkgtest(
                     architecture=architecture,
-                    binaries=buildable.get_debs(),
+                    binaries=buildable.get_debs(architecture),
                     components=components,
                     extra_repositories=extra_repositories,
                     lxc_24bit_subnet=lxc_24bit_subnet,
