@@ -10,6 +10,7 @@ import time
 from collections import (
         OrderedDict,
         )
+from contextlib import suppress
 from tempfile import TemporaryDirectory
 
 from debian.changelog import (
@@ -150,6 +151,17 @@ class Buildable:
         self.output_builds = os.path.join(output_builds, dirname)
         # If someone already created this, we'll just crash out.
         os.mkdir(self.output_builds)
+
+        if self.dsc is not None:
+            abs_file = os.path.abspath(self.dsc_name)
+            abs_dir, base = os.path.split(abs_file)
+            os.symlink(abs_file, os.path.join(self.output_builds, base))
+
+            for f in self.dsc['files']:
+                abs_file = os.path.join(abs_dir, f['name'])
+                os.symlink(
+                        abs_file,
+                        os.path.join(self.output_builds, f['name']))
 
     @property
     def product_prefix(self):
@@ -659,6 +671,8 @@ class Build:
                     '{}/in/{}_source/'.format(self.worker.scratch,
                         self.buildable.product_prefix)])
 
+        dsc = None
+
         for f in changes_out['files']:
             assert '/' not in f['name']
             assert not f['name'].startswith('.')
@@ -667,7 +681,31 @@ class Build:
                     f['name'])
             product = '{}/out/{}'.format(self.worker.scratch, f['name'])
             copied_back = os.path.join(self.output_builds, f['name'])
+
+            with suppress(FileNotFoundError):
+                os.unlink(copied_back)
+
             self.worker.copy_to_host(product, copied_back)
 
-            if f['name'].endswith('.dsc') and self.buildable.dsc is None:
-                self.buildable.dsc = Dsc(open(copied_back))
+            if f['name'].endswith('.dsc'):
+                dsc = Dsc(open(copied_back))
+
+        if dsc is not None:
+            if self.buildable.dsc is None:
+                self.buildable.dsc = dsc
+
+            for f in dsc['files']:
+                # The orig.tar.* might not have come back. Copy that too,
+                # if necessary.
+                assert '/' not in f['name']
+                assert not f['name'].startswith('.')
+
+                product = '{}/out/{}'.format(self.worker.scratch, f['name'])
+                copied_back = os.path.join(self.output_builds, f['name'])
+
+                if os.path.exists(copied_back):
+                    continue
+
+                logger.info('Additionally copying %s back to host...',
+                        f['name'])
+                self.worker.copy_to_host(product, copied_back)
