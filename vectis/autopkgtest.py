@@ -128,25 +128,17 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
         self.argv.append('--setup-commands=mkdir {}'.format(shlex.quote(d)))
         return d
 
-    def make_file_available(self, filename, unique=None, ext=None,
-            cache=False):
+    def make_file_available(self, filename, cache=False):
         if cache:
             in_guest = self.__cached_copies.get(filename)
             if in_guest is not None:
                 return in_guest
 
-        if unique is None:
-            unique = str(uuid.uuid4())
+        unique = str(uuid.uuid4())
+        filename = self.worker.make_file_available(filename, cache=cache)
 
-        if ext is None:
-            basename, ext = os.path.splitext(filename)
-
-            if basename.endswith('.tar'):
-                ext = '.tar' + ext
-
-        filename = self.worker.make_file_available(filename,
-                unique, ext, cache=cache)
-        in_autopkgtest = '/tmp/{}{}'.format(unique, ext)
+        in_autopkgtest = '/tmp/{}/{}'.format(unique,
+                os.path.basename(filename))
         self.argv.append('--copy={}:{}'.format(filename, in_autopkgtest))
 
         if cache:
