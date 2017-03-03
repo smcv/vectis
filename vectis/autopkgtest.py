@@ -368,8 +368,8 @@ def run_autopkgtest(*,
                     extra_repositories=extra_repositories,
                     mirror=mirror,
                     suite=suite,
-                    worker=worker,
                     virt=virt,
+                    worker=worker,
                     ))
 
             if not autopkgtest.call_autopkgtest(
