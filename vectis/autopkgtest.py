@@ -352,6 +352,19 @@ def run_autopkgtest(*,
                 worker.check_call(['mv', '/var/lib/lxc/vectis-new',
                     '/var/lib/lxc/{}'.format(container)])
 
+                # Make sure the container has an ordinary user to run tests;
+                # autopkgtest auto-detects 'nobody' which doesn't have a
+                # real home directory
+                worker.check_call([
+                    'chroot',
+                    '/var/lib/lxc/{}/rootfs'.format(container),
+                    'sh', '-c',
+                        'if ! getent passwd user >/dev/null; then '
+                            'apt-get -y install adduser && '
+                            'adduser --disabled-password --shell=/bin/sh user '
+                                '</dev/null; '
+                        'fi'])
+
                 output_on_worker = worker.new_directory()
                 virt = ['lxc', container]
 
