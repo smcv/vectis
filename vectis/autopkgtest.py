@@ -242,6 +242,7 @@ def run_autopkgtest(*,
                     logger.info('Required image %s does not exist', image)
                     continue
 
+                output_on_worker = output_dir
                 virt = ['qemu', image]
 
             elif test == 'schroot':
@@ -292,6 +293,7 @@ def run_autopkgtest(*,
                     worker.copy_to_guest(os.path.join(tmp, 'sbuild.conf'),
                             '/etc/schroot/chroot.d/autopkgtest')
 
+                output_on_worker = worker.new_directory()
                 virt = ['schroot', 'autopkgtest']
 
             elif test == 'lxc':
@@ -350,6 +352,7 @@ def run_autopkgtest(*,
                 worker.check_call(['mv', '/var/lib/lxc/vectis-new',
                     '/var/lib/lxc/{}'.format(container)])
 
+                output_on_worker = worker.new_directory()
                 virt = ['lxc', container]
 
             else:
@@ -372,7 +375,7 @@ def run_autopkgtest(*,
             if not autopkgtest.call_autopkgtest(
                     binaries=binaries,
                     built_binaries=built_binaries,
-                    output_dir=output_dir,
+                    output_dir=output_on_worker,
                     source_dsc=source_dsc,
                     source_package=source_package,
                     ):
@@ -380,5 +383,10 @@ def run_autopkgtest(*,
                     failures.append(test)
                 else:
                     failures.append(output_dir)
+
+            if output_dir != output_on_worker:
+                worker.copy_to_host(
+                        os.path.join(output_on_worker, ''),
+                        os.path.join(output_dir, ''))
 
     return failures
