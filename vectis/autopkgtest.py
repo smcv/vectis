@@ -80,6 +80,7 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
             binaries,
             built_binaries,
             output_dir=None,
+            run_as=None,
             source_dsc=None,
             source_package=None):
         argv = self.argv[:]
@@ -93,12 +94,15 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
 
         for b in binaries:
             if b.endswith('.changes'):
-                argv.append(self.worker.make_changes_file_available(b))
+                argv.append(self.worker.make_changes_file_available(
+                    b, owner=run_as))
             else:
-                argv.append(self.worker.make_file_available(b))
+                argv.append(self.worker.make_file_available(b,
+                    owner=run_as))
 
         if source_dsc is not None:
-            argv.append(self.worker.make_dsc_file_available(source_dsc))
+            argv.append(self.worker.make_dsc_file_available(source_dsc,
+                owner=run_as))
         elif source_package is not None:
             argv.append(source_package)
         else:
@@ -107,7 +111,12 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
 
         argv.append('--')
         argv.extend(self.virt)
+
+        if run_as is not None:
+            argv = ['runuser', '-u', run_as, '--'] + argv
+
         status = self.worker.call(argv)
+
         if status == 0:
             logger.info('autopkgtests passed')
             return True
@@ -133,7 +142,7 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
         self.argv.append('--setup-commands=mkdir {}'.format(shlex.quote(d)))
         return d
 
-    def make_file_available(self, filename, cache=False):
+    def make_file_available(self, filename, cache=False, owner=None):
         if cache:
             in_guest = self.__cached_copies.get(filename)
             if in_guest is not None:
@@ -151,7 +160,7 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
 
         return in_autopkgtest
 
-    def make_dsc_file_available(self, filename):
+    def make_dsc_file_available(self, filename, owner=None):
         d = os.path.dirname(filename)
 
         with open(filename) as reader:
@@ -168,7 +177,7 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
 
         return '{}/{}'.format(to, os.path.basename(filename))
 
-    def make_changes_file_available(self, filename):
+    def make_changes_file_available(self, filename, owner=None):
         d = os.path.dirname(filename)
 
         with open(filename) as reader:
@@ -221,6 +230,7 @@ def run_autopkgtest(*,
     for test in modes:
         logger.info('Testing in mode: %s', test)
         with ExitStack() as stack:
+            run_as = None
             worker = None
 
             if output_logs is None:
@@ -284,16 +294,20 @@ def run_autopkgtest(*,
                         type=file
                         description=Test
                         file={tarball}
-                        groups=root,sbuild
-                        root-groups=root,sbuild
+                        groups=root,{user}
+                        root-groups=root,{user}
                         profile=default
                         ''').format(
                             tarball=worker.make_file_available(tarball,
-                                cache=True)))
+                                cache=True),
+                            user=worker.user,
+                            ))
                     worker.copy_to_guest(os.path.join(tmp, 'sbuild.conf'),
                             '/etc/schroot/chroot.d/autopkgtest')
 
                 output_on_worker = worker.new_directory()
+                worker.check_call(['chown', worker.user, output_on_worker])
+                run_as = worker.user
                 virt = ['schroot', 'autopkgtest']
 
             elif test == 'lxc':
@@ -389,6 +403,7 @@ def run_autopkgtest(*,
                     binaries=binaries,
                     built_binaries=built_binaries,
                     output_dir=output_on_worker,
+                    run_as=run_as,
                     source_dsc=source_dsc,
                     source_package=source_package,
                     ):

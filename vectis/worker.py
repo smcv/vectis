@@ -115,7 +115,7 @@ class ContainerWorker(BaseWorker, metaclass=ABCMeta):
 
 class FileProvider(BaseWorker, metaclass=ABCMeta):
     @abstractmethod
-    def make_file_available(self, filename, cache=False):
+    def make_file_available(self, filename, *, cache=False, owner=None):
         raise NotImplementedError
 
     @abstractmethod
@@ -123,11 +123,11 @@ class FileProvider(BaseWorker, metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def make_changes_file_available(self, filename):
+    def make_changes_file_available(self, filename, owner=None):
         raise NotImplementedError
 
     @abstractmethod
-    def make_dsc_file_available(self, filename):
+    def make_dsc_file_available(self, filename, owner=None):
         raise NotImplementedError
 
 class InteractiveWorker(BaseWorker, metaclass=ABCMeta):
@@ -173,7 +173,7 @@ class HostWorker(InteractiveWorker, FileProvider):
         logger.info('%r: %r', self, argv)
         return subprocess.check_output(argv, **kwargs)
 
-    def make_file_available(self, filename, cache=False):
+    def make_file_available(self, filename, *, cache=False, owner=None):
         return filename
 
     def new_directory(self, prefix=''):
@@ -183,10 +183,10 @@ class HostWorker(InteractiveWorker, FileProvider):
         return self.stack.enter_context(self,
                 TemporaryDirectory(prefix=prefix))
 
-    def make_dsc_file_available(self, filename):
+    def make_dsc_file_available(self, filename, owner=None):
          return filename
 
-    def make_changes_file_available(self, filename):
+    def make_changes_file_available(self, filename, owner=None):
          return filename
 
 class SchrootWorker(ContainerWorker, InteractiveWorker):
@@ -503,7 +503,7 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
                 '/etc/apt/trusted.gpg.d/{}-{}'.format(
                     uuid.uuid4(), os.path.basename(apt_key)))
 
-    def make_file_available(self, filename, cache=False):
+    def make_file_available(self, filename, *, cache=False, owner=None):
         if cache:
             in_guest = self.__cached_copies.get(filename)
             if in_guest is not None:
@@ -515,44 +515,58 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
         self.check_call(['mkdir', '{}/{}'.format(self.scratch,
             unique)])
         self.copy_to_guest(filename, in_guest)
+
+        if owner is not None:
+            self.check_call(['chown', owner,
+                '{}/{}'.format(self.scratch, unique),
+                in_guest])
+
         return in_guest
 
     def new_directory(self, prefix=''):
         if not prefix:
             prefix = 'vectis-'
 
-        return self.check_output(['mktemp', '-d',
+        d = self.check_output(['mktemp', '-d',
             '--tmpdir={}'.format(self.scratch),
             prefix + 'XXXXXXXXXX'], universal_newlines=True).rstrip('\n')
+        self.check_call(['chmod', '0755', d])
+        return d
 
-    def make_dsc_file_available(self, filename):
+    def make_dsc_file_available(self, filename, owner=None):
         d = os.path.dirname(filename)
 
         with open(filename) as reader:
             dsc = Dsc(reader)
 
         to = self.new_directory()
-        self.copy_to_guest(filename,
-                '{}/{}'.format(to, os.path.basename(filename)))
+        files = [to, '{}/{}'.format(to, os.path.basename(filename))]
+        self.copy_to_guest(filename, files[-1])
 
         for f in dsc['files']:
-            self.copy_to_guest(os.path.join(d, f['name']),
-                    '{}/{}'.format(to, f['name']))
+            files.append('{}/{}'.format(to, f['name']))
+            self.copy_to_guest(os.path.join(d, f['name']), files[-1])
 
-        return '{}/{}'.format(to, os.path.basename(filename))
+        if owner is not None:
+            self.check_call(['chown', owner] + files)
 
-    def make_changes_file_available(self, filename):
+        return files[1]
+
+    def make_changes_file_available(self, filename, owner=None):
         d = os.path.dirname(filename)
 
         with open(filename) as reader:
             changes = Changes(reader)
 
         to = self.new_directory()
-        self.copy_to_guest(filename,
-                '{}/{}'.format(to, os.path.basename(filename)))
+        files = [to, '{}/{}'.format(to, os.path.basename(filename))]
+        self.copy_to_guest(filename, files[-1])
 
         for f in changes['files']:
-            self.copy_to_guest(os.path.join(d, f['name']),
-                    '{}/{}'.format(to, f['name']))
+            files.append('{}/{}'.format(to, f['name']))
+            self.copy_to_guest(os.path.join(d, f['name']), files[-1])
 
-        return '{}/{}'.format(to, os.path.basename(filename))
+        if owner is not None:
+            self.check_call(['chown', owner] + files)
+
+        return files[1]
