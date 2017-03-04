@@ -90,7 +90,8 @@ def _sbuild(buildables, *,
             # TODO: With jessie's sbuild, this doesn't work for
             # sources that only build Architecture: all binaries.
             new_build('source').sbuild()
-        else:
+
+        if not source_only:
             buildable.select_archs(worker.dpkg_architecture, archs, indep,
                     together)
 
