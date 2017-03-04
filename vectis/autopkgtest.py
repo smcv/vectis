@@ -412,7 +412,7 @@ def run_autopkgtest(*,
                 else:
                     failures.append(output_dir)
 
-            if output_dir != output_on_worker:
+            if output_dir is not None and output_dir != output_on_worker:
                 worker.copy_to_host(
                         os.path.join(output_on_worker, ''),
                         os.path.join(output_dir, ''))
