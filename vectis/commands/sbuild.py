@@ -392,3 +392,9 @@ def run(args):
             logger.error('Autopkgtest failures for %s:', buildable)
             for x in buildable.autopkgtest_failures:
                 logger.error('- %s', x)
+
+    for buildable in buildables:
+        logger.info('Output directory for %s: %s',
+                buildable,
+                buildable.output_builds,
+                )
