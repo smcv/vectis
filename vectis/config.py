@@ -10,6 +10,7 @@ from vectis.error import Error
 
 import yaml
 
+
 class ConfigError(Error):
     pass
 
@@ -17,10 +18,14 @@ HOME = os.path.expanduser('~')
 XDG_CACHE_HOME = os.getenv('XDG_CACHE_HOME', os.path.expanduser('~/.cache'))
 XDG_CONFIG_HOME = os.getenv('XDG_CONFIG_HOME', os.path.expanduser('~/.config'))
 XDG_CONFIG_DIRS = os.getenv('XDG_CONFIG_DIRS', '/etc/xdg')
-XDG_DATA_HOME = os.getenv('XDG_DATA_HOME', os.path.expanduser('~/.local/share'))
-XDG_DATA_DIRS = os.getenv('XDG_DATA_DIRS', os.path.expanduser('~/.local/share'))
+XDG_DATA_HOME = os.getenv(
+    'XDG_DATA_HOME', os.path.expanduser('~/.local/share'))
+XDG_DATA_DIRS = os.getenv(
+    'XDG_DATA_DIRS', os.path.expanduser('~/.local/share'))
+
 
 class _ConfigLike:
+
     def __init__(self):
         self._raw = None
 
@@ -71,7 +76,9 @@ class _ConfigLike:
     def apt_cacher_ng(self):
         return self['apt_cacher_ng']
 
+
 class Vendor(_ConfigLike):
+
     def __init__(self, name, raw):
         super(Vendor, self).__init__()
         self._name = name
@@ -88,8 +95,8 @@ class Vendor(_ConfigLike):
 
                 if (not suite.startswith('*-') or
                         '*' in suite[2:]):
-                    raise ConfigError('Suite wildcards must be of the '
-                            'form *-something')
+                    raise ConfigError(
+                        'Suite wildcards must be of the form *-something')
 
     @property
     def vendor(self):
@@ -135,8 +142,8 @@ class Vendor(_ConfigLike):
 
             name = raw['alias_for']
             if name in aliases:
-                raise ConfigError('{!r}/{!r} is an alias for '
-                        'itself'.format(self, name))
+                raise ConfigError(
+                    '{!r}/{!r} is an alias for itself'.format(self, name))
             aliases.add(name)
             continue
 
@@ -194,7 +201,9 @@ class Vendor(_ConfigLike):
         # variables etc.
         raise AssertionError('Not reached')
 
+
 class Suite(_ConfigLike):
+
     def __init__(self, name, vendor, raw, base=None, pattern=None):
         super(Suite, self).__init__()
         self._name = name
@@ -286,7 +295,9 @@ class Suite(_ConfigLike):
 
         return suite
 
+
 class Directory(_ConfigLike):
+
     def __init__(self, path, raw):
         super(Directory, self).__init__()
         self._path = path
@@ -318,7 +329,9 @@ class Directory(_ConfigLike):
         else:
             return True
 
+
 class Config(_ConfigLike):
+
     def __init__(self, config_layers=(), current_directory=None):
         super(Config, self).__init__()
 
@@ -326,15 +339,15 @@ class Config(_ConfigLike):
         self._overrides = {}
         self._relevant_directory = None
 
-        d = yaml.safe_load(open(os.path.join(os.path.dirname(__file__),
-            'defaults.yaml')))
+        d = yaml.safe_load(
+            open(os.path.join(os.path.dirname(__file__), 'defaults.yaml')))
 
         # Some things can have better defaults that can't be hard-coded
         d['defaults']['parallel'] = str(os.cpu_count())
 
         try:
             d['defaults']['architecture'] = subprocess.check_output(
-                    ['dpkg', '--print-architecture'],
+                ['dpkg', '--print-architecture'],
                     universal_newlines=True).strip()
         except subprocess.CalledProcessError:
             pass
@@ -348,15 +361,15 @@ class Config(_ConfigLike):
             ubuntu = distro_info.UbuntuDistroInfo()
             d['vendors']['debian']['default_suite'] = 'sid'
             d['vendors']['debian']['default_worker_suite'] = (
-                    debian.stable() + '-backports')
+                debian.stable() + '-backports')
             d['vendors']['debian']['suites']['stable'] = {
-                    'alias_for': debian.stable(),
+                'alias_for': debian.stable(),
             }
             d['vendors']['debian']['suites']['testing'] = {
-                    'alias_for': debian.testing(),
+                'alias_for': debian.testing(),
             }
             d['vendors']['debian']['suites']['oldstable'] = {
-                    'alias_for': debian.old(),
+                'alias_for': debian.old(),
             }
 
             # According to autopkgtest-buildvm-ubuntu-cloud, just after
@@ -369,9 +382,9 @@ class Config(_ConfigLike):
 
             d['vendors']['ubuntu']['default_suite'] = ubuntu.devel()
             d['vendors']['ubuntu']['default_worker_suite'] = (
-                    ubuntu.lts() + '-backports')
+                ubuntu.lts() + '-backports')
             d['vendors']['ubuntu']['suites']['devel'] = {
-                    'alias_for': ubuntu_devel,
+                'alias_for': ubuntu_devel,
             }
 
             for suite in debian.all:
@@ -401,8 +414,9 @@ class Config(_ConfigLike):
                     raw = yaml.safe_load(reader)
 
                     if not isinstance(raw, dict):
-                        raise ConfigError('Reading {!r} did not yield a '
-                                'dict'.format(conffile))
+                        raise ConfigError(
+                            'Reading {!r} did not yield a dict'.format(
+                                conffile))
 
                     self._raw.insert(0, raw)
 
@@ -457,8 +471,9 @@ class Config(_ConfigLike):
         if isinstance(value, bool):
             return value
 
-        raise ConfigError('Invalid value for {!r}: {!r} is not a boolean '
-                'value'.format(name, value))
+        raise ConfigError(
+            'Invalid value for {!r}: {!r} is not a boolean value'.format(
+                name, value))
 
     def _get_mandatory_string(self, name):
         value = self[name]
@@ -466,8 +481,9 @@ class Config(_ConfigLike):
         if isinstance(value, str):
             return value
 
-        raise ConfigError('{!r} key {!r} has no default and must be '
-                'configured'.format(self, name))
+        raise ConfigError(
+            '{!r} key {!r} has no default and must be configured'.format(
+                self, name))
 
     def __getattr__(self, name):
         try:
@@ -477,8 +493,8 @@ class Config(_ConfigLike):
 
     @property
     def storage(self):
-        return self._get_filename('storage',
-                os.path.join(XDG_CACHE_HOME, 'vectis'))
+        return self._get_filename(
+            'storage', os.path.join(XDG_CACHE_HOME, 'vectis'))
 
     @property
     def output_builds(self):
@@ -497,7 +513,7 @@ class Config(_ConfigLike):
         mapping = self['kernel_package']
 
         if not isinstance(mapping, dict):
-            mapping = { None: mapping }
+            mapping = {None: mapping}
 
         value = mapping.get(architecture)
 
@@ -631,8 +647,9 @@ class Config(_ConfigLike):
         assert value is not None
 
         if '/' not in value:
-            return os.path.join(self.storage, self.architecture,
-                    str(self.vendor), str(self.suite.hierarchy[-1]), value)
+            return os.path.join(
+                self.storage, self.architecture, str(self.vendor),
+                str(self.suite.hierarchy[-1]), value)
 
         return value
 
@@ -646,9 +663,10 @@ class Config(_ConfigLike):
         assert value is not None
 
         if '/' not in value:
-            return os.path.join(self.storage, self.worker_architecture,
-                    str(self.worker_vendor),
-                    str(self.worker_suite.hierarchy[-1]), value)
+            return os.path.join(
+                self.storage, self.worker_architecture,
+                str(self.worker_vendor),
+                str(self.worker_suite.hierarchy[-1]), value)
 
         return value
 
@@ -662,10 +680,10 @@ class Config(_ConfigLike):
         assert value is not None
 
         if '/' not in value:
-            return os.path.join(self.storage, self.worker_architecture,
-                    str(self.lxc_worker_vendor),
-                    str(self.lxc_worker_suite.hierarchy[-1]),
-                    value)
+            return os.path.join(
+                self.storage, self.worker_architecture,
+                str(self.lxc_worker_vendor),
+                str(self.lxc_worker_suite.hierarchy[-1]), value)
 
         return value
 
@@ -679,10 +697,10 @@ class Config(_ConfigLike):
         assert value is not None
 
         if '/' not in value:
-            return os.path.join(self.storage, self.worker_architecture,
-                    str(self.sbuild_worker_vendor),
-                    str(self.sbuild_worker_suite.hierarchy[-1]),
-                    value)
+            return os.path.join(
+                self.storage, self.worker_architecture,
+                str(self.sbuild_worker_vendor),
+                str(self.sbuild_worker_suite.hierarchy[-1]), value)
 
         return value
 
@@ -694,8 +712,9 @@ class Config(_ConfigLike):
             value = self['qemu_image']
 
         if '/' not in value:
-            return os.path.join(self.storage, self.architecture,
-                    str(self.vendor), str(self.suite.hierarchy[-1]), value)
+            return os.path.join(
+                self.storage, self.architecture,
+                str(self.vendor), str(self.suite.hierarchy[-1]), value)
 
         return value
 
@@ -736,9 +755,10 @@ class Config(_ConfigLike):
         assert value is not None
 
         if '/' not in value:
-            return os.path.join(self.storage, self.worker_architecture,
-                    str(self.vmdebootstrap_worker_vendor),
-                    str(self.vmdebootstrap_worker_suite.hierarchy[-1]), value)
+            return os.path.join(
+                self.storage, self.worker_architecture,
+                str(self.vmdebootstrap_worker_vendor),
+                str(self.vmdebootstrap_worker_suite.hierarchy[-1]), value)
 
         return value
 

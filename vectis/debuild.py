@@ -8,37 +8,39 @@ import os
 import subprocess
 import time
 from collections import (
-        OrderedDict,
-        )
+    OrderedDict,
+)
 from contextlib import suppress
 from tempfile import TemporaryDirectory
 
 from debian.changelog import (
-        Changelog,
-        )
+    Changelog,
+)
 from debian.deb822 import (
-        Changes,
+    Changes,
         Deb822,
         Dsc,
-        )
+)
 from debian.debian_support import (
-        Version,
-        )
+    Version,
+)
 
 from vectis.config import (
-        Suite,
-        )
+    Suite,
+)
 from vectis.error import (
-        ArgumentError,
+    ArgumentError,
         CannotHappen,
-        )
+)
 from vectis.worker import (
-        SchrootWorker,
-        )
+    SchrootWorker,
+)
 
 logger = logging.getLogger(__name__)
 
+
 class Buildable:
+
     def __init__(self, buildable, *, output_builds, vendor):
         self.buildable = buildable
 
@@ -74,12 +76,12 @@ class Buildable:
                 control = os.path.join(self.buildable, 'debian', 'control')
 
                 if len(changelog.distributions.split()) != 1:
-                    raise ArgumentError('Cannot build for multiple '
-                            'distributions at once')
+                    raise ArgumentError(
+                        'Cannot build for multiple distributions at once')
 
                 for paragraph in Deb822.iter_paragraphs(open(control)):
                     self.arch_wildcards |= set(
-                            paragraph.get('architecture', '').split())
+                        paragraph.get('architecture', '').split())
                     binary = paragraph.get('package')
 
                     if binary is not None:
@@ -90,23 +92,25 @@ class Buildable:
                 self.sourceful_changes_name = self.buildable
                 sourceful_changes = Changes(open(self.buildable))
                 if 'source' not in sourceful_changes['architecture'].split():
-                    raise ArgumentError('Changes file {!r} must be '
-                            'sourceful'.format(self.buildable))
+                    raise ArgumentError(
+                        'Changes file {!r} must be sourceful'.format(
+                            self.buildable))
 
                 self.nominal_suite = sourceful_changes['distribution']
 
                 for f in sourceful_changes['files']:
                     if f['name'].endswith('.dsc'):
                         if self.dsc_name is not None:
-                            raise ArgumentError('Changes file {!r} contained '
-                                    'more than one .dsc '
-                                    'file'.format(self.buildable))
+                            raise ArgumentError(
+                                'Changes file {!r} contained more than one '
+                                '.dsc file'.format(self.buildable))
 
                         self.dsc_name = os.path.join(self.dirname, f['name'])
 
                 if self.dsc_name is None:
-                    raise ArgumentError('Changes file {!r} did not contain a '
-                            '.dsc file'.format(self.buildable))
+                    raise ArgumentError(
+                        'Changes file {!r} did not contain a .dsc file'.format(
+                            self.buildable))
 
                 self.dsc = Dsc(open(self.dsc_name))
 
@@ -116,8 +120,9 @@ class Buildable:
                 self.dsc = Dsc(open(self.dsc_name))
 
             else:
-                raise ArgumentError('buildable must be .changes, .dsc or '
-                        'directory, not {!r}'.format(self.buildable))
+                raise ArgumentError(
+                    'buildable must be .changes, .dsc or directory, not '
+                    '{!r}'.format(self.buildable))
         else:
             self.source_from_archive = True
 
@@ -136,7 +141,7 @@ class Buildable:
             self._version = Version(self.dsc['version'])
             self.arch_wildcards = set(self.dsc['architecture'].split())
             self.binary_packages = [p.strip()
-                    for p in self.dsc['binary'].split(',')]
+                                    for p in self.dsc['binary'].split(',')]
 
         timestamp = time.strftime('%Y%m%dt%H%M%S', time.gmtime())
 
@@ -144,9 +149,9 @@ class Buildable:
             dirname = '{}_{}'.format(self.source_package, timestamp)
         else:
             dirname = '{}_{}_{}'.format(
-                    self.source_package,
-                    self._version,
-                    timestamp)
+                self.source_package,
+                self._version,
+                timestamp)
 
         self.output_builds = os.path.join(output_builds, dirname)
         # If someone already created this, we'll just crash out.
@@ -160,16 +165,16 @@ class Buildable:
             for f in self.dsc['files']:
                 abs_file = os.path.join(abs_dir, f['name'])
                 os.symlink(
-                        abs_file,
-                        os.path.join(self.output_builds, f['name']))
+                    abs_file,
+                    os.path.join(self.output_builds, f['name']))
 
     @property
     def product_prefix(self):
         if self._product_prefix is None:
             version_no_epoch = Version(self.version)
             version_no_epoch.epoch = None
-            self._product_prefix = '{}_{}'.format(self.source_package,
-                    version_no_epoch)
+            self._product_prefix = '{}_{}'.format(
+                self.source_package, version_no_epoch)
 
         return self._product_prefix
 
@@ -183,63 +188,75 @@ class Buildable:
         self._product_prefix = None
 
     def copy_source_to(self, worker):
-        worker.check_call(['mkdir', '-p', '-m755',
-            '{}/in'.format(worker.scratch)])
+        worker.check_call([
+            'mkdir', '-p', '-m755', '{}/in'.format(worker.scratch)])
 
         if self.dsc_name is not None:
             assert self.dsc is not None
 
-            worker.copy_to_guest(self.dsc_name,
-                    '{}/in/{}'.format(worker.scratch,
+            worker.copy_to_guest(
+                self.dsc_name,
+                    '{}/in/{}'.format(
+                        worker.scratch,
                         os.path.basename(self.dsc_name)))
 
             for f in self.dsc['files']:
-                worker.copy_to_guest(os.path.join(self.dirname, f['name']),
-                        '{}/in/{}'.format(worker.scratch, f['name']))
+                worker.copy_to_guest(
+                    os.path.join(self.dirname, f['name']),
+                    '{}/in/{}'.format(worker.scratch, f['name']))
         elif not self.source_from_archive:
-            worker.copy_to_guest(os.path.join(self.buildable, ''),
-                    '{}/in/{}_source/'.format(worker.scratch,
-                        self.product_prefix))
-            worker.check_call(['chown', '-R', 'sbuild:sbuild',
-                    '{}/in/'.format(worker.scratch)])
+            worker.copy_to_guest(
+                os.path.join(self.buildable, ''),
+                '{}/in/{}_source/'.format(
+                    worker.scratch,
+                    self.product_prefix))
+            worker.check_call([
+                'chown', '-R', 'sbuild:sbuild',
+                '{}/in/'.format(worker.scratch)])
             if self._version.debian_revision is not None:
-                worker.check_call(['install', '-d', '-m755',
-                    '-osbuild', '-gsbuild',
+                worker.check_call([
+                    'install', '-d', '-m755', '-osbuild', '-gsbuild',
                     '{}/out'.format(worker.scratch)])
 
-                orig_glob_prefix = glob.escape(os.path.join(self.buildable,
-                    '..',
-                    '{}_{}'.format(self.source_package,
-                        self._version.upstream_version)))
+                orig_glob_prefix = glob.escape(
+                    os.path.join(
+                        self.buildable, '..',
+                        '{}_{}'.format(
+                            self.source_package,
+                            self._version.upstream_version)))
 
-                for orig_pattern in (orig_glob_prefix + '.orig.tar.*',
+                for orig_pattern in (
+                        orig_glob_prefix + '.orig.tar.*',
                         orig_glob_prefix + '.orig-*.tar.*'):
                     logger.info('Looking for original tarballs: {}'.format(
-                            orig_pattern))
+                        orig_pattern))
 
                     for orig in glob.glob(orig_pattern):
                         logger.info('Copying original tarball: %s', orig)
-                        worker.copy_to_guest(orig,
-                                '{}/in/{}'.format(worker.scratch,
-                                    os.path.basename(orig)))
-                        worker.check_call(['ln', '-s',
-                                '{}/in/{}'.format(worker.scratch,
-                                    os.path.basename(orig)),
-                                '{}/out/{}'.format(worker.scratch,
-                                    os.path.basename(orig))])
+                        worker.copy_to_guest(
+                            orig, '{}/in/{}'.format(
+                                worker.scratch,
+                                os.path.basename(orig)))
+                        worker.check_call([
+                            'ln', '-s', '{}/in/{}'.format(
+                                worker.scratch, os.path.basename(orig)),
+                            '{}/out/{}'.format(
+                                worker.scratch, os.path.basename(orig))])
 
     def select_archs(self, worker_arch, archs, indep, together):
         builds_i386 = False
         builds_natively = False
 
         for wildcard in self.arch_wildcards:
-            if subprocess.call(['dpkg-architecture',
-                    '-a' + worker_arch, '--is', wildcard]) == 0:
+            if subprocess.call(
+                    ['dpkg-architecture', '-a' + worker_arch, '--is', wildcard]
+            ) == 0:
                 logger.info('Package builds natively on %s', worker_arch)
                 builds_natively = True
 
-            if subprocess.call(['dpkg-architecture',
-                    '-ai386', '--is', wildcard]) == 0:
+            if subprocess.call(
+                    ['dpkg-architecture', '-ai386', '--is', wildcard]
+            ) == 0:
                 logger.info('Package builds on i386')
                 builds_i386 = True
 
@@ -255,17 +272,19 @@ class Buildable:
             if builds_natively:
                 self.archs.append(worker_arch)
 
-            for line in subprocess.check_output([
-                    'sh', '-c', '"$@" || :',
-                    'sh', # argv[0]
-                    'dpkg-query', '-W', r'--showformat=${binary:Package}\n',
+            for line in subprocess.check_output(
+                    [
+                        'sh', '-c', '"$@" || :',
+                        'sh',  # argv[0]
+                        'dpkg-query', '-W', r'--showformat=${binary:Package}\n',
                     ] + list(self.binary_packages),
                     universal_newlines=True).splitlines():
                 if ':' in line:
                     arch = line.split(':')[-1]
                     if arch not in self.archs:
-                        logger.info('Building on %s because %s is installed',
-                                arch, line)
+                        logger.info(
+                            'Building on %s because %s is installed',
+                            arch, line)
                         self.archs.append(arch)
 
             if (worker_arch == 'amd64' and builds_i386 and
@@ -287,8 +306,9 @@ class Buildable:
         logger.info('Selected architectures: %r', self.archs)
 
         if indep and self.together_with is not None:
-            logger.info('Architecture-independent packages will be built '
-                        'alongside %s', self.together_with)
+            logger.info(
+                'Architecture-independent packages will be built alongside %s',
+                self.together_with)
 
     def select_suite(self, override):
         suite_name = override
@@ -297,8 +317,9 @@ class Buildable:
             suite_name = self.nominal_suite
 
         if suite_name is None:
-            raise ArgumentError('Must specify --suite when building from '
-                    '{!r}'.format(self.buildable))
+            raise ArgumentError(
+                'Must specify --suite when building from {!r}'.format(
+                    self.buildable))
 
         if isinstance(suite_name, Suite):
             self.suite = suite_name
@@ -310,8 +331,9 @@ class Buildable:
 
             if suite_name.endswith('-UNRELEASED'):
                 suite_name = suite_name[:-len('-UNRELEASED')]
-                logger.info('Replacing {}-UNRELEASED with {}'.format(suite_name,
-                    suite_name))
+                logger.info(
+                    'Replacing {}-UNRELEASED with {}'.format(
+                        suite_name, suite_name))
 
             self.suite = self.vendor.get_suite(suite_name)
 
@@ -335,8 +357,15 @@ class Buildable:
 
         return sorted(ret)
 
+
 class Build:
-    def __init__(self, buildable, arch, worker, *,
+
+    def __init__(
+            self,
+            buildable,
+            arch,
+            worker,
+            *,
             output_builds,
             profiles,
             storage,
@@ -366,8 +395,8 @@ class Build:
         self.environ['DEB_BUILD_OPTIONS'] = ' '.join(deb_build_options)
 
     def sbuild(self):
-        self.worker.check_call(['install', '-d', '-m755',
-            '-osbuild', '-gsbuild',
+        self.worker.check_call([
+            'install', '-d', '-m755', '-osbuild', '-gsbuild',
             '{}/out'.format(self.worker.scratch)])
 
         logger.info('Building architecture: %s', self.arch)
@@ -378,14 +407,15 @@ class Build:
         else:
             use_arch = self.arch
 
-        with SchrootWorker(storage=self.storage,
+        with SchrootWorker(
+                storage=self.storage,
                 architecture=use_arch,
                 chroot='{}-{}-sbuild'.format(self.buildable.suite, use_arch),
                 components=self.components,
                 extra_repositories=self.extra_repositories,
                 suite=self.buildable.suite,
                 worker=self.worker,
-                ) as chroot:
+        ) as chroot:
             self._sbuild(chroot)
 
     def _sbuild(self, chroot):
@@ -396,37 +426,39 @@ class Build:
         if (self.buildable.source_from_archive and
                 self.buildable.version is None and
                 sbuild_version < Version('0.69.0')):
-            lines = chroot.check_output([
-                        'sh', '-c',
-                        'apt-get update >&2 && '
-                        '( apt-cache showsrc --only-source "$1" || '
-                        '  apt-cache showsrc "$1" ) | '
-                        'sed -ne "s/^Version: *//p"',
-                        'sh', # argv[0]
-                        self.buildable.source_package],
-                    universal_newlines=True).strip().splitlines()
+            lines = chroot.check_output(
+                [
+                    'sh', '-c',
+                    'apt-get update >&2 && '
+                    '( apt-cache showsrc --only-source "$1" || '
+                    '  apt-cache showsrc "$1" ) | '
+                    'sed -ne "s/^Version: *//p"',
+                    'sh',  # argv[0]
+                    self.buildable.source_package,
+                ],
+                universal_newlines=True).strip().splitlines()
             self.buildable.version = sorted(map(Version, lines))[-1]
             self.buildable.buildable = '{}_{}'.format(
-                    self.buildable.source_package,
-                    self.buildable.version,
-                    )
+                self.buildable.source_package,
+                self.buildable.version,
+            )
 
         argv = [
-                self.worker.command_wrapper,
-                '--chdir',
-                '{}/out'.format(self.worker.scratch),
-                '--',
-                'runuser',
-                '-u', 'sbuild',
-                '--',
-                'env',
+            self.worker.command_wrapper,
+            '--chdir',
+            '{}/out'.format(self.worker.scratch),
+            '--',
+            'runuser',
+            '-u', 'sbuild',
+            '--',
+            'env',
         ]
 
         for k, v in sorted(self.environ.items()):
             argv.append('{}={}'.format(k, v))
 
         argv.extend((
-                'sbuild',
+            'sbuild',
                 '-c', chroot.chroot,
                 '-d', str(self.buildable.nominal_suite),
                 '--no-run-lintian',
@@ -489,15 +521,15 @@ class Build:
                 # have a one-liner that doesn't contain embedded whitespace.
                 # Luckily, Perl can be written as line-noise.
                 perl = (
-                        '$arch=qx(dpkg\\x20--print-architecture);' +
-                        'chomp($arch);' +
-                        'chdir(shift);' +
-                        'foreach(glob("../*_source.changes")){' +
-                             '$orig=$_;' +
-                             's/_source\\.changes$/_${arch}.changes/;' +
-                             'print("Renaming\\x20$orig\\x20to\\x20$_\\n");' +
-                             'rename($orig,$_)||die("$!");' +
-                        '}')
+                    '$arch=qx(dpkg\\x20--print-architecture);' +
+                    'chomp($arch);' +
+                    'chdir(shift);' +
+                    'foreach(glob("../*_source.changes")){' +
+                         '$orig=$_;' +
+                         's/_source\\.changes$/_${arch}.changes/;' +
+                         'print("Renaming\\x20$orig\\x20to\\x20$_\\n");' +
+                         'rename($orig,$_)||die("$!");' +
+                    '}')
                 assert ' ' not in perl
                 assert "'" not in perl
 
@@ -516,12 +548,14 @@ class Build:
             if 'source' in self.buildable.changes_produced:
                 # We rebuilt the source already. Use the rebuilt version
                 # for all subsequent builds.
-                argv.append('{}/out/{}'.format(self.worker.scratch,
+                argv.append('{}/out/{}'.format(
+                    self.worker.scratch,
                     os.path.basename(self.buildable.dsc_name)))
             else:
                 # We got a .dsc from outside Vectis and are not
                 # rebuilding it.
-                argv.append('{}/in/{}'.format(self.worker.scratch,
+                argv.append('{}/in/{}'.format(
+                    self.worker.scratch,
                     os.path.basename(self.buildable.dsc_name)))
         elif self.buildable.source_from_archive:
             argv.append(self.buildable.buildable)
@@ -539,19 +573,19 @@ class Build:
             ds_argv = [
                 self.worker.command_wrapper,
                 '--chdir',
-                '{}/in/{}_source'.format(self.worker.scratch,
-                    self.buildable.product_prefix),
+                '{}/in/{}_source'.format(
+                    self.worker.scratch, self.buildable.product_prefix),
                 '--',
                 'dpkg-source',
-                ]
+            ]
 
             for x in self.dpkg_source_options:
                 ds_argv.append(x)
 
             ds_argv.extend(('-b', '.'))
             self.worker.check_call(ds_argv)
-            argv.append('{}/in/{}.dsc'.format(self.worker.scratch,
-                self.buildable.product_prefix))
+            argv.append('{}/in/{}.dsc'.format(
+                self.worker.scratch, self.buildable.product_prefix))
 
         logger.info('Running %r', argv)
         try:
@@ -563,26 +597,29 @@ class Build:
             # We also check for foo_amd64.build because
             # that's what comes out if we do "vectis sbuild --suite=sid hello".
             for prefix in (self.buildable.source_package,
-                    self.buildable.product_prefix):
-                product = '{}/out/{}_{}.build'.format(self.worker.scratch,
-                        prefix, chroot.dpkg_architecture)
-                product = self.worker.check_output(['readlink', '-f', product],
-                        universal_newlines=True).rstrip('\n')
+                           self.buildable.product_prefix):
+                product = '{}/out/{}_{}.build'.format(
+                    self.worker.scratch, prefix, chroot.dpkg_architecture)
+                product = self.worker.check_output(
+                    ['readlink', '-f', product],
+                    universal_newlines=True).rstrip('\n')
 
                 if (self.worker.call(['test', '-e', product]) == 0 and
                         self.output_builds is not None):
                     logger.info('Copying %s back to host as %s_%s.build...',
-                            product, self.buildable.product_prefix, self.arch)
-                    copied_back = os.path.join(self.output_builds,
-                            '{}_{}_{}.build'.format(self.buildable.product_prefix,
-                                self.arch,
-                                time.strftime('%Y%m%dt%H%M%S', time.gmtime())))
+                                product, self.buildable.product_prefix, self.arch)
+                    copied_back = os.path.join(
+                        self.output_builds,
+                        '{}_{}_{}.build'.format(
+                            self.buildable.product_prefix, self.arch,
+                            time.strftime('%Y%m%dt%H%M%S', time.gmtime())))
                     self.worker.copy_to_host(product, copied_back)
                     self.buildable.logs[self.arch] = copied_back
 
-                    symlink = os.path.join(self.output_builds,
-                            '{}_{}.build'.format(self.buildable.product_prefix,
-                                self.arch))
+                    symlink = os.path.join(
+                        self.output_builds,
+                        '{}_{}.build'.format(
+                            self.buildable.product_prefix, self.arch))
                     try:
                         os.remove(symlink)
                     except FileNotFoundError:
@@ -592,63 +629,66 @@ class Build:
                     break
             else:
                 logger.warning('Did not find build log at %s', product)
-                logger.warning('Possible build logs:\n%s',
-                        self.worker.check_call(['sh', '-c',
-                            'cd "$1"; ls -l *.build || :',
-                            'sh', # argv[0]
-                            self.worker.scratch]))
+                logger.warning(
+                    'Possible build logs:\n%s',
+                    self.worker.check_call([
+                        'sh', '-c',
+                        'cd "$1"; ls -l *.build || :',
+                        'sh',  # argv[0]
+                        self.worker.scratch]))
 
         if self.arch == 'source' and self.buildable.source_from_archive:
-            dscs = self.worker.check_output(['sh', '-c',
-                'exec ls "$1"/out/*.dsc',
-                'sh', # argv[0]
+            dscs = self.worker.check_output([
+                'sh', '-c', 'exec ls "$1"/out/*.dsc', 'sh',  # argv[0]
                 self.worker.scratch], universal_newlines=True)
 
             dscs = dscs.splitlines()
             if len(dscs) != 1:
                 raise CannotHappen('sbuild --source produced more than one '
-                        '.dsc file from {!r}'.format(self.buildable))
+                                   '.dsc file from {!r}'.format(self.buildable))
 
             product = dscs[0]
 
             with TemporaryDirectory(prefix='vectis-sbuild-') as tmp:
-                copied_back = os.path.join(tmp,
-                        '{}.dsc'.format(self.buildable.buildable))
+                copied_back = os.path.join(
+                    tmp, '{}.dsc'.format(self.buildable.buildable))
                 self.worker.copy_to_host(product, copied_back)
 
                 self.buildable.dsc = Dsc(open(copied_back))
                 self.buildable.source_package = self.buildable.dsc['source']
                 self.buildable.version = Version(self.buildable.dsc['version'])
                 self.buildable.arch_wildcards = set(
-                        self.buildable.dsc['architecture'].split())
-                self.buildable.binary_packages = [p.strip()
-                        for p in self.buildable.dsc['binary'].split(',')]
+                    self.buildable.dsc['architecture'].split())
+                self.buildable.binary_packages = [
+                    p.strip() for p in self.buildable.dsc['binary'].split(',')]
 
         if self.arch == 'source' and self.output_builds is not None:
             # Make sure the orig.tar.* are in the out directory, because
             # we will be building from the rebuilt source in future
-            self.worker.check_call(['sh', '-c',
+            self.worker.check_call([
+                'sh', '-c',
                 'ln -nsf "$1"/in/*.orig.tar.* "$1"/out/',
-                'sh', # argv[0]
+                'sh',  # argv[0]
                 self.worker.scratch])
 
         if self.output_builds is None:
             return
 
         for product_arch in (self.arch, self.worker.dpkg_architecture):
-            product = '{}/out/{}_{}.changes'.format(self.worker.scratch,
-                self.buildable.product_prefix,
+            product = '{}/out/{}_{}.changes'.format(
+                self.worker.scratch, self.buildable.product_prefix,
                 product_arch)
             if self.worker.call(['test', '-e', product]) == 0:
                 break
         else:
-            raise CannotHappen('sbuild produced no .changes file from '
-                    '{!r}'.format(self.buildable))
+            raise CannotHappen(
+                'sbuild produced no .changes file from {!r}'.format(
+                    self.buildable))
 
         logger.info('Copying %s back to host...', product)
-        copied_back = os.path.join(self.output_builds,
-                '{}_{}.changes'.format(self.buildable.product_prefix,
-                    self.arch))
+        copied_back = os.path.join(
+            self.output_builds,
+            '{}_{}.changes'.format(self.buildable.product_prefix, self.arch))
         self.worker.copy_to_host(product, copied_back)
         self.buildable.changes_produced[self.arch] = copied_back
 
@@ -662,14 +702,14 @@ class Build:
                 if f['name'].endswith('.dsc'):
                     # expect to find exactly one .dsc file
                     assert self.buildable.dsc_name is None
-                    self.buildable.dsc_name = os.path.join(self.output_builds,
-                            f['name'])
+                    self.buildable.dsc_name = os.path.join(
+                        self.output_builds, f['name'])
 
             assert self.buildable.dsc_name is not None
             # Save some space
-            self.worker.check_call(['rm', '-fr',
-                    '{}/in/{}_source/'.format(self.worker.scratch,
-                        self.buildable.product_prefix)])
+            self.worker.check_call(['rm', '-fr', '{}/in/{}_source/'.format(
+                self.worker.scratch,
+                self.buildable.product_prefix)])
 
         dsc = None
 
@@ -677,8 +717,8 @@ class Build:
             assert '/' not in f['name']
             assert not f['name'].startswith('.')
 
-            logger.info('Additionally copying %s back to host...',
-                    f['name'])
+            logger.info(
+                'Additionally copying %s back to host...', f['name'])
             product = '{}/out/{}'.format(self.worker.scratch, f['name'])
             copied_back = os.path.join(self.output_builds, f['name'])
 
@@ -706,6 +746,6 @@ class Build:
                 if os.path.exists(copied_back):
                     continue
 
-                logger.info('Additionally copying %s back to host...',
-                        f['name'])
+                logger.info(
+                    'Additionally copying %s back to host...', f['name'])
                 self.worker.copy_to_host(product, copied_back)

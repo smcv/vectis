@@ -8,6 +8,7 @@ import os
 
 logger = logging.getLogger(__name__)
 
+
 @contextlib.contextmanager
 def AtomicWriter(fn, *a, **k):
     try:
@@ -21,4 +22,3 @@ def AtomicWriter(fn, *a, **k):
         raise
     else:
         os.rename(fn + '.tmp', fn)
-

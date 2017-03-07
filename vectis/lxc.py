@@ -7,8 +7,9 @@ import textwrap
 from tempfile import TemporaryDirectory
 
 from vectis.util import (
-        AtomicWriter,
-        )
+    AtomicWriter,
+)
+
 
 def set_up_lxc_net(worker, subnet):
     with TemporaryDirectory(prefix='vectis-lxc-') as tmp:
@@ -24,8 +25,8 @@ def set_up_lxc_net(worker, subnet):
             LXC_DHCP_CONFILE=""
             LXC_DOMAIN=""
             ''').format(subnet=subnet))
-        worker.copy_to_guest(os.path.join(tmp, 'lxc-net'),
-                '/etc/default/lxc-net')
+        worker.copy_to_guest(
+            os.path.join(tmp, 'lxc-net'), '/etc/default/lxc-net')
 
         with AtomicWriter(os.path.join(tmp, 'default.conf')) as writer:
             writer.write(textwrap.dedent('''\
@@ -34,8 +35,8 @@ def set_up_lxc_net(worker, subnet):
             lxc.network.flags = up
             lxc.network.hwaddr = 00:16:3e:xx:xx:xx
             '''))
-        worker.copy_to_guest(os.path.join(tmp, 'default.conf'),
-                '/etc/lxc/default.conf')
+        worker.copy_to_guest(
+            os.path.join(tmp, 'default.conf'), '/etc/lxc/default.conf')
 
     worker.check_call(['systemctl', 'enable', 'lxc-net'])
     worker.check_call(['systemctl', 'stop', 'lxc-net'])

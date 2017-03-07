@@ -3,7 +3,7 @@
 # (see vectis/__init__.py)
 
 from vectis.commands import (
-        main,
-        )
+    main,
+)
 
 main()

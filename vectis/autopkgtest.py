@@ -8,34 +8,37 @@ import shlex
 import textwrap
 import uuid
 from contextlib import (
-        ExitStack,
-        )
+    ExitStack,
+)
 from tempfile import (
-        TemporaryDirectory,
-        )
+    TemporaryDirectory,
+)
 
 from debian.deb822 import (
-        Changes,
+    Changes,
         Dsc,
-        )
+)
 
 from vectis.lxc import (
-        set_up_lxc_net,
-        )
+    set_up_lxc_net,
+)
 from vectis.worker import (
-        ContainerWorker,
+    ContainerWorker,
         FileProvider,
         HostWorker,
         VirtWorker,
-        )
+)
 from vectis.util import (
-        AtomicWriter,
-        )
+    AtomicWriter,
+)
 
 logger = logging.getLogger(__name__)
 
+
 class AutopkgtestWorker(ContainerWorker, FileProvider):
-    def __init__(self,
+
+    def __init__(
+            self,
             components=(),
             extra_repositories=(),
             mirror=None,
@@ -59,7 +62,7 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
 
     def install_apt_key(self, apt_key):
         to = '/etc/apt/trusted.gpg.d/{}-{}'.format(
-                uuid.uuid4(), os.path.basename(apt_key))
+            uuid.uuid4(), os.path.basename(apt_key))
         self.argv.append('--copy={}:{}'.format(
             self.worker.make_file_available(apt_key), to))
 
@@ -72,10 +75,11 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
             self.write_sources_list(writer)
 
         sources_list = self.worker.make_file_available(self.sources_list)
-        self.argv.append('--copy={}:{}'.format(sources_list,
-            '/etc/apt/sources.list'))
+        self.argv.append(
+                '--copy={}:{}'.format(sources_list, '/etc/apt/sources.list'))
 
-    def call_autopkgtest(self,
+    def call_autopkgtest(
+            self,
             *,
             binaries,
             built_binaries,
@@ -97,12 +101,12 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
                 argv.append(self.worker.make_changes_file_available(
                     b, owner=run_as))
             else:
-                argv.append(self.worker.make_file_available(b,
-                    owner=run_as))
+                argv.append(self.worker.make_file_available(
+                    b, owner=run_as))
 
         if source_dsc is not None:
-            argv.append(self.worker.make_dsc_file_available(source_dsc,
-                owner=run_as))
+            argv.append(self.worker.make_dsc_file_available(
+                source_dsc, owner=run_as))
         elif source_package is not None:
             argv.append(source_package)
         else:
@@ -151,8 +155,8 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
         unique = str(uuid.uuid4())
         filename = self.worker.make_file_available(filename, cache=cache)
 
-        in_autopkgtest = '/tmp/{}/{}'.format(unique,
-                os.path.basename(filename))
+        in_autopkgtest = '/tmp/{}/{}'.format(
+            unique, os.path.basename(filename))
         self.argv.append('--copy={}:{}'.format(filename, in_autopkgtest))
 
         if cache:
@@ -167,13 +171,13 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
             dsc = Dsc(reader)
 
         to = self.new_directory()
-        self.argv.append('--copy={}:{}'.format(filename,
-                '{}/{}'.format(to, os.path.basename(filename))))
+        self.argv.append('--copy={}:{}'.format(
+            filename, '{}/{}'.format(to, os.path.basename(filename))))
 
         for f in dsc['files']:
-            self.argv.append('--copy={}:{}'.format(
-                    os.path.join(d, f['name']),
-                    '{}/{}'.format(to, f['name'])))
+            self.argv.append(
+                '--copy={}:{}'.format(os.path.join(d, f['name']),
+                '{}/{}'.format(to, f['name'])))
 
         return '{}/{}'.format(to, os.path.basename(filename))
 
@@ -184,13 +188,13 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
             changes = Changes(reader)
 
         to = self.new_directory()
-        self.argv.append('--copy={}:{}'.format(filename,
-                '{}/{}'.format(to, os.path.basename(filename))))
+        self.argv.append('--copy={}:{}'.format(
+            filename, '{}/{}'.format(to, os.path.basename(filename))))
 
         for f in changes['files']:
             self.argv.append('--copy={}:{}'.format(
-                    os.path.join(d, f['name']),
-                    '{}/{}'.format(to, f['name'])))
+                os.path.join(d, f['name']),
+                '{}/{}'.format(to, f['name'])))
 
         return '{}/{}'.format(to, os.path.basename(filename))
 
@@ -198,7 +202,9 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
         super()._open()
         self.set_up_apt()
 
-def run_autopkgtest(*,
+
+def run_autopkgtest(
+        *,
         components,
         worker_argv,
         worker_suite,
@@ -237,8 +243,8 @@ def run_autopkgtest(*,
                 output_dir = None
             else:
                 output_dir = os.path.join(
-                        output_logs,
-                        'autopkgtest_{}_{}'.format(test, architecture))
+                    output_logs,
+                    'autopkgtest_{}_{}'.format(test, architecture))
 
             if test == 'qemu':
                 image = os.path.join(
@@ -257,11 +263,11 @@ def run_autopkgtest(*,
 
             elif test == 'schroot':
                 tarball = os.path.join(
-                        storage,
-                        architecture,
-                        str(vendor),
-                        str(suite.hierarchy[-1]),
-                        'minbase.tar.gz')
+                    storage,
+                    architecture,
+                    str(vendor),
+                    str(suite.hierarchy[-1]),
+                    'minbase.tar.gz')
 
                 if not os.path.exists(tarball):
                     logger.info('Required tarball %s does not exist',
@@ -272,7 +278,7 @@ def run_autopkgtest(*,
                     VirtWorker(
                         worker_argv,
                         suite=worker_suite,
-                        ))
+                    ))
 
                 worker.check_call([
                     'env',
@@ -285,7 +291,7 @@ def run_autopkgtest(*,
                     'autopkgtest',
                     'python3',
                     'schroot',
-                    ])
+                ])
 
                 with TemporaryDirectory(prefix='vectis-sbuild-') as tmp:
                     with AtomicWriter(os.path.join(tmp, 'sbuild.conf')) as writer:
@@ -298,11 +304,12 @@ def run_autopkgtest(*,
                         root-groups=root,{user}
                         profile=default
                         ''').format(
-                            tarball=worker.make_file_available(tarball,
-                                cache=True),
+                            tarball=worker.make_file_available(
+                                tarball, cache=True),
                             user=worker.user,
-                            ))
-                    worker.copy_to_guest(os.path.join(tmp, 'sbuild.conf'),
+                        ))
+                    worker.copy_to_guest(
+                        os.path.join(tmp, 'sbuild.conf'),
                             '/etc/schroot/chroot.d/autopkgtest')
 
                 output_on_worker = worker.new_directory()
@@ -312,22 +319,22 @@ def run_autopkgtest(*,
 
             elif test == 'lxc':
                 container = '{}-{}-{}'.format(
-                        vendor,
-                        suite.hierarchy[-1],
-                        architecture,
-                        )
+                    vendor,
+                    suite.hierarchy[-1],
+                    architecture,
+                )
                 rootfs = os.path.join(
-                        storage,
-                        architecture,
-                        str(vendor),
-                        str(suite.hierarchy[-1]),
-                        'lxc-rootfs.tar.gz')
+                    storage,
+                    architecture,
+                    str(vendor),
+                    str(suite.hierarchy[-1]),
+                    'lxc-rootfs.tar.gz')
                 meta = os.path.join(
-                        storage,
-                        architecture,
-                        str(vendor),
-                        str(suite.hierarchy[-1]),
-                        'lxc-meta.tar.gz')
+                    storage,
+                    architecture,
+                    str(vendor),
+                    str(suite.hierarchy[-1]),
+                    'lxc-meta.tar.gz')
 
                 if not os.path.exists(rootfs) or not os.path.exists(meta):
                     logger.info('Required tarball %s or %s does not exist',
@@ -338,7 +345,7 @@ def run_autopkgtest(*,
                     VirtWorker(
                         lxc_worker,
                         suite=lxc_worker_suite,
-                        ))
+                    ))
 
                 worker.check_call([
                     'env',
@@ -351,19 +358,22 @@ def run_autopkgtest(*,
                     'autopkgtest',
                     'lxc',
                     'python3',
-                    ])
+                ])
                 set_up_lxc_net(worker, lxc_24bit_subnet)
                 worker.check_call(['mkdir', '-p',
-                    '/var/lib/lxc/vectis-new/rootfs'])
+                                   '/var/lib/lxc/vectis-new/rootfs'])
                 with open(rootfs, 'rb') as reader:
-                    worker.check_call(['tar', '-x', '-z',
+                    worker.check_call([
+                        'tar', '-x', '-z',
                         '-C', '/var/lib/lxc/vectis-new/rootfs',
                         '-f', '-'], stdin=reader)
                 with open(meta, 'rb') as reader:
-                    worker.check_call(['tar', '-x', '-z',
+                    worker.check_call([
+                        'tar', '-x', '-z',
                         '-C', '/var/lib/lxc/vectis-new',
                         '-f', '-'], stdin=reader)
-                worker.check_call(['mv', '/var/lib/lxc/vectis-new',
+                worker.check_call([
+                    'mv', '/var/lib/lxc/vectis-new',
                     '/var/lib/lxc/{}'.format(container)])
 
                 # Make sure the container has an ordinary user to run tests;
@@ -397,7 +407,7 @@ def run_autopkgtest(*,
                     suite=suite,
                     virt=virt,
                     worker=worker,
-                    ))
+                ))
 
             if not autopkgtest.call_autopkgtest(
                     binaries=binaries,
@@ -406,7 +416,7 @@ def run_autopkgtest(*,
                     run_as=run_as,
                     source_dsc=source_dsc,
                     source_package=source_package,
-                    ):
+            ):
                 if output_dir is None:
                     failures.append(test)
                 else:
@@ -414,7 +424,7 @@ def run_autopkgtest(*,
 
             if output_dir is not None and output_dir != output_on_worker:
                 worker.copy_to_host(
-                        os.path.join(output_on_worker, ''),
-                        os.path.join(output_dir, ''))
+                    os.path.join(output_on_worker, ''),
+                    os.path.join(output_dir, ''))
 
     return failures
