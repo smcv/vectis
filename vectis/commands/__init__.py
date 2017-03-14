@@ -244,6 +244,9 @@ p.add_argument('--add-build-profile', dest='_add_build_profile',
 p.add_argument('--add-deb-build-option', dest='_add_deb_build_option',
         action='append', default=[], metavar='OPTION[=VALUE]',
         help='Set something in DEB_BUILD_OPTIONS')
+p.add_argument('-s',
+        dest='_source_modifier', choices=['a', 'i', 'd'], default=None,
+        help='Always, maybe or never include orig.tar.* in changes file')
 
 help = 'Run autopkgtest tests'
 p = subparsers.add_parser('autopkgtest',

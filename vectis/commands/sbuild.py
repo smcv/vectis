@@ -307,6 +307,9 @@ def run(args):
     if args._versions_since:
         db_options.append('-v{}'.format(args._versions_since))
 
+    if args._source_modifier:
+        db_options.append('-s{}'.format(args._source_modifier))
+
     ds_options = []
 
     if args.dpkg_source_diff_ignore is ...:
