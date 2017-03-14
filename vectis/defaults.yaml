@@ -116,7 +116,7 @@ vendors:
             "*-apt.buildd.debian.org":
                 archive: "apt.buildd.debian.org"
                 # https://anonscm.debian.org/cgit/mirror/dsa-puppet.git/tree/modules/buildd/
-                apt_key: "buildd.debian.org_archive_key_2015_2016.gpg"
+                apt_key: "buildd.debian.org_archive_key_2017_2018.gpg"
                 apt_suite: "*"
                 components: main
     ubuntu:
