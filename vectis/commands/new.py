@@ -7,43 +7,47 @@ import os
 import subprocess
 
 from debian.debian_support import (
-        Version,
-        )
+    Version,
+)
 
 from vectis.error import ArgumentError
 from vectis.worker import (
-        VirtWorker,
-        )
+    VirtWorker,
+)
 
 logger = logging.getLogger(__name__)
 
-def vmdebootstrap_argv(version, *,
+
+def vmdebootstrap_argv(
+        version,
+        *,
         architecture,
         kernel_package,
         mirror,
         qemu_image_size,
         suite):
-    argv = ['env',
-            # We use apt-cacher-ng in non-proxy mode, to make it easier to
-            # add extra apt sources later that can't go via this proxy.
-            'AUTOPKGTEST_APT_PROXY=DIRECT',
-            'MIRROR={}'.format(mirror),
-            'RELEASE={}'.format(suite),
+    argv = [
+        'env',
+        # We use apt-cacher-ng in non-proxy mode, to make it easier to
+        # add extra apt sources later that can't go via this proxy.
+        'AUTOPKGTEST_APT_PROXY=DIRECT',
+        'MIRROR={}'.format(mirror),
+        'RELEASE={}'.format(suite),
 
-            'vmdebootstrap',
-            '--log=/dev/stderr',
-            '--verbose',
-            '--serial-console',
-            '--distribution={}'.format(suite),
-            '--user=user',
-            '--hostname=host',
-            '--sparse',
-            '--size={}'.format(qemu_image_size),
-            '--mirror={}'.format(mirror),
-            '--arch={}'.format(architecture),
-            '--grub',
-            '--no-extlinux',
-        ]
+        'vmdebootstrap',
+        '--log=/dev/stderr',
+        '--verbose',
+        '--serial-console',
+        '--distribution={}'.format(suite),
+        '--user=user',
+        '--hostname=host',
+        '--sparse',
+        '--size={}'.format(qemu_image_size),
+        '--mirror={}'.format(mirror),
+        '--arch={}'.format(architecture),
+        '--grub',
+        '--no-extlinux',
+    ]
 
     if kernel_package is not None:
         if version >= Version('1.4'):
@@ -54,7 +58,9 @@ def vmdebootstrap_argv(version, *,
 
     return argv
 
-def new_ubuntu_cloud(*,
+
+def new_ubuntu_cloud(
+        *,
         architecture,
         mirror,
         out,
@@ -73,8 +79,7 @@ def new_ubuntu_cloud(*,
     argv.append('--verbose')
     argv.append('--output-dir={}'.format(out_dir))
 
-    image = '{}/autopkgtest-{}-{}.img'.format(out_dir, suite,
-            architecture)
+    image = '{}/autopkgtest-{}-{}.img'.format(out_dir, suite, architecture)
 
     try:
         subprocess.check_call(argv)
@@ -85,7 +90,9 @@ def new_ubuntu_cloud(*,
     else:
         return image
 
-def new(*,
+
+def new(
+        *,
         apt_key,
         apt_key_package,
         architecture,
@@ -102,17 +109,18 @@ def new(*,
     for suite in (vmdebootstrap_worker_suite, suite):
         for ancestor in suite.hierarchy:
             if ancestor.mirror is None:
-                raise ArgumentError('mirror or apt_cacher_ng must be '
-                        'configured for {}'.format(ancestor))
+                raise ArgumentError(
+                    'mirror or apt_cacher_ng must be configured for '
+                    '{}'.format(ancestor))
 
     with VirtWorker(
             vmdebootstrap_worker,
             suite=vmdebootstrap_worker_suite,
-            ) as worker:
+    ) as worker:
         worker.check_call([
             'env', 'DEBIAN_FRONTEND=noninteractive',
             'apt-get', '-y', 'upgrade',
-            ])
+        ])
 
         worker_packages = [
             'autopkgtest',
@@ -120,13 +128,13 @@ def new(*,
             'python3',
             'qemu-utils',
             'vmdebootstrap',
-            ]
+        ]
 
         # Optional (x86 only, but necessary for wheezy)
         optional_worker_packages = [
             'extlinux',
             'mbr',
-            ]
+        ]
 
         keyring = apt_key_package
 
@@ -141,7 +149,7 @@ def new(*,
             '-t', vmdebootstrap_worker_suite.apt_suite,
             '--no-install-recommends',
             'install',
-            ] + worker_packages)
+        ] + worker_packages)
 
         # Failure is ignored for these non-critical packages
         for p in optional_worker_packages:
@@ -157,13 +165,14 @@ def new(*,
 
         version = worker.dpkg_version('vmdebootstrap')
 
-        argv = vmdebootstrap_argv(version,
-                architecture=architecture,
-                kernel_package=kernel_package,
-                mirror=mirror,
-                qemu_image_size=qemu_image_size,
-                suite=suite,
-                )
+        argv = vmdebootstrap_argv(
+            version,
+            architecture=architecture,
+            kernel_package=kernel_package,
+            mirror=mirror,
+            qemu_image_size=qemu_image_size,
+            suite=suite,
+        )
         argv.extend(vmdebootstrap_options)
 
         debootstrap_args = []
@@ -174,13 +183,13 @@ def new(*,
         elif os.path.exists(apt_key):
             logger.info('Found apt key host:{}, copying to worker:{}'.format(
                 apt_key, '{}/apt-key.gpg'.format(worker.scratch)))
-            worker.copy_to_guest(apt_key,
-                    '{}/apt-key.gpg'.format(worker.scratch))
+            worker.copy_to_guest(
+                apt_key, '{}/apt-key.gpg'.format(worker.scratch))
             debootstrap_args.append('keyring={}/apt-key.gpg'.format(
                 worker.scratch))
         else:
             logger.warning('Apt key host:{} not found; leaving it out and '
-                    'hoping for the best'.format(apt_key))
+                           'hoping for the best'.format(apt_key))
 
         debootstrap_args.append('components={}'.format(
             ','.join(components)))
@@ -190,28 +199,30 @@ def new(*,
                 ' '.join(debootstrap_args)))
 
         worker.copy_to_guest(
-                os.path.join(os.path.dirname(__file__), '..', 'setup-testbed'),
-                '{}/setup-testbed'.format(worker.scratch))
-        worker.check_call(['chmod', '0755',
-            '{}/setup-testbed'.format(worker.scratch)])
+            os.path.join(os.path.dirname(__file__), '..', 'setup-testbed'),
+            '{}/setup-testbed'.format(worker.scratch))
         worker.check_call([
-                'env', 'DEBIAN_FRONTEND=noninteractive',
-                worker.command_wrapper,
-                '--',
-                ] + argv + [
-                '--customize={}/setup-testbed'.format(worker.scratch),
-                '--image={}/output.raw'.format(worker.scratch),
-                ])
+            'chmod', '0755', '{}/setup-testbed'.format(worker.scratch)])
+        worker.check_call([
+            'env', 'DEBIAN_FRONTEND=noninteractive',
+            worker.command_wrapper,
+            '--',
+        ] + argv + [
+            '--customize={}/setup-testbed'.format(worker.scratch),
+            '--image={}/output.raw'.format(worker.scratch),
+        ])
 
-        worker.check_call(['qemu-img', 'convert', '-f', 'raw', '-O',
-                'qcow2', '-c', '-p',
-                '{}/output.raw'.format(worker.scratch),
-                '{}/output.qcow2'.format(worker.scratch),
-            ])
-        worker.copy_to_host('{}/output.qcow2'.format(worker.scratch),
-                out + '.new')
+        worker.check_call([
+            'qemu-img', 'convert', '-f', 'raw', '-O',
+            'qcow2', '-c', '-p',
+            '{}/output.raw'.format(worker.scratch),
+            '{}/output.qcow2'.format(worker.scratch),
+        ])
+        worker.copy_to_host(
+            '{}/output.qcow2'.format(worker.scratch), out + '.new')
 
     return out + '.new'
+
 
 def run(args):
     if args.suite is None:
@@ -239,34 +250,34 @@ def run(args):
 
     if False:
         created = new_ubuntu_cloud(
-                architecture=architecture,
-                mirror=mirror,
-                out=out,
-                qemu_image_size=qemu_image_size,
-                suite=suite,
-                vendor=vendor,
-                )
+            architecture=architecture,
+            mirror=mirror,
+            out=out,
+            qemu_image_size=qemu_image_size,
+            suite=suite,
+            vendor=vendor,
+        )
     else:
         created = new(
-                apt_key=apt_key,
-                apt_key_package=apt_key_package,
-                architecture=architecture,
-                components=components,
-                kernel_package=kernel_package,
-                mirror=mirror,
-                out=out,
-                qemu_image_size=qemu_image_size,
-                suite=suite,
-                vmdebootstrap_options=vmdebootstrap_options,
-                vmdebootstrap_worker=vmdebootstrap_worker,
-                vmdebootstrap_worker_suite=vmdebootstrap_worker_suite,
-                )
+            apt_key=apt_key,
+            apt_key_package=apt_key_package,
+            architecture=architecture,
+            components=components,
+            kernel_package=kernel_package,
+            mirror=mirror,
+            out=out,
+            qemu_image_size=qemu_image_size,
+            suite=suite,
+            vmdebootstrap_options=vmdebootstrap_options,
+            vmdebootstrap_worker=vmdebootstrap_worker,
+            vmdebootstrap_worker_suite=vmdebootstrap_worker_suite,
+        )
 
     try:
         with VirtWorker(
                 ['qemu', created],
                 suite=suite,
-                ) as worker:
+        ) as worker:
             worker.set_up_apt()
             worker.check_call(['apt-get', '-y', 'update'])
             worker.check_call([
@@ -280,7 +291,7 @@ def run(args):
                 'python3',
                 'sbuild',
                 'schroot',
-                ])
+            ])
     except:
         if keep:
             if created != out + '.new':

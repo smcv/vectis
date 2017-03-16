@@ -16,7 +16,7 @@ from tempfile import (
 
 from debian.deb822 import (
     Changes,
-        Dsc,
+    Dsc,
 )
 
 from vectis.lxc import (
@@ -24,9 +24,9 @@ from vectis.lxc import (
 )
 from vectis.worker import (
     ContainerWorker,
-        FileProvider,
-        HostWorker,
-        VirtWorker,
+    FileProvider,
+    HostWorker,
+    VirtWorker,
 )
 from vectis.util import (
     AtomicWriter,
@@ -76,7 +76,7 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
 
         sources_list = self.worker.make_file_available(self.sources_list)
         self.argv.append(
-                '--copy={}:{}'.format(sources_list, '/etc/apt/sources.list'))
+            '--copy={}:{}'.format(sources_list, '/etc/apt/sources.list'))
 
     def call_autopkgtest(
             self,
@@ -176,8 +176,9 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
 
         for f in dsc['files']:
             self.argv.append(
-                '--copy={}:{}'.format(os.path.join(d, f['name']),
-                '{}/{}'.format(to, f['name'])))
+                '--copy={}:{}'.format(
+                    os.path.join(d, f['name']),
+                    '{}/{}'.format(to, f['name'])))
 
         return '{}/{}'.format(to, os.path.basename(filename))
 

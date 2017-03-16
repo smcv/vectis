@@ -8,28 +8,31 @@ import shutil
 import subprocess
 
 from vectis.autopkgtest import (
-        run_autopkgtest,
-        )
+    run_autopkgtest,
+)
 from vectis.config import (
-        Suite,
-        )
+    Suite,
+)
 from vectis.debuild import (
-        Build,
-        Buildable,
-        )
+    Build,
+    Buildable,
+)
 from vectis.error import (
-        ArgumentError,
-        )
+    ArgumentError,
+)
 from vectis.util import (
-        AtomicWriter,
-        )
+    AtomicWriter,
+)
 from vectis.worker import (
-        VirtWorker,
-        )
+    VirtWorker,
+)
 
 logger = logging.getLogger(__name__)
 
-def _sbuild(buildables, *,
+
+def _sbuild(
+        buildables,
+        *,
         archs,
         components,
         indep,
@@ -58,7 +61,7 @@ def _sbuild(buildables, *,
         'python3',
         'sbuild',
         'schroot',
-        ])
+    ])
 
     for buildable in buildables:
         logger.info('Processing: %s', buildable)
@@ -66,16 +69,17 @@ def _sbuild(buildables, *,
         buildable.copy_source_to(worker)
 
         def new_build(arch, output_builds=buildable.output_builds):
-            return Build(buildable, arch, worker,
-                    components=components,
-                    deb_build_options=deb_build_options,
-                    dpkg_buildpackage_options=dpkg_buildpackage_options,
-                    dpkg_source_options=dpkg_source_options,
-                    extra_repositories=extra_repositories,
-                    output_builds=buildable.output_builds,
-                    profiles=profiles,
-                    storage=storage,
-                    )
+            return Build(
+                buildable, arch, worker,
+                components=components,
+                deb_build_options=deb_build_options,
+                dpkg_buildpackage_options=dpkg_buildpackage_options,
+                dpkg_source_options=dpkg_source_options,
+                extra_repositories=extra_repositories,
+                output_builds=buildable.output_builds,
+                profiles=profiles,
+                storage=storage,
+            )
 
         if buildable.source_from_archive:
             # We need to get some information from the .dsc, which we do by
@@ -92,38 +96,39 @@ def _sbuild(buildables, *,
             new_build('source').sbuild()
 
         if not source_only:
-            buildable.select_archs(worker.dpkg_architecture, archs, indep,
-                    together)
+            buildable.select_archs(
+                worker.dpkg_architecture, archs, indep, together)
 
             for arch in buildable.archs:
                 new_build(arch).sbuild()
 
         if buildable.sourceful_changes_name:
-            c = os.path.join(buildable.output_builds,
-                    '{}_source.changes'.format(buildable.product_prefix))
+            c = os.path.join(
+                buildable.output_builds,
+                '{}_source.changes'.format(buildable.product_prefix))
             if 'source' not in buildable.changes_produced:
                 with AtomicWriter(c) as writer:
                     subprocess.check_call([
-                            'mergechanges',
-                            '--source',
-                            buildable.sourceful_changes_name,
-                            buildable.sourceful_changes_name,
-                        ],
-                        stdout=writer)
+                        'mergechanges',
+                        '--source',
+                        buildable.sourceful_changes_name,
+                        buildable.sourceful_changes_name,
+                    ], stdout=writer)
 
             buildable.merged_changes['source'] = c
 
         if ('all' in buildable.changes_produced and
                 'source' in buildable.merged_changes):
-            c = os.path.join(buildable.output_builds,
-                    '{}_source+all.changes'.format(buildable.product_prefix))
+            c = os.path.join(
+                buildable.output_builds,
+                '{}_source+all.changes'.format(buildable.product_prefix))
             buildable.merged_changes['source+all'] = c
             with AtomicWriter(c) as writer:
                 subprocess.check_call([
                     'mergechanges',
                     buildable.changes_produced['all'],
                     buildable.merged_changes['source'],
-                    ], stdout=writer)
+                ], stdout=writer)
 
         binary_group = 'binary'
 
@@ -135,14 +140,14 @@ def _sbuild(buildables, *,
             if v == buildable.sourceful_changes_name:
                 binary_group = 'source+binary'
 
-        c = os.path.join(buildable.output_builds,
-                '{}_{}.changes'.format(buildable.product_prefix,
-                    binary_group))
+        c = os.path.join(
+            buildable.output_builds,
+            '{}_{}.changes'.format(buildable.product_prefix, binary_group))
 
         if len(binary_changes) > 1:
             with AtomicWriter(c) as writer:
-                subprocess.check_call(['mergechanges'] + binary_changes,
-                    stdout=writer)
+                subprocess.check_call(
+                    ['mergechanges'] + binary_changes, stdout=writer)
             buildable.merged_changes[binary_group] = c
         elif len(binary_changes) == 1:
             shutil.copy(binary_changes[0], c)
@@ -151,19 +156,23 @@ def _sbuild(buildables, *,
 
         if ('source' in buildable.merged_changes and
                 'binary' in buildable.merged_changes):
-            c = os.path.join(buildable.output_builds,
-                    '{}_source+binary.changes'.format(buildable.product_prefix))
+            c = os.path.join(
+                buildable.output_builds,
+                '{}_source+binary.changes'.format(buildable.product_prefix))
             buildable.merged_changes['source+binary'] = c
 
             with AtomicWriter(c) as writer:
                 subprocess.check_call([
-                        'mergechanges',
-                        buildable.merged_changes['source'],
-                        buildable.merged_changes['binary'],
-                    ],
-                    stdout=writer)
+                    'mergechanges',
+                    buildable.merged_changes['source'],
+                    buildable.merged_changes['binary'],
+                ], stdout=writer)
 
-def _autopkgtest(buildables, default_architecture, *,
+
+def _autopkgtest(
+        buildables,
+        default_architecture,
+        *,
         components,
         lxc_24bit_subnet,
         lxc_worker,
@@ -186,8 +195,8 @@ def _autopkgtest(buildables, default_architecture, *,
             source_package = buildable.source_package
             logger.info('Testing source package %s', source_package)
         else:
-            logger.warning('Unable to run autopkgtest on %s',
-                    buildable.buildable)
+            logger.warning(
+                'Unable to run autopkgtest on %s', buildable.buildable)
             continue
 
         if buildable.dsc is not None and 'testsuite' not in buildable.dsc:
@@ -206,7 +215,8 @@ def _autopkgtest(buildables, default_architecture, *,
         logger.info('Testing on architectures: %r', test_architectures)
 
         for architecture in test_architectures:
-            buildable.autopkgtest_failures.extend(run_autopkgtest(
+            buildable.autopkgtest_failures.extend(
+                run_autopkgtest(
                     architecture=architecture,
                     binaries=buildable.get_debs(architecture),
                     components=components,
@@ -224,32 +234,40 @@ def _autopkgtest(buildables, default_architecture, *,
                     vendor=vendor,
                     worker_argv=worker_argv,
                     worker_suite=worker_suite,
-                    ))
+                ),
+            )
+
 
 def _summarize(buildables):
     for buildable in buildables:
-        logger.info('Built changes files from %s:\n\t%s',
-                buildable,
-                '\n\t'.join(sorted(buildable.changes_produced.values())),
-                )
+        logger.info(
+            'Built changes files from %s:\n\t%s',
+            buildable,
+            '\n\t'.join(sorted(buildable.changes_produced.values())),
+        )
 
-        logger.info('Build logs from %s:\n\t%s',
-                buildable,
-                '\n\t'.join(sorted(buildable.logs.values())),
-                )
+        logger.info(
+            'Build logs from %s:\n\t%s',
+            buildable,
+            '\n\t'.join(sorted(buildable.logs.values())),
+        )
+
 
 def _lintian(buildables):
     for buildable in buildables:
         # Run lintian near the end for better visibility
         for x in 'source+binary', 'binary', 'source':
             if x in buildable.merged_changes:
-                subprocess.call(['lintian', '-I', '-i',
-                    buildable.merged_changes[x]])
+                subprocess.call(
+                    ['lintian', '-I', '-i', buildable.merged_changes[x]])
 
                 break
 
-def _publish(buildables,
-        reprepro_dir, default_reprepro_suite=None):
+
+def _publish(
+        buildables,
+        reprepro_dir,
+        default_reprepro_suite=None):
     for buildable in buildables:
         for x in 'source+binary', 'binary', 'source':
             if x in buildable.merged_changes:
@@ -258,16 +276,22 @@ def _publish(buildables,
                 if reprepro_suite is None:
                     reprepro_suite = buildable.nominal_suite
 
-                subprocess.call(['reprepro', '-b', reprepro_dir,
+                subprocess.call([
+                    'reprepro', '-b', reprepro_dir,
                     'removesrc', str(reprepro_suite),
-                    buildable.source_package])
-                subprocess.call(['reprepro', '--ignore=wrongdistribution',
+                    buildable.source_package,
+                ])
+                subprocess.call([
+                    'reprepro', '--ignore=wrongdistribution',
                     '--ignore=missingfile',
                     '-b', reprepro_dir, 'include',
                     str(reprepro_suite),
-                    os.path.join(buildable.output_builds,
-                        buildable.merged_changes[x])])
+                    os.path.join(
+                        buildable.output_builds,
+                        buildable.merged_changes[x]),
+                ])
                 break
+
 
 def run(args):
     components = args.components
@@ -339,44 +363,48 @@ def run(args):
 
             for ancestor in suite.hierarchy:
                 if ancestor.mirror is None:
-                    raise ArgumentError('mirror or apt_cacher_ng must be '
-                            'configured for {}'.format(ancestor))
+                    raise ArgumentError(
+                        'mirror or apt_cacher_ng must be configured for '
+                        '{}'.format(ancestor))
 
     with VirtWorker(
             args.sbuild_worker,
             suite=args.sbuild_worker_suite,
-            ) as worker:
+    ) as worker:
         default_architecture = worker.dpkg_architecture
-        _sbuild(buildables,
-                archs=args._archs,
-                components=components,
-                deb_build_options=deb_build_options,
-                dpkg_buildpackage_options=db_options,
-                dpkg_source_options=ds_options,
-                extra_repositories=args._extra_repository,
-                indep=args._indep,
-                profiles=profiles,
-                rebuild_source=args._rebuild_source,
-                source_only=args._source_only,
-                storage=storage,
-                together=args.sbuild_together,
-                vendor=vendor,
-                worker=worker,
-                )
-
-    _autopkgtest(buildables, default_architecture,
+        _sbuild(
+            buildables,
+            archs=args._archs,
             components=components,
+            deb_build_options=deb_build_options,
+            dpkg_buildpackage_options=db_options,
+            dpkg_source_options=ds_options,
             extra_repositories=args._extra_repository,
-            lxc_24bit_subnet=args.lxc_24bit_subnet,
-            lxc_worker=args.lxc_worker,
-            lxc_worker_suite=args.lxc_worker_suite,
-            mirror=args.mirror,
-            modes=args.autopkgtest,
+            indep=args._indep,
+            profiles=profiles,
+            rebuild_source=args._rebuild_source,
+            source_only=args._source_only,
             storage=storage,
+            together=args.sbuild_together,
             vendor=vendor,
-            worker_argv=args.worker,
-            worker_suite=args.worker_suite,
-            )
+            worker=worker,
+        )
+
+    _autopkgtest(
+        buildables, default_architecture,
+        components=components,
+        extra_repositories=args._extra_repository,
+        lxc_24bit_subnet=args.lxc_24bit_subnet,
+        lxc_worker=args.lxc_worker,
+        lxc_worker_suite=args.lxc_worker_suite,
+        mirror=args.mirror,
+        modes=args.autopkgtest,
+        storage=storage,
+        vendor=vendor,
+        worker_argv=args.worker,
+        worker_suite=args.worker_suite,
+    )
+
     _summarize(buildables)
     _lintian(buildables)
 
@@ -387,10 +415,11 @@ def run(args):
     # than one thing, the last screenful of information is the really
     # important bit for testing/signing/upload
     for buildable in buildables:
-        logger.info('Merged changes files from %s:\n\t%s',
-                buildable,
-                '\n\t'.join(buildable.merged_changes.values()),
-                )
+        logger.info(
+            'Merged changes files from %s:\n\t%s',
+            buildable,
+            '\n\t'.join(buildable.merged_changes.values()),
+        )
 
         if buildable.autopkgtest_failures:
             logger.error('Autopkgtest failures for %s:', buildable)
@@ -398,7 +427,8 @@ def run(args):
                 logger.error('- %s', x)
 
     for buildable in buildables:
-        logger.info('Output directory for %s: %s',
-                buildable,
-                buildable.output_builds,
-                )
+        logger.info(
+            'Output directory for %s: %s',
+            buildable,
+            buildable.output_builds,
+        )

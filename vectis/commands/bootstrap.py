@@ -9,14 +9,15 @@ import subprocess
 from tempfile import TemporaryDirectory
 
 from debian.debian_support import (
-        Version,
-        )
+    Version,
+)
 
 from vectis.commands.new import vmdebootstrap_argv
 from vectis.error import ArgumentError
 from vectis.worker import (
-        VirtWorker,
-        )
+    VirtWorker,
+)
+
 
 def run(args):
     if args.suite is None:
@@ -36,8 +37,8 @@ def run(args):
 
     try:
         version = subprocess.check_output(
-                ['dpkg-query', '-W', '-f${Version}', 'vmdebootstrap'],
-                universal_newlines=True).rstrip('\n')
+            ['dpkg-query', '-W', '-f${Version}', 'vmdebootstrap'],
+            universal_newlines=True).rstrip('\n')
     except:
         # non-dpkg host, guess a recent version
         version = Version('1.7')
@@ -46,35 +47,42 @@ def run(args):
 
     with TemporaryDirectory(prefix='vectis-bootstrap-') as scratch:
         argv = [
-                'sudo',
-                os.path.join(os.path.dirname(__file__),
-                    os.pardir, 'vectis-command-wrapper'),
-                '--',
-                ]
-        argv.extend(vmdebootstrap_argv(version,
+            'sudo',
+            os.path.join(
+                os.path.dirname(__file__), os.pardir,
+                'vectis-command-wrapper'),
+            '--',
+        ]
+        argv.extend(
+            vmdebootstrap_argv(
+                version,
                 architecture=architecture,
                 kernel_package=kernel_package,
                 mirror=mirror,
                 qemu_image_size=qemu_image_size,
                 suite=suite,
-                ))
+            ),
+        )
         argv.extend(vmdebootstrap_options)
-        argv.append('--customize={}'.format(
-                    os.path.join(os.path.dirname(__file__),
-                        os.pardir, 'setup-testbed')))
+        argv.append(
+            '--customize={}'.format(os.path.join(
+                os.path.dirname(__file__), os.pardir, 'setup-testbed')))
         argv.append('--owner={}'.format(pwd.getpwuid(os.getuid())[0]))
         argv.append('--image={}/output.raw'.format(scratch))
 
         subprocess.check_call(argv)
-        subprocess.check_call(['qemu-img', 'convert', '-f', 'raw',
+        subprocess.check_call([
+            'qemu-img', 'convert', '-f', 'raw',
             '-O', 'qcow2', '-c', '-p',
             '{}/output.raw'.format(scratch),
-            '{}/output.qcow2'.format(scratch)])
+            '{}/output.qcow2'.format(scratch),
+        ])
         os.makedirs(os.path.dirname(out), exist_ok=True)
         shutil.move('{}/output.qcow2'.format(scratch), out + '.new')
 
         try:
-            with VirtWorker(['qemu', '{}.new'.format(out)],
+            with VirtWorker(
+                    ['qemu', '{}.new'.format(out)],
                     suite=suite, mirror=mirror) as worker:
                 worker.check_call([
                     'env',
@@ -88,7 +96,7 @@ def run(args):
                     'python3',
                     'sbuild',
                     'schroot',
-                    ])
+                ])
         except:
             if not keep:
                 os.remove(out + '.new')

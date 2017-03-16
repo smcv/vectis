@@ -7,7 +7,7 @@ import os
 
 from debian.deb822 import (
     Changes,
-        Dsc,
+    Dsc,
 )
 
 from vectis.autopkgtest import (

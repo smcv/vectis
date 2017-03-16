@@ -14,28 +14,31 @@ from contextlib import ExitStack
 from tempfile import TemporaryDirectory
 
 from debian.deb822 import (
-        Changes,
-        Dsc,
-        )
+    Changes,
+    Dsc,
+)
 from debian.debian_support import (
-        Version,
-        )
+    Version,
+)
 
 from vectis.error import (
-        Error,
-        )
+    Error,
+)
 from vectis.util import (
-        AtomicWriter,
-        )
+    AtomicWriter,
+)
 
 _WRAPPER = os.path.join(os.path.dirname(__file__), 'vectis-command-wrapper')
 
 logger = logging.getLogger(__name__)
 
+
 class WorkerError(Error):
     pass
 
+
 class BaseWorker(metaclass=ABCMeta):
+
     def __init__(self):
         super().__init__()
         self.__open = 0
@@ -62,7 +65,9 @@ class BaseWorker(metaclass=ABCMeta):
         else:
             return self.stack.__exit__(et, ev, tb)
 
+
 class ContainerWorker(BaseWorker, metaclass=ABCMeta):
+
     def __init__(self):
         super().__init__()
         self.components = ()
@@ -90,8 +95,8 @@ class ContainerWorker(BaseWorker, metaclass=ABCMeta):
 
         for ancestor in self.suite.hierarchy:
             if self.components:
-                filtered_components = (set(self.components) &
-                        set(ancestor.all_components))
+                filtered_components = (
+                    set(self.components) & set(ancestor.all_components))
             else:
                 filtered_components = ancestor.components
 
@@ -113,7 +118,9 @@ class ContainerWorker(BaseWorker, metaclass=ABCMeta):
         for line in self.extra_repositories:
             writer.write('{}\n'.format(line))
 
+
 class FileProvider(BaseWorker, metaclass=ABCMeta):
+
     @abstractmethod
     def make_file_available(self, filename, *, cache=False, owner=None):
         raise NotImplementedError
@@ -130,7 +137,9 @@ class FileProvider(BaseWorker, metaclass=ABCMeta):
     def make_dsc_file_available(self, filename, owner=None):
         raise NotImplementedError
 
+
 class InteractiveWorker(BaseWorker, metaclass=ABCMeta):
+
     def __init__(self):
         super().__init__()
         self.__dpkg_architecture = None
@@ -145,19 +154,23 @@ class InteractiveWorker(BaseWorker, metaclass=ABCMeta):
         raise NotImplementedError
 
     def dpkg_version(self, package):
-        v = self.check_output(['dpkg-query', '-W', '-f${Version}', package],
-                universal_newlines=True).rstrip('\n')
+        v = self.check_output(
+            ['dpkg-query', '-W', '-f${Version}', package],
+            universal_newlines=True).rstrip('\n')
         return Version(v)
 
     @property
     def dpkg_architecture(self):
         if self.__dpkg_architecture is None:
-            self.__dpkg_architecture = self.check_output(['dpkg',
-                '--print-architecture'], universal_newlines=True).strip()
+            self.__dpkg_architecture = self.check_output(
+                ['dpkg', '--print-architecture'],
+                universal_newlines=True).strip()
 
         return self.__dpkg_architecture
 
+
 class HostWorker(InteractiveWorker, FileProvider):
+
     def __init__(self):
         super().__init__()
 
@@ -180,17 +193,21 @@ class HostWorker(InteractiveWorker, FileProvider):
         if not prefix:
             prefix = 'vectis-'
 
-        return self.stack.enter_context(self,
-                TemporaryDirectory(prefix=prefix))
+        return self.stack.enter_context(
+            self, TemporaryDirectory(prefix=prefix))
 
     def make_dsc_file_available(self, filename, owner=None):
-         return filename
+        return filename
 
     def make_changes_file_available(self, filename, owner=None):
-         return filename
+        return filename
+
 
 class SchrootWorker(ContainerWorker, InteractiveWorker):
-    def __init__(self, *,
+
+    def __init__(
+            self,
+            *,
             architecture,
             suite,
             worker,
@@ -208,8 +225,9 @@ class SchrootWorker(ContainerWorker, InteractiveWorker):
         if tarball is None:
             assert storage is not None
 
-            tarball = os.path.join(storage, architecture, str(suite.vendor),
-                    str(suite.hierarchy[-1]), 'sbuild.tar.gz')
+            tarball = os.path.join(
+                storage, architecture, str(suite.vendor),
+                str(suite.hierarchy[-1]), 'sbuild.tar.gz')
 
         self.chroot = chroot
         self.components = components
@@ -237,7 +255,7 @@ class SchrootWorker(ContainerWorker, InteractiveWorker):
 
     def set_up_apt(self):
         tarball_in_guest = self.worker.make_file_available(
-                self.tarball, cache=True)
+            self.tarball, cache=True)
 
         tmp = TemporaryDirectory(prefix='vectis-worker-')
         tmp = self.stack.enter_context(tmp)
@@ -246,8 +264,9 @@ class SchrootWorker(ContainerWorker, InteractiveWorker):
         with AtomicWriter(self.sources_list) as writer:
             self.write_sources_list(writer)
         self.worker.check_call(['mkdir', '-p', '/etc/schroot/sources.list.d'])
-        self.worker.copy_to_guest(self.sources_list,
-                '/etc/schroot/sources.list.d/{}'.format(self.chroot))
+        self.worker.copy_to_guest(
+            self.sources_list,
+            '/etc/schroot/sources.list.d/{}'.format(self.chroot))
 
         with AtomicWriter(os.path.join(tmp, 'sbuild.conf')) as writer:
             writer.write(textwrap.dedent('''
@@ -261,8 +280,9 @@ class SchrootWorker(ContainerWorker, InteractiveWorker):
             ''').format(
                 chroot=self.chroot,
                 tarball_in_guest=tarball_in_guest))
-        self.worker.copy_to_guest(os.path.join(tmp, 'sbuild.conf'),
-                '/etc/schroot/chroot.d/{}'.format(self.chroot))
+        self.worker.copy_to_guest(
+            os.path.join(tmp, 'sbuild.conf'),
+            '/etc/schroot/chroot.d/{}'.format(self.chroot))
 
         with AtomicWriter(os.path.join(tmp, '60vectis-sources')) as writer:
             writer.write(textwrap.dedent('''\
@@ -282,37 +302,40 @@ class SchrootWorker(ContainerWorker, InteractiveWorker):
                 fi
             fi
             '''))
-        self.worker.copy_to_guest(os.path.join(tmp, '60vectis-sources'),
-                '/etc/schroot/setup.d/60vectis-sources')
-        self.worker.check_call(['chmod', '0755',
-            '/etc/schroot/setup.d/60vectis-sources'])
+        self.worker.copy_to_guest(
+            os.path.join(tmp, '60vectis-sources'),
+            '/etc/schroot/setup.d/60vectis-sources')
+        self.worker.check_call(
+            ['chmod', '0755', '/etc/schroot/setup.d/60vectis-sources'])
 
     def install_apt_key(self, apt_key):
-        self.worker.check_call(['mkdir', '-p',
-            '/etc/schroot/apt-keys.d/{}'.format(self.chroot)])
-        self.worker.copy_to_guest(apt_key,
-                '/etc/schroot/apt-keys.d/{}/{}-{}'.format(
-                    self.chroot, uuid.uuid4(), os.path.basename(apt_key)))
+        self.worker.check_call(
+            ['mkdir', '-p', '/etc/schroot/apt-keys.d/{}'.format(self.chroot)])
+        self.worker.copy_to_guest(
+            apt_key, '/etc/schroot/apt-keys.d/{}/{}-{}'.format(
+                self.chroot, uuid.uuid4(), os.path.basename(apt_key)))
 
     def call(self, argv, **kwargs):
         return self.worker.call([
             'schroot', '-c', self.chroot,
             '--',
-            ] + list(argv), **kwargs)
+        ] + list(argv), **kwargs)
 
     def check_call(self, argv, **kwargs):
         return self.worker.check_call([
             'schroot', '-c', self.chroot,
             '--',
-            ] + list(argv), **kwargs)
+        ] + list(argv), **kwargs)
 
     def check_output(self, argv, **kwargs):
         return self.worker.check_output([
             'schroot', '-c', self.chroot,
             '--',
-            ] + list(argv), **kwargs)
+        ] + list(argv), **kwargs)
+
 
 class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
+
     def __init__(
             self,
             argv,
@@ -351,10 +374,10 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
 
         logger.info('Starting worker: %r', argv)
         self.virt_process = subprocess.Popen(
-                argv,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                universal_newlines=True)
+            argv,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            universal_newlines=True)
         self.stack.enter_context(self.virt_process)
         self.stack.callback(self.virt_process.terminate)
         # FIXME: timed wait for a response?
@@ -365,15 +388,16 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
 
         if line != 'ok\n':
             raise WorkerError('Virtual machine {!r} failed to start: '
-                    '{}'.format(argv, line.strip()))
+                              '{}'.format(argv, line.strip()))
 
         self.virt_process.stdin.write('capabilities\n')
         self.virt_process.stdin.flush()
         line = self.virt_process.stdout.readline()
 
         if not line.startswith('ok '):
-            raise WorkerError('Virtual machine {!r} failed to report '
-                'capabilities: {}'.format(line.strip()))
+            raise WorkerError(
+                'Virtual machine {!r} failed to report capabilities: '
+                '{}'.format(line.strip()))
 
         for word in line.split()[1:]:
             self.capabilities.add(word)
@@ -381,34 +405,39 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
                 self.user = word[len('suggested-normal-user='):]
 
         if 'root-on-testbed' not in self.capabilities:
-            raise WorkerError('Virtual machine {!r} does not have '
-                    'root-on-testbed capability: {}'.format(argv, line.strip()))
+            raise WorkerError(
+                'Virtual machine {!r} does not have root-on-testbed '
+                'capability: {}'.format(argv, line.strip()))
 
         if ('isolation-machine' not in self.capabilities and
                 'isolation-container' not in self.capabilities):
-            raise WorkerError('Virtual machine {!r} does not have '
-                    'sufficient isolation: {}'.format(argv, line.strip()))
+            raise WorkerError(
+                'Virtual machine {!r} does not have sufficient isolation: '
+                '{}'.format(argv, line.strip()))
 
         self.virt_process.stdin.write('open\n')
         self.virt_process.stdin.flush()
         line = self.virt_process.stdout.readline()
         if not line.startswith('ok '):
-            raise WorkerError('Failed to open virtual machine session {!r}: '
-                    '{}'.format(argv, line))
+            raise WorkerError(
+                'Failed to open virtual machine session '
+                '{!r}: {}'.format(argv, line))
         self.scratch = line[3:].rstrip('\n')
 
         self.virt_process.stdin.write('print-execute-command\n')
         self.virt_process.stdin.flush()
         line = self.virt_process.stdout.readline()
         if not line.startswith('ok '):
-            raise WorkerError('Failed to get virtual machine {!r} command '
-                    'wrapper: {}'.format(argv, line.strip()))
+            raise WorkerError(
+                'Failed to get virtual machine {!r} command '
+                'wrapper: {}'.format(argv, line.strip()))
 
         wrapper_argv = line.rstrip('\n').split(None, 1)[1].split(',')
         self.call_argv = list(map(urllib.parse.unquote, wrapper_argv))
         if not self.call_argv:
-            raise WorkerError('Virtual machine {!r} command wrapper did not '
-                    'provide any arguments: {}'.format(argv, line.strip()))
+            raise WorkerError(
+                'Virtual machine {!r} command wrapper did not provide any '
+                'arguments: {}'.format(argv, line.strip()))
 
         wrapper = '{}/vectis-command-wrapper'.format(self.scratch)
         self.copy_to_guest(_WRAPPER, wrapper)
@@ -439,27 +468,30 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
             return
 
         if not os.path.exists(host_path):
-            raise WorkerError('Cannot copy host:{!r} to guest: it does '
-                    'not exist'.format(host_path))
+            raise WorkerError(
+                'Cannot copy host:{!r} to guest: it does not '
+                'exist'.format(host_path))
 
         self.virt_process.stdin.write('copydown {} {}\n'.format(
             urllib.parse.quote(host_path),
             urllib.parse.quote(guest_path),
-            ))
+        ))
         self.virt_process.stdin.flush()
         line = self.virt_process.stdout.readline()
 
         if line != 'ok\n':
-            raise WorkerError('Failed to copy host:{!r} to guest:{!r}: '
-                    '{}'.format(host_path, guest_path, line.strip()))
+            raise WorkerError(
+                'Failed to copy host:{!r} to guest:{!r}: {}'.format(
+                    host_path, guest_path, line.strip()))
 
         if cache:
             self.__cached_copies[host_path] = guest_path
 
     def copy_to_host(self, guest_path, host_path):
         if self.call(['test', '-e', guest_path]) != 0:
-            raise WorkerError('Cannot copy guest:{!r} to host: it does '
-                    'not exist'.format(guest_path))
+            raise WorkerError(
+                'Cannot copy guest:{!r} to host: it does not exist'.format(
+                    guest_path))
 
         logger.info('Copying guest:{} to host:{}'.format(
             guest_path, host_path))
@@ -467,12 +499,13 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
         self.virt_process.stdin.write('copyup {} {}\n'.format(
             urllib.parse.quote(guest_path),
             urllib.parse.quote(host_path),
-            ))
+        ))
         self.virt_process.stdin.flush()
         line = self.virt_process.stdout.readline()
         if line != 'ok\n':
-            raise WorkerError('Failed to copy guest:{!r} to host:{!r}: '
-                    '{}'.format(guest_path, host_path, line.strip()))
+            raise WorkerError(
+                'Failed to copy guest:{!r} to host:{!r}: {}'.format(
+                    guest_path, host_path, line.strip()))
 
     def open_shell(self):
         self.virt_process.stdin.write('shell\n')
@@ -496,12 +529,13 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
         self.check_call([
             'env', 'DEBIAN_FRONTEND=noninteractive',
             'apt-get', '-y', 'update',
-            ])
+        ])
 
     def install_apt_key(self, apt_key):
-        self.copy_to_guest(apt_key,
-                '/etc/apt/trusted.gpg.d/{}-{}'.format(
-                    uuid.uuid4(), os.path.basename(apt_key)))
+        self.copy_to_guest(
+            apt_key,
+            '/etc/apt/trusted.gpg.d/{}-{}'.format(
+                uuid.uuid4(), os.path.basename(apt_key)))
 
     def make_file_available(self, filename, *, cache=False, owner=None):
         if cache:
@@ -510,16 +544,17 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
                 return in_guest
 
         unique = str(uuid.uuid4())
-        in_guest = '{}/{}/{}'.format(self.scratch, unique,
-                os.path.basename(filename))
+        in_guest = '{}/{}/{}'.format(
+            self.scratch, unique, os.path.basename(filename))
         self.check_call(['mkdir', '{}/{}'.format(self.scratch,
-            unique)])
+                                                 unique)])
         self.copy_to_guest(filename, in_guest)
 
         if owner is not None:
-            self.check_call(['chown', owner,
-                '{}/{}'.format(self.scratch, unique),
-                in_guest])
+            self.check_call([
+                'chown', owner, '{}/{}'.format(self.scratch, unique),
+                in_guest,
+            ])
 
         return in_guest
 
@@ -527,9 +562,10 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
         if not prefix:
             prefix = 'vectis-'
 
-        d = self.check_output(['mktemp', '-d',
-            '--tmpdir={}'.format(self.scratch),
-            prefix + 'XXXXXXXXXX'], universal_newlines=True).rstrip('\n')
+        d = self.check_output([
+            'mktemp', '-d', '--tmpdir={}'.format(self.scratch),
+            prefix + 'XXXXXXXXXX',
+        ], universal_newlines=True).rstrip('\n')
         self.check_call(['chmod', '0755', d])
         return d
 

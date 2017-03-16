@@ -6,10 +6,11 @@ import logging
 
 from vectis.error import ArgumentError
 from vectis.worker import (
-        VirtWorker,
-        )
+    VirtWorker,
+)
 
 logger = logging.getLogger(__name__)
+
 
 def run(args):
     if args.suite is None:
@@ -24,14 +25,16 @@ def run(args):
     suite = args.suite
 
     if shell_command is None and not argv:
-        raise ArgumentError('Usage: vectis run -- PROGRAM [$1 [$2...]] '
-                'or vectis run -c "shell one-liner" [$0 [$1 [$2...]]]')
+        raise ArgumentError(
+            'Usage: vectis run -- PROGRAM [$1 [$2...]] or vectis run '
+            '-c "shell one-liner" [$0 [$1 [$2...]]]')
 
     for suite in (suite,):
         for ancestor in suite.hierarchy:
             if ancestor.mirror is None:
-                raise ArgumentError('mirror or apt_cacher_ng must be '
-                        'configured for {}'.format(ancestor))
+                raise ArgumentError(
+                    'mirror or apt_cacher_ng must be configured for '
+                    '{}'.format(ancestor))
 
     with VirtWorker(['qemu', qemu_image], suite=suite) as worker:
         if shell_command is not None:

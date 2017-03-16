@@ -18,8 +18,8 @@ from debian.changelog import (
 )
 from debian.deb822 import (
     Changes,
-        Deb822,
-        Dsc,
+    Deb822,
+    Dsc,
 )
 from debian.debian_support import (
     Version,
@@ -30,7 +30,7 @@ from vectis.config import (
 )
 from vectis.error import (
     ArgumentError,
-        CannotHappen,
+    CannotHappen,
 )
 from vectis.worker import (
     SchrootWorker,
