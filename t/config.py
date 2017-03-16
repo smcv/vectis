@@ -347,7 +347,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(buildd.apt_suite, 'jessie')
         self.assertEqual(buildd.apt_key,
                 os.path.join(os.path.dirname(vectis.config.__file__),
-                    'keys', 'buildd.debian.org_archive_key_2015_2016.gpg'))
+                    'keys', 'buildd.debian.org_archive_key_2017_2018.gpg'))
 
         # Properties of the Config determined by it being jessie
         self.assertEqual(c.autopkgtest, ['lxc', 'qemu'])
@@ -370,7 +370,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(c.sbuild_resolver, [])
         self.assertEqual(c.apt_key,
                 os.path.join(os.path.dirname(vectis.config.__file__),
-                    'keys', 'buildd.debian.org_archive_key_2015_2016.gpg'))
+                    'keys', 'buildd.debian.org_archive_key_2017_2018.gpg'))
         self.assertIsNone(c.dpkg_source_diff_ignore)
         self.assertEqual(c.dpkg_source_tar_ignore, [])
         self.assertEqual(c.dpkg_source_extend_diff_ignore, [])
