@@ -34,17 +34,20 @@ defaults:
     lxc_worker_qemu_image: null
     lxc_worker_suite: null
     lxc_worker_vendor: null
+    lxc_worker_architecture: null
     lxc_worker: null
 
     sbuild_worker_qemu_image: null
     sbuild_worker_suite: null
     sbuild_worker_vendor: null
+    sbuild_worker_architecture: null
     sbuild_worker: null
 
     vmdebootstrap_worker_suite: null
     vmdebootstrap_worker_qemu_image: null
     vmdebootstrap_worker_vendor: null
     vmdebootstrap_worker: null
+    vmdebootstrap_worker_architecture: null
     vmdebootstrap_options: []
 
     autopkgtest:

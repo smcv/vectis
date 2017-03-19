@@ -529,6 +529,33 @@ class Config(_ConfigLike):
 
         return value
 
+    @property
+    def lxc_worker_architecture(self):
+        value = self['lxc_worker_architecture']
+
+        if value is None:
+            value = self.worker_architecture
+
+        return value
+
+    @property
+    def sbuild_worker_architecture(self):
+        value = self['sbuild_worker_architecture']
+
+        if value is None:
+            value = self.worker_architecture
+
+        return value
+
+    @property
+    def vmdebootstrap_worker_architecture(self):
+        value = self['vmdebootstrap_worker_architecture']
+
+        if value is None:
+            value = self.worker_architecture
+
+        return value
+
     def get_kernel_package(self, architecture):
         mapping = self['kernel_package']
 
@@ -701,7 +728,7 @@ class Config(_ConfigLike):
 
         if '/' not in value:
             return os.path.join(
-                self.storage, self.worker_architecture,
+                self.storage, self.lxc_worker_architecture,
                 str(self.lxc_worker_vendor),
                 str(self.lxc_worker_suite.hierarchy[-1]), value)
 
@@ -718,7 +745,7 @@ class Config(_ConfigLike):
 
         if '/' not in value:
             return os.path.join(
-                self.storage, self.worker_architecture,
+                self.storage, self.sbuild_worker_architecture,
                 str(self.sbuild_worker_vendor),
                 str(self.sbuild_worker_suite.hierarchy[-1]), value)
 
@@ -776,7 +803,7 @@ class Config(_ConfigLike):
 
         if '/' not in value:
             return os.path.join(
-                self.storage, self.worker_architecture,
+                self.storage, self.vmdebootstrap_worker_architecture,
                 str(self.vmdebootstrap_worker_vendor),
                 str(self.vmdebootstrap_worker_suite.hierarchy[-1]), value)
 

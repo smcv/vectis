@@ -33,6 +33,13 @@ def add_worker_options(p, context=None, context_implicit=False):
     )
 
     p.add_argument(
+        '--{}worker-architecture'.format(arg_prefix),
+        dest=dest_prefix + 'worker_architecture',
+        help='Virtual machine architecture to use [default: {}]'.format(
+            getattr(args, dest_prefix + 'worker_architecture')),
+    )
+
+    p.add_argument(
         '--{}worker-vendor'.format(arg_prefix),
         dest=dest_prefix + 'worker_vendor',
         help='Virtual machine vendor to use [default: {}]'.format(
