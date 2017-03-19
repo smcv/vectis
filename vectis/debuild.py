@@ -157,6 +157,27 @@ class Buildable:
         # If someone already created this, we'll just crash out.
         os.mkdir(self.output_builds)
 
+        # For convenience, create a symbolic link for the latest build of
+        # each source package: hello -> hello_2.10-1_20170319t102623
+        unversioned_symlink = os.path.join(output_builds, self.source_package)
+
+        with suppress(FileNotFoundError):
+            os.unlink(unversioned_symlink)
+
+        os.symlink(dirname, unversioned_symlink)
+
+        # If we know the version, also create a symbolic link for the latest
+        # build of each source/version pair:
+        # hello_2.10-1 -> hello_2.10-1_20170319t102623
+        if self._version is not None:
+            versioned_symlink = os.path.join(
+                output_builds, self.source_package)
+
+            with suppress(FileNotFoundError):
+                os.unlink(versioned_symlink)
+
+            os.symlink(dirname, versioned_symlink)
+
         if self.dsc is not None:
             abs_file = os.path.abspath(self.dsc_name)
             abs_dir, base = os.path.split(abs_file)
