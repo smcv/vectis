@@ -155,6 +155,7 @@ def run(args):
                     '-u', 'sbuild',
                     '--',
                     'sbuild',
+                    '--arch', architecture,
                     '-c', '{}-{}-sbuild'.format(suite, architecture),
                     '-d', 'whatever',
                     '--no-run-lintian',
