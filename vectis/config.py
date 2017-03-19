@@ -447,6 +447,22 @@ class Config(_ConfigLike):
             self._vendors[name] = Vendor(name, self._raw)
         return self._vendors[name]
 
+    def _get_filenames(self, name, default=None):
+        value = self[name]
+
+        if value is None:
+            value = default
+
+        if value is None:
+            return value
+
+        if isinstance(value, str):
+            value = [value]
+
+        value = map(os.path.expandvars, value)
+        value = map(os.path.expanduser, value)
+        return list(value)
+
     def _get_filename(self, name, default=None):
         value = self[name]
 
@@ -499,6 +515,10 @@ class Config(_ConfigLike):
     @property
     def output_builds(self):
         return self._get_filename('output_builds')
+
+    @property
+    def link_builds(self):
+        return self._get_filenames('link_builds', ())
 
     @property
     def worker_architecture(self):

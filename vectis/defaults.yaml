@@ -54,6 +54,7 @@ defaults:
     parallel: null
     sbuild_together: false
     output_builds: ".."
+    link_builds: [".."]
 
     sbuild_buildables: null
     sbuild_resolver: []

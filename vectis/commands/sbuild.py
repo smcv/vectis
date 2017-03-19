@@ -295,6 +295,7 @@ def _publish(
 
 def run(args):
     components = args.components
+    link_builds = args.link_builds
     output_builds = args.output_builds
     storage = args.storage
     vendor = args.vendor
@@ -354,7 +355,11 @@ def run(args):
     buildables = []
 
     for a in (args._buildables or ['.']):
-        buildable = Buildable(a, output_builds=output_builds, vendor=vendor)
+        buildable = Buildable(
+            a,
+            link_builds=link_builds,
+            output_builds=output_builds,
+            vendor=vendor)
         buildable.select_suite(args.suite)
         buildables.append(buildable)
 

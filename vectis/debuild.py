@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 class Buildable:
 
-    def __init__(self, buildable, *, output_builds, vendor):
+    def __init__(self, buildable, *, link_builds=(), output_builds, vendor):
         self.buildable = buildable
 
         self._product_prefix = None
@@ -54,6 +54,7 @@ class Buildable:
         self.dsc = None
         self.dsc_name = None
         self.indep = False
+        self.link_builds = link_builds
         self.logs = {}
         self.merged_changes = OrderedDict()
         self.nominal_suite = None
@@ -183,11 +184,27 @@ class Buildable:
             abs_dir, base = os.path.split(abs_file)
             os.symlink(abs_file, os.path.join(self.output_builds, base))
 
+            for l in self.link_builds:
+                symlink = os.path.join(l, base)
+
+                with suppress(FileNotFoundError):
+                    os.unlink(symlink)
+
+                os.symlink(abs_file, symlink)
+
             for f in self.dsc['files']:
                 abs_file = os.path.join(abs_dir, f['name'])
                 os.symlink(
                     abs_file,
                     os.path.join(self.output_builds, f['name']))
+
+                for l in self.link_builds:
+                    symlink = os.path.join(l, base)
+
+                    with suppress(FileNotFoundError):
+                        os.unlink(symlink)
+
+                    os.symlink(abs_file, symlink)
 
     @property
     def product_prefix(self):
@@ -377,6 +394,36 @@ class Buildable:
                     ret.add(os.path.join(os.path.dirname(v), f['name']))
 
         return sorted(ret)
+
+    def check_build_product(self, base):
+        """
+        Check whether base is a safe filename to copy back to the host.
+        If we don't trust the build system, we don't want to create symbolic
+        links with arbitrary names under its control.
+        """
+
+        if os.path.basename(base) != base:
+            raise ArgumentError('Contains a path separator')
+
+        if base.startswith('.'):
+            raise ArgumentError('Is a hidden file')
+
+        if base.endswith(('.deb', '.udeb')):
+            return
+
+        if not base.startswith(self.source_package + '_'):
+            raise ArgumentError('Unexpected prefix')
+
+        if base.endswith(('.changes', '.dsc', '.buildinfo', '.diff.gz')):
+            return
+
+        if '.debian.tar.' in base:
+            return
+
+        if '.orig' in base and '.tar.' in base:
+            return
+
+        raise ArgumentError('Unexpected filename')
 
 
 class Build:
@@ -706,67 +753,76 @@ class Build:
                 'sbuild produced no .changes file from {!r}'.format(
                     self.buildable))
 
-        logger.info('Copying %s back to host...', product)
-        copied_back = os.path.join(
-            self.output_builds,
+        copied_back = self.copy_back_product(
             '{}_{}.changes'.format(self.buildable.product_prefix, self.arch))
-        self.worker.copy_to_host(product, copied_back)
-        self.buildable.changes_produced[self.arch] = copied_back
 
-        changes_out = Changes(open(copied_back))
+        if copied_back is not None:
+            self.buildable.changes_produced[self.arch] = copied_back
 
-        if 'source' in changes_out['architecture'].split():
-            self.buildable.dsc_name = None
-            self.buildable.sourceful_changes_name = copied_back
+            changes_out = Changes(open(copied_back))
+
+            if 'source' in changes_out['architecture'].split():
+                self.buildable.dsc_name = None
+                self.buildable.sourceful_changes_name = copied_back
+
+                for f in changes_out['files']:
+                    if f['name'].endswith('.dsc'):
+                        # expect to find exactly one .dsc file
+                        assert self.buildable.dsc_name is None
+                        self.buildable.dsc_name = os.path.join(
+                            self.output_builds, f['name'])
+
+                assert self.buildable.dsc_name is not None
+                # Save some space
+                self.worker.check_call(['rm', '-fr', '{}/in/{}_source/'.format(
+                    self.worker.scratch,
+                    self.buildable.product_prefix)])
+
+            dsc = None
 
             for f in changes_out['files']:
-                if f['name'].endswith('.dsc'):
-                    # expect to find exactly one .dsc file
-                    assert self.buildable.dsc_name is None
-                    self.buildable.dsc_name = os.path.join(
-                        self.output_builds, f['name'])
+                copied_back = self.copy_back_product(f['name'])
 
-            assert self.buildable.dsc_name is not None
-            # Save some space
-            self.worker.check_call(['rm', '-fr', '{}/in/{}_source/'.format(
-                self.worker.scratch,
-                self.buildable.product_prefix)])
+                if copied_back is not None and f['name'].endswith('.dsc'):
+                    dsc = Dsc(open(copied_back))
 
-        dsc = None
+            if dsc is not None:
+                if self.buildable.dsc is None:
+                    self.buildable.dsc = dsc
 
-        for f in changes_out['files']:
-            assert '/' not in f['name']
-            assert not f['name'].startswith('.')
+                for f in dsc['files']:
+                    # The orig.tar.* might not have come back. Copy that too,
+                    # if necessary.
+                    self.copy_back_product(f['name'], skip_if_exists=True)
 
-            logger.info(
-                'Additionally copying %s back to host...', f['name'])
-            product = '{}/out/{}'.format(self.worker.scratch, f['name'])
-            copied_back = os.path.join(self.output_builds, f['name'])
+    def copy_back_product(self, base, *, skip_if_exists=False):
+        try:
+            self.buildable.check_build_product(base)
+        except ArgumentError as e:
+            logger.warning('Unexpected build product %r: %s', base, e)
+            return None
+        else:
+            product = '{}/out/{}'.format(self.worker.scratch, base)
+            copied_back = os.path.join(self.output_builds, base)
+            copied_back = os.path.abspath(copied_back)
 
-            with suppress(FileNotFoundError):
-                os.unlink(copied_back)
+            if skip_if_exists and os.path.exists(copied_back):
+                return copied_back
+
+            logger.info('Additionally copying %s back to host...', base)
+
+            if not skip_if_exists:
+                with suppress(FileNotFoundError):
+                    os.unlink(copied_back)
 
             self.worker.copy_to_host(product, copied_back)
 
-            if f['name'].endswith('.dsc'):
-                dsc = Dsc(open(copied_back))
+            for l in self.buildable.link_builds:
+                symlink = os.path.join(l, base)
 
-        if dsc is not None:
-            if self.buildable.dsc is None:
-                self.buildable.dsc = dsc
+                with suppress(FileNotFoundError):
+                    os.unlink(symlink)
 
-            for f in dsc['files']:
-                # The orig.tar.* might not have come back. Copy that too,
-                # if necessary.
-                assert '/' not in f['name']
-                assert not f['name'].startswith('.')
+                os.symlink(copied_back, symlink)
 
-                product = '{}/out/{}'.format(self.worker.scratch, f['name'])
-                copied_back = os.path.join(self.output_builds, f['name'])
-
-                if os.path.exists(copied_back):
-                    continue
-
-                logger.info(
-                    'Additionally copying %s back to host...', f['name'])
-                self.worker.copy_to_host(product, copied_back)
+            return copied_back
