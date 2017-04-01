@@ -6,6 +6,7 @@ import logging
 import os
 import shutil
 import subprocess
+from contextlib import suppress
 
 from vectis.autopkgtest import (
     run_autopkgtest,
@@ -103,9 +104,9 @@ def _sbuild(
                 new_build(arch).sbuild()
 
         if buildable.sourceful_changes_name:
-            c = os.path.join(
-                buildable.output_builds,
-                '{}_source.changes'.format(buildable.product_prefix))
+            base = '{}_source.changes'.format(buildable.product_prefix)
+            c = os.path.join(buildable.output_builds, base)
+            c = os.path.abspath(c)
             if 'source' not in buildable.changes_produced:
                 with AtomicWriter(c) as writer:
                     subprocess.check_call([
@@ -115,13 +116,21 @@ def _sbuild(
                         buildable.sourceful_changes_name,
                     ], stdout=writer)
 
+                for l in buildable.link_builds:
+                    symlink = os.path.join(l, base)
+
+                    with suppress(FileNotFoundError):
+                        os.unlink(symlink)
+
+                    os.symlink(c, symlink)
+
             buildable.merged_changes['source'] = c
 
         if ('all' in buildable.changes_produced and
                 'source' in buildable.merged_changes):
-            c = os.path.join(
-                buildable.output_builds,
-                '{}_source+all.changes'.format(buildable.product_prefix))
+            base = '{}_source+all.changes'.format(buildable.product_prefix)
+            c = os.path.join(buildable.output_builds, base)
+            c = os.path.abspath(c)
             buildable.merged_changes['source+all'] = c
             with AtomicWriter(c) as writer:
                 subprocess.check_call([
@@ -129,6 +138,14 @@ def _sbuild(
                     buildable.changes_produced['all'],
                     buildable.merged_changes['source'],
                 ], stdout=writer)
+
+            for l in buildable.link_builds:
+                symlink = os.path.join(l, base)
+
+                with suppress(FileNotFoundError):
+                    os.unlink(symlink)
+
+                os.symlink(c, symlink)
 
         binary_group = 'binary'
 
@@ -140,9 +157,9 @@ def _sbuild(
             if v == buildable.sourceful_changes_name:
                 binary_group = 'source+binary'
 
-        c = os.path.join(
-            buildable.output_builds,
-            '{}_{}.changes'.format(buildable.product_prefix, binary_group))
+        base = '{}_{}.changes'.format(buildable.product_prefix, binary_group)
+        c = os.path.join(buildable.output_builds, base)
+        c = os.path.abspath(c)
 
         if len(binary_changes) > 1:
             with AtomicWriter(c) as writer:
@@ -154,11 +171,20 @@ def _sbuild(
             buildable.merged_changes[binary_group] = c
         # else it was source-only: no binary changes
 
+        if binary_group in buildable.merged_changes:
+            for l in buildable.link_builds:
+                symlink = os.path.join(l, base)
+
+                with suppress(FileNotFoundError):
+                    os.unlink(symlink)
+
+                os.symlink(c, symlink)
+
         if ('source' in buildable.merged_changes and
                 'binary' in buildable.merged_changes):
-            c = os.path.join(
-                buildable.output_builds,
-                '{}_source+binary.changes'.format(buildable.product_prefix))
+            base = '{}_source+binary.changes'.format(buildable.product_prefix)
+            c = os.path.join(buildable.output_builds, base)
+            c = os.path.abspath(c)
             buildable.merged_changes['source+binary'] = c
 
             with AtomicWriter(c) as writer:
@@ -167,6 +193,14 @@ def _sbuild(
                     buildable.merged_changes['source'],
                     buildable.merged_changes['binary'],
                 ], stdout=writer)
+
+            for l in buildable.link_builds:
+                symlink = os.path.join(l, base)
+
+                with suppress(FileNotFoundError):
+                    os.unlink(symlink)
+
+                os.symlink(c, symlink)
 
 
 def _autopkgtest(
