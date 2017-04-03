@@ -199,7 +199,7 @@ class Buildable:
                     os.path.join(self.output_builds, f['name']))
 
                 for l in self.link_builds:
-                    symlink = os.path.join(l, base)
+                    symlink = os.path.join(l, f['name'])
 
                     with suppress(FileNotFoundError):
                         os.unlink(symlink)
