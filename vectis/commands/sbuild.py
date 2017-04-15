@@ -88,17 +88,24 @@ def _sbuild(
             # TODO: With jessie's sbuild, this doesn't work for
             # sources that only build Architecture: all binaries.
             if rebuild_source:
+                logger.info('Rebuilding source as requested')
                 new_build('source').sbuild()
             else:
+                logger.info(
+                    'Rebuilding and discarding source to discover supported '
+                    'architectures')
                 new_build('source', output_builds=None).sbuild()
         elif source_only:
             # TODO: With jessie's sbuild, this doesn't work for
             # sources that only build Architecture: all binaries.
+            logger.info('Doing source-only build as requested')
             new_build('source').sbuild()
 
         if not source_only:
             buildable.select_archs(
                 worker.dpkg_architecture, archs, indep, together)
+
+            logger.info('Binary builds: %r', list(buildable.archs))
 
             for arch in buildable.archs:
                 new_build(arch).sbuild()
