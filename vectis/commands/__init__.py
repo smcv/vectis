@@ -392,6 +392,31 @@ p.add_argument(
     help='Things to test (source or binary .changes, source .dsc, etc.',
 )
 
+help = 'Run piuparts tests'
+p = subparsers.add_parser(
+    'piuparts',
+    help=help, description=help, argument_default=argparse.SUPPRESS,
+    conflict_handler='resolve', parents=(base,),
+)
+add_worker_options(p)
+p.add_argument(
+    '--suite', '-d',
+    help='Distribution release suite to be tested [default: auto-detect '
+         'from input]',
+)
+p.add_argument(
+    '--extra-repository', action='append', default=[], dest='_extra_repository',
+    help='Add an apt source',
+)
+p.add_argument(
+    '_things', metavar='CHANGES_OR_DEB', nargs='+', default=[],
+    help='Things to test (binary .changes, .deb, package name)',
+)
+p.add_argument(
+    '--architecture', '--arch',
+    help='dpkg architecture [default: {}]'.format(args.architecture),
+)
+
 
 def main():
     logging.getLogger().setLevel(logging.INFO)
