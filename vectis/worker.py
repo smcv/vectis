@@ -122,11 +122,17 @@ class ContainerWorker(BaseWorker, metaclass=ABCMeta):
 class FileProvider(BaseWorker, metaclass=ABCMeta):
 
     @abstractmethod
-    def make_file_available(self, filename, *, cache=False, owner=None):
+    def make_file_available(
+            self,
+            filename,
+            *,
+            cache=False,
+            in_dir=None,
+            owner=None):
         raise NotImplementedError
 
     @abstractmethod
-    def new_directory(self):
+    def new_directory(self, prefix='', tmpdir=None):
         raise NotImplementedError
 
     @abstractmethod
@@ -186,10 +192,16 @@ class HostWorker(InteractiveWorker, FileProvider):
         logger.info('%r: %r', self, argv)
         return subprocess.check_output(argv, **kwargs)
 
-    def make_file_available(self, filename, *, cache=False, owner=None):
+    def make_file_available(
+            self,
+            filename,
+            *,
+            cache=False,
+            in_dir=None,
+            owner=None):
         return filename
 
-    def new_directory(self, prefix=''):
+    def new_directory(self, prefix='', tmpdir=None):
         if not prefix:
             prefix = 'vectis-'
 
@@ -197,10 +209,10 @@ class HostWorker(InteractiveWorker, FileProvider):
             self, TemporaryDirectory(prefix=prefix))
 
     def make_dsc_file_available(self, filename, owner=None):
-        return filename
+        return os.path.dirname(filename), os.path.basename(filename)
 
     def make_changes_file_available(self, filename, owner=None):
-        return filename
+        return os.path.dirname(filename), os.path.basename(filename)
 
 
 class SchrootWorker(ContainerWorker, InteractiveWorker):
@@ -537,33 +549,45 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
             '/etc/apt/trusted.gpg.d/{}-{}'.format(
                 uuid.uuid4(), os.path.basename(apt_key)))
 
-    def make_file_available(self, filename, *, cache=False, owner=None):
+    def make_file_available(
+            self,
+            filename,
+            *,
+            cache=False,
+            in_dir=None,
+            owner=None):
+        if in_dir is None:
+            in_dir = self.scratch
+
         if cache:
             in_guest = self.__cached_copies.get(filename)
-            if in_guest is not None:
+            if (in_guest is not None and
+                    os.path.commonpath([in_guest, in_dir]) == in_dir):
                 return in_guest
 
         unique = str(uuid.uuid4())
         in_guest = '{}/{}/{}'.format(
-            self.scratch, unique, os.path.basename(filename))
-        self.check_call(['mkdir', '{}/{}'.format(self.scratch,
-                                                 unique)])
+            in_dir, unique, os.path.basename(filename))
+        self.check_call(['mkdir', '{}/{}'.format(in_dir, unique)])
         self.copy_to_guest(filename, in_guest)
 
         if owner is not None:
             self.check_call([
-                'chown', owner, '{}/{}'.format(self.scratch, unique),
+                'chown', owner, '{}/{}'.format(in_dir, unique),
                 in_guest,
             ])
 
         return in_guest
 
-    def new_directory(self, prefix=''):
+    def new_directory(self, prefix='', tmpdir=None):
         if not prefix:
             prefix = 'vectis-'
 
+        if tmpdir is None:
+            tmpdir = self.scratch
+
         d = self.check_output([
-            'mktemp', '-d', '--tmpdir={}'.format(self.scratch),
+            'mktemp', '-d', '--tmpdir={}'.format(tmpdir),
             prefix + 'XXXXXXXXXX',
         ], universal_newlines=True).rstrip('\n')
         self.check_call(['chmod', '0755', d])
@@ -586,7 +610,7 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
         if owner is not None:
             self.check_call(['chown', owner] + files)
 
-        return files[1]
+        return files[0], os.path.basename(filename)
 
     def make_changes_file_available(self, filename, owner=None):
         d = os.path.dirname(filename)
@@ -605,4 +629,4 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
         if owner is not None:
             self.check_call(['chown', owner] + files)
 
-        return files[1]
+        return files[0], os.path.basename(filename)

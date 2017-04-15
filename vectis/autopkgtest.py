@@ -98,15 +98,15 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
 
         for b in binaries:
             if b.endswith('.changes'):
-                argv.append(self.worker.make_changes_file_available(
-                    b, owner=run_as))
+                d, f = self.worker.make_changes_file_available(b, owner=run_as)
+                argv.append('{}/{}'.format(d, f))
             else:
                 argv.append(self.worker.make_file_available(
                     b, owner=run_as))
 
         if source_dsc is not None:
-            argv.append(self.worker.make_dsc_file_available(
-                source_dsc, owner=run_as))
+            d, f = self.worker.make_dsc_file_available(source_dsc, owner=run_as)
+            argv.append('{}/{}'.format(d, f))
         elif source_package is not None:
             argv.append(source_package)
         else:
@@ -140,23 +140,35 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
             logger.error('autopkgtests failed')
             return False
 
-    def new_directory(self, prefix=''):
+    def new_directory(self, prefix='', tmpdir=None):
+        if tmpdir is None:
+            tmpdir = '/tmp'
+
         # assume /tmp is initially empty and uuid4() won't collide
-        d = '/tmp/{}{}'.format(prefix, uuid.uuid4())
+        d = '{}/{}{}'.format(tmpdir, prefix, uuid.uuid4())
         self.argv.append('--setup-commands=mkdir {}'.format(shlex.quote(d)))
         return d
 
-    def make_file_available(self, filename, cache=False, owner=None):
+    def make_file_available(
+            self,
+            filename,
+            *,
+            cache=False,
+            in_dir=None,
+            owner=None):
         if cache:
             in_guest = self.__cached_copies.get(filename)
             if in_guest is not None:
                 return in_guest
 
+        if in_dir is None:
+            in_dir = '/tmp'
+
         unique = str(uuid.uuid4())
         filename = self.worker.make_file_available(filename, cache=cache)
 
-        in_autopkgtest = '/tmp/{}/{}'.format(
-            unique, os.path.basename(filename))
+        in_autopkgtest = '{}/{}/{}'.format(
+            in_dir, unique, os.path.basename(filename))
         self.argv.append('--copy={}:{}'.format(filename, in_autopkgtest))
 
         if cache:
@@ -180,7 +192,7 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
                     os.path.join(d, f['name']),
                     '{}/{}'.format(to, f['name'])))
 
-        return '{}/{}'.format(to, os.path.basename(filename))
+        return to, os.path.basename(filename)
 
     def make_changes_file_available(self, filename, owner=None):
         d = os.path.dirname(filename)
@@ -197,7 +209,7 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
                 os.path.join(d, f['name']),
                 '{}/{}'.format(to, f['name'])))
 
-        return '{}/{}'.format(to, os.path.basename(filename))
+        return to, os.path.basename(filename)
 
     def _open(self):
         super()._open()
