@@ -53,6 +53,7 @@ defaults:
     autopkgtest:
         - schroot
         - qemu
+    piuparts: true
 
     parallel: null
     sbuild_together: false

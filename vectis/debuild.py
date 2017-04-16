@@ -59,6 +59,7 @@ class Buildable:
         self.merged_changes = OrderedDict()
         self.nominal_suite = None
         self.output_builds = None
+        self.piuparts_failures = []
         self.source_from_archive = False
         self.source_package = None
         self.sourceful_changes_name = None

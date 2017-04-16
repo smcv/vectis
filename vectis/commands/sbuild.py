@@ -21,6 +21,10 @@ from vectis.debuild import (
 from vectis.error import (
     ArgumentError,
 )
+from vectis.piuparts import (
+    Binary,
+    run_piuparts,
+)
 from vectis.util import (
     AtomicWriter,
 )
@@ -279,6 +283,48 @@ def _autopkgtest(
             )
 
 
+def _piuparts(
+        buildables,
+        default_architecture,
+        *,
+        components,
+        mirror,
+        storage,
+        vendor,
+        worker_argv,
+        worker_suite,
+        extra_repositories=()):
+    for buildable in buildables:
+        test_architectures = []
+
+        for arch in buildable.archs:
+            if arch != 'all' and arch != 'source':
+                test_architectures.append(arch)
+
+        if 'all' in buildable.archs and not test_architectures:
+            test_architectures.append(default_architecture)
+
+        logger.info('Running piuparts on architectures: %r', test_architectures)
+
+        for architecture in test_architectures:
+            buildable.piuparts_failures.extend(
+                run_piuparts(
+                    architecture=architecture,
+                    binaries=(Binary(b, deb=b)
+                        for b in buildable.get_debs(architecture)),
+                    components=components,
+                    extra_repositories=extra_repositories,
+                    mirror=mirror,
+                    output_logs=buildable.output_builds,
+                    storage=storage,
+                    suite=buildable.suite,
+                    vendor=vendor,
+                    worker_argv=worker_argv,
+                    worker_suite=worker_suite,
+                ),
+            )
+
+
 def _summarize(buildables):
     for buildable in buildables:
         logger.info(
@@ -451,6 +497,18 @@ def run(args):
         worker_suite=args.worker_suite,
     )
 
+    if args.piuparts:
+        _piuparts(
+            buildables, default_architecture,
+            components=components,
+            extra_repositories=args._extra_repository,
+            mirror=args.mirror,
+            storage=storage,
+            vendor=vendor,
+            worker_argv=args.worker,
+            worker_suite=args.worker_suite,
+        )
+
     _summarize(buildables)
     _lintian(buildables)
 
@@ -470,6 +528,11 @@ def run(args):
         if buildable.autopkgtest_failures:
             logger.error('Autopkgtest failures for %s:', buildable)
             for x in buildable.autopkgtest_failures:
+                logger.error('- %s', x)
+
+        if buildable.piuparts_failures:
+            logger.error('Piuparts failures for %s:', buildable)
+            for x in buildable.piuparts_failures:
                 logger.error('- %s', x)
 
     for buildable in buildables:
