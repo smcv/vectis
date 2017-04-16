@@ -5,6 +5,10 @@
 import logging
 import os
 
+from debian.debian_support import (
+    Version,
+)
+
 from vectis.error import ArgumentError
 from vectis.worker import (
     VirtWorker,
@@ -65,6 +69,8 @@ def run(args):
             'python3',
         ])
 
+        debootstrap_version = worker.dpkg_version('debootstrap')
+
         if apt_key_package is not None:
             worker.call([
                 'env',
@@ -97,6 +103,10 @@ def run(args):
 
         debootstrap_args.append('--components={}'.format(
             ','.join(args.components)))
+
+        if debootstrap_version >= Version('1.0.86~'):
+            # piuparts really doesn't like merged /usr
+            debootstrap_args.append('--no-merged-usr')
 
         worker.check_call([
             'env', 'DEBIAN_FRONTEND=noninteractive',
