@@ -418,10 +418,7 @@ class Buildable:
         if base.endswith(('.changes', '.dsc', '.buildinfo', '.diff.gz')):
             return
 
-        if '.debian.tar.' in base:
-            return
-
-        if '.orig' in base and '.tar.' in base:
+        if base.endswith(('.tar.xz', '.tar.gz', '.tar.bz2', '.tar.lzma')):
             return
 
         raise ArgumentError('Unexpected filename')
