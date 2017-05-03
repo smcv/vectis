@@ -14,6 +14,12 @@ from vectis.error import (Error)
 logger = logging.getLogger(__name__)
 
 
+class AppendCommaSeparated(argparse.Action):
+    def __call__(self, parser, namespace, value, option_string=None):
+        items = list(getattr(namespace, self.dest, []))
+        items.extend(value.split(','))
+        setattr(namespace, self.dest, items)
+
 def add_worker_options(p, context=None, context_implicit=False):
     if context is None:
         arg_prefix = ''
@@ -248,6 +254,10 @@ p.add_argument(
 p.add_argument(
     '--suite', '--distribution', '-d',
     help='Distribution release suite [default: auto-detect from input]',
+)
+p.add_argument(
+    '--components', action=AppendCommaSeparated,
+    help='Distribution components',
 )
 p.add_argument(
     '--output-builds', '--build-area',
