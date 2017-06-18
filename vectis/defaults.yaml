@@ -82,7 +82,6 @@ vendors:
             - lxc
             - qemu
         extra_components: contrib non-free
-        sbuild_worker_suite: jessie-apt.buildd.debian.org
         worker_vendor: debian
         apt_key_package: debian-archive-keyring
         apt_key: /usr/share/keyrings/debian-archive-keyring.gpg

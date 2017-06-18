@@ -360,8 +360,7 @@ class Config(_ConfigLike):
             debian = distro_info.DebianDistroInfo()
             ubuntu = distro_info.UbuntuDistroInfo()
             d['vendors']['debian']['default_suite'] = 'sid'
-            d['vendors']['debian']['default_worker_suite'] = (
-                debian.stable() + '-backports')
+            d['vendors']['debian']['default_worker_suite'] = debian.stable()
             d['vendors']['debian']['suites']['stable'] = {
                 'alias_for': debian.stable(),
             }
