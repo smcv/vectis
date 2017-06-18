@@ -563,18 +563,7 @@ class Build:
             for x in self.dpkg_source_options:
                 argv.append('--debbuildopt=--source-option={}'.format(x))
 
-            if sbuild_version < Version('0.67.0'):
-                # Backwards compatibility for Debian jessie buildd backport
-                # If we only build 'all', and we don't build 'all',
-                # then logically we build nothing (except source).
-                # sbuild >= 0.69.0 deprecates this syntax.
-                # TODO: This trick doesn't work with sources that only
-                # build Architecture: all binaries.
-                argv.append('--arch-all-only')
-                argv.append('--no-arch-all')
-            else:
-                # sbuild >= 0.67.0 gives better control
-                argv.append('--no-arch-any')
+            argv.append('--no-arch-any')
 
             if sbuild_version < Version('0.69.0'):
                 # Backwards compatibility for Debian jessie buildd backport,
@@ -583,24 +572,19 @@ class Build:
                 # sbuild < 0.69.0 expects to find foo_1_amd64.changes
                 # even for a source-only build (because it doesn't really
                 # support source-only builds), so we have to cheat.
-                # sbuild < 0.66 splits the command on spaces so we need to
-                # have a one-liner that doesn't contain embedded whitespace.
-                # Luckily, Perl can be written as line-noise.
                 perl = (
-                    '$arch=qx(dpkg\\x20--print-architecture);' +
-                    'chomp($arch);' +
-                    'chdir(shift);' +
-                    'foreach(glob("../*_source.changes")){' +
-                         '$orig=$_;' +
-                         's/_source\\.changes$/_${arch}.changes/;' +
-                         'print("Renaming\\x20$orig\\x20to\\x20$_\\n");' +
-                         'rename($orig,$_)||die("$!");' +
-                    '}')
+                    "'" +
+                    '$arch = qx(dpkg\\x20--print-architecture);\n' +
+                    'chomp($arch);\n' +
+                    'chdir(shift);\n' +
+                    'foreach(glob("../*_source.changes")) {\n' +
+                    '    $orig = $_;\n' +
+                    '    s/_source\\.changes$/_${arch}.changes/;\n' +
+                    '    print("Renaming\\x20$orig\\x20to\\x20$_\\n");\n' +
+                    '    rename($orig,$_) || die("$!");\n' +
+                    '}\n' +
+                    "'")
                 assert ' ' not in perl
-                assert "'" not in perl
-
-                if sbuild_version >= Version('0.66.0'):
-                    perl = "'{}'".format(perl)
 
                 argv.append(
                     '--finished-build-commands=perl -e {} %p'.format(perl))
