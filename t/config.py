@@ -99,12 +99,12 @@ class DefaultsTestCase(unittest.TestCase):
         else:
             self.assertEqual(c.worker_suite,
                     c.vendor.get_suite(
-                        distro_info.DebianDistroInfo().stable() + '-backports'))
+                        distro_info.DebianDistroInfo().stable()))
             self.assertEqual(c.default_worker_suite,
-                        distro_info.DebianDistroInfo().stable() + '-backports')
+                        distro_info.DebianDistroInfo().stable())
 
-        jb = c.vendor.get_suite('jessie-apt.buildd.debian.org')
-        self.assertEqual(c.sbuild_worker_suite, jb)
+        stable = c.vendor.get_suite('stable')
+        self.assertEqual(c.sbuild_worker_suite, stable)
         self.assertEqual(c.default_suite, 'sid')
         self.assertEqual(c.components, {'main'})
         self.assertEqual(c.extra_components,
@@ -200,8 +200,6 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.worker_vendor, debian)
         self.assertIs(c.sbuild_worker_vendor, debian)
         self.assertIs(c.vmdebootstrap_worker_vendor, debian)
-        self.assertIs(c.sbuild_worker_suite,
-                debian.get_suite('jessie-apt.buildd.debian.org'))
         self.assertEqual(c.archive, 'debian')
         self.assertEqual(c.apt_cacher_ng, 'http://192.168.122.1:3142')
         self.assertEqual(c.mirror, 'http://192.168.122.1:3142/debian')
@@ -226,9 +224,11 @@ class DefaultsTestCase(unittest.TestCase):
 
         debian_info = distro_info.DebianDistroInfo()
         self.assertEqual(debian.default_worker_suite,
-                debian_info.stable() + '-backports')
+                debian_info.stable())
+        self.assertIs(c.sbuild_worker_suite,
+                debian.get_suite(debian_info.stable()))
         self.assertIs(c.worker_suite, debian.get_suite(
-            debian_info.stable() + '-backports'))
+            debian_info.stable()))
 
         self.assertEqual(str(debian.get_suite('unstable')),
                 'sid')
@@ -299,8 +299,6 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(c.vmdebootstrap_options,
                 ['--boottype=ext3', '--extlinux', '--mbr', '--no-grub',
                     '--enable-dhcp'])
-        self.assertIs(c.sbuild_worker_suite,
-                debian.get_suite('jessie-apt.buildd.debian.org'))
         self.assertEqual(c.archive, 'debian')
         self.assertEqual(c.apt_cacher_ng, 'http://192.168.122.1:3142')
         self.assertEqual(c.mirror, 'http://192.168.122.1:3142/debian')
@@ -322,8 +320,9 @@ class DefaultsTestCase(unittest.TestCase):
         except ImportError:
             return
 
-        sbp = debian.get_suite('stable-backports')
-        self.assertIs(c.worker_suite, sbp)
+        stable = debian.get_suite('stable')
+        self.assertIs(c.worker_suite, stable)
+        self.assertIs(c.sbuild_worker_suite, stable)
 
     def test_debian_buildd(self):
         c = self.__config
@@ -360,7 +359,6 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.worker_vendor, debian)
         self.assertIs(c.sbuild_worker_vendor, debian)
         self.assertIs(c.vmdebootstrap_worker_vendor, debian)
-        self.assertIs(c.sbuild_worker_suite, buildd)
         self.assertEqual(c.archive, 'apt.buildd.debian.org')
         self.assertEqual(c.apt_cacher_ng, 'http://192.168.122.1:3142')
         self.assertEqual(c.mirror, 'http://192.168.122.1:3142/apt.buildd.debian.org')
@@ -383,8 +381,9 @@ class DefaultsTestCase(unittest.TestCase):
         except ImportError:
             return
 
-        sbp = debian.get_suite('stable-backports')
-        self.assertIs(c.worker_suite, sbp)
+        stable = debian.get_suite('stable')
+        self.assertIs(c.worker_suite, stable)
+        self.assertIs(c.sbuild_worker_suite, stable)
 
     def test_debian_backports(self):
         try:
@@ -676,8 +675,7 @@ class DefaultsTestCase(unittest.TestCase):
             return
 
         debian_info = distro_info.DebianDistroInfo()
-        self.assertIs(c.worker_suite,
-                debian.get_suite(debian_info.stable() + '-backports'))
+        self.assertIs(c.worker_suite, debian.get_suite(debian_info.stable()))
 
     def tearDown(self):
         pass
