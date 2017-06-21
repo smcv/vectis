@@ -37,15 +37,15 @@ def run(args):
 
     os.makedirs(storage, exist_ok=True)
 
-    if mirror is None:
-        raise ArgumentError('mirror or apt_cacher_ng must be configured')
-
     for suite in (worker_suite, suite):
         for ancestor in suite.hierarchy:
             if ancestor.mirror is None:
                 raise ArgumentError(
                     'mirror or apt_cacher_ng must be configured for {}'.format(
                         ancestor))
+
+    if mirror is None:
+        mirror = suite.mirror
 
     minbase_tarball = '{arch}/{vendor}/{suite}/minbase.tar.gz'.format(
         arch=architecture,

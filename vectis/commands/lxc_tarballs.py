@@ -83,6 +83,9 @@ def run(args):
         # We have to provide exactly two apt URLs.
         security_suite = vendor.get_suite(str(suite) + '-security')
 
+        if mirror is None:
+            mirror = suite.mirror
+
         argv = [
             'env', 'DEBIAN_FRONTEND=noninteractive',
             worker.command_wrapper,

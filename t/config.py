@@ -50,7 +50,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.worker_vendor, debian)
         self.assertIs(c.sbuild_worker_vendor, debian)
         self.assertIs(c.vmdebootstrap_worker_vendor, debian)
-        self.assertEqual(c.archive, 'debian')
+        self.assertEqual(c.archive, None)
         self.assertEqual(c.apt_cacher_ng, None)
         self.assertIs(c.sbuild_together, False)
         self.assertEqual(c.output_builds, '..')
@@ -154,9 +154,7 @@ class DefaultsTestCase(unittest.TestCase):
                 '{}/m68k/ubuntu/xenial/autopkgtest.qcow2'.format(
                     c.storage))
 
-        self.assertEqual(c.mirror,
-                'http://192.168.122.1:3142/debian')
-
+        self.assertEqual(c.mirror, None)
         self.assertEqual(potato.mirror,
                 'http://192.168.122.1:3142/debian')
         self.assertEqual(sarge.mirror,
@@ -187,6 +185,7 @@ class DefaultsTestCase(unittest.TestCase):
         # Properties of the suite itswelf
         self.assertEqual(sid.apt_key,
                 '/usr/share/keyrings/debian-archive-keyring.gpg')
+        self.assertEqual(sid.archive, 'debian')
         self.assertEqual(sid.mirror, 'http://192.168.122.1:3142/debian')
         self.assertIs(sid.base, None)
         self.assertEqual(sid.components, {'main'})
@@ -200,9 +199,9 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.worker_vendor, debian)
         self.assertIs(c.sbuild_worker_vendor, debian)
         self.assertIs(c.vmdebootstrap_worker_vendor, debian)
-        self.assertEqual(c.archive, 'debian')
+        self.assertEqual(c.archive, None)
         self.assertEqual(c.apt_cacher_ng, 'http://192.168.122.1:3142')
-        self.assertEqual(c.mirror, 'http://192.168.122.1:3142/debian')
+        self.assertEqual(c.mirror, None)
         self.assertEqual(c.qemu_image_size, '42G')
         self.assertGreaterEqual(c.parallel, 1)
         self.assertIs(c.sbuild_together, False)
@@ -282,6 +281,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(wheezy.vendor, debian)
         self.assertIs(wheezy.base, None)
         self.assertEqual(wheezy.apt_suite, 'wheezy')
+        self.assertEqual(wheezy.archive, 'debian')
+        self.assertEqual(wheezy.mirror, 'http://192.168.122.1:3142/debian')
 
         # Properties of the Config determined by it being wheezy
         self.assertEqual(c.autopkgtest, ['lxc', 'qemu'])
@@ -299,9 +300,9 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(c.vmdebootstrap_options,
                 ['--boottype=ext3', '--extlinux', '--mbr', '--no-grub',
                     '--enable-dhcp'])
-        self.assertEqual(c.archive, 'debian')
+        self.assertEqual(c.archive, None)
         self.assertEqual(c.apt_cacher_ng, 'http://192.168.122.1:3142')
-        self.assertEqual(c.mirror, 'http://192.168.122.1:3142/debian')
+        self.assertEqual(c.mirror, None)
         self.assertEqual(c.qemu_image_size, '42G')
         self.assertGreaterEqual(c.parallel, 1)
         self.assertIs(c.sbuild_together, False)
@@ -347,6 +348,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(buildd.apt_key,
                 os.path.join(os.path.dirname(vectis.config.__file__),
                     'keys', 'buildd.debian.org_archive_key_2017_2018.gpg'))
+        self.assertEqual(buildd.archive, 'apt.buildd.debian.org')
+        self.assertEqual(buildd.mirror, 'http://192.168.122.1:3142/apt.buildd.debian.org')
 
         # Properties of the Config determined by it being jessie
         self.assertEqual(c.autopkgtest, ['lxc', 'qemu'])
@@ -361,7 +364,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.vmdebootstrap_worker_vendor, debian)
         self.assertEqual(c.archive, 'apt.buildd.debian.org')
         self.assertEqual(c.apt_cacher_ng, 'http://192.168.122.1:3142')
-        self.assertEqual(c.mirror, 'http://192.168.122.1:3142/apt.buildd.debian.org')
+        self.assertEqual(c.mirror, None)
         self.assertEqual(c.qemu_image_size, '42G')
         self.assertGreaterEqual(c.parallel, 1)
         self.assertIs(c.sbuild_together, False)
@@ -409,11 +412,13 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(str(backports.hierarchy[1]), str(stable))
         self.assertEqual(backports.sbuild_resolver,
                 ['--build-dep-resolver=aptitude'])
+        self.assertEqual(backports.mirror,
+                'http://192.168.122.1:3142/debian')
+        self.assertEqual(backports.archive, 'debian')
 
         self.assertEqual(c.sbuild_resolver,
                 ['--build-dep-resolver=aptitude'])
-        self.assertEqual(c.mirror,
-                'http://192.168.122.1:3142/debian')
+        self.assertEqual(c.mirror, None)
 
     def test_debian_stable_security(self):
         c = self.__config
@@ -436,11 +441,12 @@ class DefaultsTestCase(unittest.TestCase):
                 '{}/updates'.format(debian_info.stable()))
         self.assertEqual(security.mirror,
                 'http://192.168.122.1:3142/security.debian.org')
+        self.assertEqual(security.archive, 'security.debian.org')
         self.assertEqual(security.hierarchy[0], security)
         self.assertEqual(str(security.hierarchy[1]), str(stable))
 
-        self.assertEqual(c.mirror,
-                'http://192.168.122.1:3142/security.debian.org')
+        self.assertEqual(c.mirror, None)
+        self.assertEqual(c.archive, 'security.debian.org')
 
     def test_debian_wheezy_security(self):
         c = self.__config
@@ -472,7 +478,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.vendor, ubuntu)
 
         self.assertEqual(str(ubuntu), 'ubuntu')
-        self.assertEqual(ubuntu.mirror, 'http://192.168.122.1:3142/ubuntu')
+        self.assertEqual(ubuntu.mirror, None)
         self.assertIsNone(ubuntu.get_suite('unstable', create=False))
         self.assertIsNone(ubuntu.get_suite('stable', create=False))
 
@@ -485,8 +491,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.worker_vendor, ubuntu)
         self.assertIs(c.sbuild_worker_vendor, ubuntu)
         self.assertIs(c.vmdebootstrap_worker_vendor, ubuntu)
-        self.assertEqual(c.archive, 'ubuntu')
-        self.assertEqual(c.mirror, 'http://192.168.122.1:3142/ubuntu')
+        self.assertEqual(c.archive, None)
+        self.assertEqual(c.mirror, None)
         self.assertEqual(c.autopkgtest, ['lxc', 'qemu'])
         self.assertEqual(c.components, {'main', 'universe'})
         self.assertEqual(c.extra_components, {'restricted',
@@ -494,9 +500,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(c.all_components, {'main', 'universe',
             'restricted', 'multiverse'})
         self.assertIs(c.vendor, ubuntu)
-        self.assertEqual(c.archive, 'ubuntu')
         self.assertEqual(c.apt_cacher_ng, 'http://192.168.122.1:3142')
-        self.assertEqual(c.mirror, 'http://192.168.122.1:3142/ubuntu')
         self.assertEqual(c.qemu_image_size, '42G')
         self.assertGreaterEqual(c.parallel, 1)
         self.assertIs(c.sbuild_together, False)
@@ -525,11 +529,16 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(ubuntu.default_suite, ubuntu_devel)
         self.assertEqual(ubuntu.default_worker_suite,
                 ubuntu_info.lts() + '-backports')
+        devel = ubuntu.get_suite('devel')
+        self.assertEqual(devel.archive, 'ubuntu')
+        self.assertEqual(devel.mirror, 'http://192.168.122.1:3142/ubuntu')
 
         backports = ubuntu.get_suite(ubuntu_info.lts() + '-backports')
         self.assertEqual(c.worker_suite, backports)
         self.assertEqual(c.sbuild_worker_suite, backports)
         self.assertEqual(c.vmdebootstrap_worker_suite, backports)
+        self.assertEqual(backports.archive, 'ubuntu')
+        self.assertEqual(backports.mirror, 'http://192.168.122.1:3142/ubuntu')
 
     def test_ubuntu_xenial(self):
         c = self.__config
@@ -545,6 +554,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(xenial.all_components, {'main', 'universe',
             'multiverse', 'restricted'})
         self.assertIs(xenial.base, None)
+        self.assertEqual(xenial.archive, 'ubuntu')
         self.assertEqual(xenial.mirror, 'http://192.168.122.1:3142/ubuntu')
         self.assertEqual(xenial.apt_key,
                 '/usr/share/keyrings/ubuntu-archive-keyring.gpg')
@@ -560,9 +570,9 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.sbuild_worker_vendor, ubuntu)
         self.assertIs(c.vmdebootstrap_worker_vendor, ubuntu)
 
-        self.assertEqual(c.archive, 'ubuntu')
+        self.assertEqual(c.archive, None)
         self.assertEqual(c.apt_cacher_ng, 'http://192.168.122.1:3142')
-        self.assertEqual(c.mirror, 'http://192.168.122.1:3142/ubuntu')
+        self.assertEqual(c.mirror, None)
         self.assertEqual(c.qemu_image_size, '42G')
         self.assertGreaterEqual(c.parallel, 1)
         self.assertIs(c.sbuild_together, False)
@@ -610,14 +620,15 @@ class DefaultsTestCase(unittest.TestCase):
             'restricted'})
         self.assertEqual(sec.all_components, {'main', 'universe',
             'multiverse', 'restricted'})
+        self.assertEqual(sec.archive, 'ubuntu')
         self.assertEqual(sec.mirror, 'http://192.168.122.1:3142/ubuntu')
         self.assertEqual(sec.apt_key,
                 '/usr/share/keyrings/ubuntu-archive-keyring.gpg')
         self.assertEqual(sec.apt_suite, 'xenial-security')
 
-        self.assertEqual(c.archive, 'ubuntu')
+        self.assertEqual(c.archive, None)
         self.assertEqual(c.apt_cacher_ng, 'http://192.168.122.1:3142')
-        self.assertEqual(c.mirror, 'http://192.168.122.1:3142/ubuntu')
+        self.assertEqual(c.mirror, None)
         self.assertEqual(c.qemu_image_size, '42G')
         self.assertGreaterEqual(c.parallel, 1)
         self.assertIs(c.sbuild_together, False)
@@ -654,20 +665,24 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(str(steamos), 'steamos')
         self.assertEqual(steamos.components, {'main'})
         self.assertEqual(list(brewmaster.hierarchy), [brewmaster])
-        self.assertEqual(steamos.mirror, 'http://192.168.122.1:3142/steamos')
+        self.assertEqual(steamos.archive, None)
+        self.assertEqual(steamos.mirror, None)
 
         self.assertEqual(c.components, {'main'})
         self.assertEqual(c.vendor, steamos)
         self.assertIs(c.worker_vendor, debian)
         self.assertIs(c.sbuild_worker_vendor, debian)
         self.assertIs(c.vmdebootstrap_worker_vendor, debian)
-        self.assertEqual(c.archive, 'steamos')
-        self.assertEqual(c.mirror, 'http://192.168.122.1:3142/steamos')
+        self.assertEqual(c.archive, None)
+        self.assertEqual(c.mirror, None)
         self.assertEqual(c.autopkgtest, ['schroot', 'qemu'])
 
         self.assertIsNone(steamos.get_suite('xyzzy', create=False))
         self.assertIsNotNone(steamos.get_suite('xyzzy'))
         self.assertIs(steamos.get_suite('xyzzy'), steamos.get_suite('xyzzy'))
+
+        self.assertEqual(brewmaster.mirror, 'http://192.168.122.1:3142/steamos')
+        self.assertEqual(brewmaster.archive, 'steamos')
 
         try:
             import distro_info

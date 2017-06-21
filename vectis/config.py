@@ -56,21 +56,11 @@ class _ConfigLike:
 
     @property
     def archive(self):
-        value = self['archive']
-
-        if value is None:
-            value = str(self.vendor)
-
-        return value
+        return self['archive']
 
     @property
     def mirror(self):
-        value = self['mirror']
-
-        if value is None and self.apt_cacher_ng is not None:
-            value = self.apt_cacher_ng + '/' + self.archive
-
-        return value
+        return self['mirror']
 
     @property
     def apt_cacher_ng(self):
@@ -294,6 +284,24 @@ class Suite(_ConfigLike):
             return suite.replace('*', str(self.base))
 
         return suite
+
+    @property
+    def archive(self):
+        value = self['archive']
+
+        if value is None:
+            value = str(self.vendor)
+
+        return value
+
+    @property
+    def mirror(self):
+        value = self['mirror']
+
+        if value is None and self.apt_cacher_ng is not None:
+            value = self.apt_cacher_ng + '/' + self.archive
+
+        return value
 
 
 class Directory(_ConfigLike):
