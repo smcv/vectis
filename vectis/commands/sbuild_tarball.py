@@ -1,4 +1,4 @@
-# Copyright © 2016 Simon McVittie
+# Copyright © 2016-2017 Simon McVittie
 # SPDX-License-Identifier: GPL-2.0+
 # (see vectis/__init__.py)
 

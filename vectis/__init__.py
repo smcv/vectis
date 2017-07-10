@@ -1,7 +1,7 @@
 __license__ = """\
 vectis - do useful things in a virtual machine
 
-Copyright © 2015-2016 Simon McVittie
+Copyright © 2015-2017 Simon McVittie
 
 SPDX-License-Identifier: GPL-2.0+
 
