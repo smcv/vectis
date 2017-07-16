@@ -44,11 +44,11 @@ echo "1..1"
 
 $VECTIS --vendor=ubuntu --storage="${storage}" \
     new \
-    --mirror="${VECTIS_TEST_UBUNTU_MIRROR}" \
+    --mirror="ubuntu=${VECTIS_TEST_UBUNTU_MIRROR}" \
     --suite="${lts}" >&2
 
 $VECTIS --vendor=ubuntu --storage="${storage}" sbuild \
-    --mirror="${VECTIS_TEST_UBUNTU_MIRROR}" \
+    --mirror="ubuntu=${VECTIS_TEST_UBUNTU_MIRROR}" \
     --worker-suite="${lts}" \
     --suite="${lts}" \
     init-system-helpers >&2

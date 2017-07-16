@@ -15,10 +15,34 @@ logger = logging.getLogger(__name__)
 
 
 class AppendCommaSeparated(argparse.Action):
+
     def __call__(self, parser, namespace, value, option_string=None):
         items = list(getattr(namespace, self.dest, []))
         items.extend(value.split(','))
         setattr(namespace, self.dest, items)
+
+
+class _MirrorAction(argparse.Action):
+
+    def __call__(self, parser, namespace, value, option_string=None):
+        items = dict(getattr(namespace, self.dest, {}))
+
+        if '=' in value:
+            pre, post = value.split('=', 1)
+            items[pre] = post
+        else:
+            items[None] = value
+
+        setattr(namespace, self.dest, items)
+
+
+class _DirectAction(argparse.Action):
+
+    def __call__(self, parser, namespace, value, option_string=None):
+        items = dict(getattr(namespace, self.dest, {}))
+        items[value] = value
+        setattr(namespace, self.dest, items)
+
 
 def add_worker_options(p, context=None, context_implicit=False):
     if context is None:
@@ -78,7 +102,18 @@ base.add_argument(
     help='OS distribution to look for on mirrors [default: {}]'.format(
         args.vendor),
 )
-base.add_argument('--mirror', help='Mirror to use')
+base.add_argument(
+    '--mirror', metavar='[URI=|/ARCHIVE=|VENDOR/SUITE=|VENDOR=]MIRROR',
+    action=_MirrorAction,
+    help='Use MIRROR for URI, for vendors/suites whose archive is ARCHIVE, '
+         'for VENDOR/SUITE, for VENDOR, or for suites not otherwise matched',
+)
+base.add_argument(
+    '--direct', metavar='[URI|/ARCHIVE|VENDOR/SUITE|VENDOR]',
+    action=_DirectAction,
+    help='Download the given URI, ARCHIVE, VENDOR/SUITE or VENDOR from its '
+         'canonical URI',
+)
 
 parser = argparse.ArgumentParser(
     description='Do Debian-related things in a virtual machine.',
@@ -112,6 +147,10 @@ p.add_argument('--architecture', '--arch',
                help='dpkg architecture [default: {}]'.format(args.architecture))
 p.add_argument('--keep', action='store_true', default=False, dest='_keep',
                help='Keep the new image even if testing fails')
+p.add_argument(
+    '--uri', dest='_uri', default=None,
+    help='apt URI, e.g. http://mirror/debian [default: auto]',
+)
 
 help = 'Create an autopkgtest virtual machine'
 p = subparsers.add_parser(
@@ -141,6 +180,10 @@ p.add_argument(
 p.add_argument(
     '--keep', action='store_true', default=False, dest='_keep',
     help='Keep the new image even if testing fails',
+)
+p.add_argument(
+    '--uri', dest='_uri', default=None,
+    help='apt URI, e.g. http://mirror/debian [default: auto]',
 )
 
 help = 'Run a script or command'
@@ -198,6 +241,10 @@ p.add_argument(
     '--keep', action='store_true', default=False, dest='_keep',
     help='Keep the new tarball even if testing fails',
 )
+p.add_argument(
+    '--uri', dest='_uri', default=None,
+    help='apt URI, e.g. http://mirror/debian [default: auto]',
+)
 
 help = 'Create a minbase tarball suitable for piuparts'
 p = subparsers.add_parser(
@@ -211,6 +258,10 @@ p.add_argument(
     '--debootstrap-script',
     help='debootstrap script to run [default: {}]'.format(
         args.debootstrap_script),
+)
+p.add_argument(
+    '--uri', dest='_uri', default=None,
+    help='apt URI, e.g. http://mirror/debian [default: auto]',
 )
 p.add_argument(
     '--suite',
@@ -236,6 +287,14 @@ p.add_argument(
 p.add_argument(
     '--architecture', '--arch',
     help='dpkg architecture [default: {}]'.format(args.architecture),
+)
+p.add_argument(
+    '--uri', dest='_uri', default=None,
+    help='apt URI, e.g. http://mirror/debian [default: auto]',
+)
+p.add_argument(
+    '--security-uri', dest='_security_uri', default=None,
+    help='apt URI, e.g. http://mirror/debian-security [default: auto]',
 )
 
 help = 'Build a Debian package with sbuild'

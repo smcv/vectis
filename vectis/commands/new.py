@@ -23,15 +23,15 @@ def vmdebootstrap_argv(
         *,
         architecture,
         kernel_package,
-        mirror,
         qemu_image_size,
-        suite):
+        suite,
+        uri):
     argv = [
         'env',
         # We use apt-cacher-ng in non-proxy mode, to make it easier to
         # add extra apt sources later that can't go via this proxy.
         'AUTOPKGTEST_APT_PROXY=DIRECT',
-        'MIRROR={}'.format(mirror),
+        'MIRROR={}'.format(uri),
         'RELEASE={}'.format(suite),
 
         'vmdebootstrap',
@@ -43,7 +43,7 @@ def vmdebootstrap_argv(
         '--hostname=host',
         '--sparse',
         '--size={}'.format(qemu_image_size),
-        '--mirror={}'.format(mirror),
+        '--mirror={}'.format(uri),
         '--arch={}'.format(architecture),
         '--grub',
         '--no-extlinux',
@@ -62,10 +62,10 @@ def vmdebootstrap_argv(
 def new_ubuntu_cloud(
         *,
         architecture,
-        mirror,
         out,
         qemu_image_size,
         suite,
+        uri,
         vendor):
     out_dir = os.path.dirname(out)
     argv = ['autopkgtest-buildvm-ubuntu-cloud']
@@ -73,7 +73,7 @@ def new_ubuntu_cloud(
 
     argv.append('--arch={}'.format(architecture))
     argv.append('--disk-size={}'.format(qemu_image_size))
-    argv.append('--mirror={}'.format(mirror))
+    argv.append('--mirror={}'.format(uri))
     argv.append('--proxy=DIRECT')
     argv.append('--release={}'.format(suite))
     argv.append('--verbose')
@@ -98,23 +98,25 @@ def new(
         architecture,
         components,
         kernel_package,
-        mirror,
+        mirrors,
         out,
         qemu_image_size,
         suite,
+        uri,
         vmdebootstrap_options,
         vmdebootstrap_worker,
         vmdebootstrap_worker_suite):
 
     for suite in (vmdebootstrap_worker_suite, suite):
         for ancestor in suite.hierarchy:
-            if ancestor.mirror is None:
+            mirror = mirrors.lookup_suite(ancestor)
+            if mirror is None:
                 raise ArgumentError(
-                    'mirror or apt_cacher_ng must be configured for '
-                    '{}'.format(ancestor))
+                    'No mirror configured for {}'.format(ancestor))
 
     with VirtWorker(
             vmdebootstrap_worker,
+            mirrors=mirrors,
             suite=vmdebootstrap_worker_suite,
     ) as worker:
         worker.check_call([
@@ -169,9 +171,9 @@ def new(
             version,
             architecture=architecture,
             kernel_package=kernel_package,
-            mirror=mirror,
             qemu_image_size=qemu_image_size,
             suite=suite,
+            uri=uri,
         )
         argv.extend(vmdebootstrap_options)
 
@@ -237,24 +239,28 @@ def run(args):
     components = args.components
     keep = args._keep
     kernel_package = args.get_kernel_package(architecture)
-    mirror = args.mirror
+    mirrors = args.get_mirrors()
     out = args.write_qemu_image
     qemu_image_size = args.qemu_image_size
     suite = args.suite
+    uri = args._uri
     vendor = args.vendor
     vmdebootstrap_options = args.vmdebootstrap_options
     vmdebootstrap_worker = args.vmdebootstrap_worker
     vmdebootstrap_worker_suite = args.vmdebootstrap_worker_suite
+
+    if uri is None:
+        uri = mirrors.lookup_suite(suite)
 
     os.makedirs(os.path.dirname(out), exist_ok=True)
 
     if False:
         created = new_ubuntu_cloud(
             architecture=architecture,
-            mirror=mirror,
             out=out,
             qemu_image_size=qemu_image_size,
             suite=suite,
+            uri=uri,
             vendor=vendor,
         )
     else:
@@ -264,10 +270,11 @@ def run(args):
             architecture=architecture,
             components=components,
             kernel_package=kernel_package,
-            mirror=mirror,
+            mirrors=mirrors,
             out=out,
             qemu_image_size=qemu_image_size,
             suite=suite,
+            uri=uri,
             vmdebootstrap_options=vmdebootstrap_options,
             vmdebootstrap_worker=vmdebootstrap_worker,
             vmdebootstrap_worker_suite=vmdebootstrap_worker_suite,
@@ -276,6 +283,7 @@ def run(args):
     try:
         with VirtWorker(
                 ['qemu', created],
+                mirrors=mirrors,
                 suite=suite,
         ) as worker:
             worker.set_up_apt()

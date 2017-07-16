@@ -432,6 +432,7 @@ class Build:
             arch,
             worker,
             *,
+            mirrors,
             output_builds,
             profiles,
             storage,
@@ -449,10 +450,11 @@ class Build:
         self.environ = {}
         self.extra_repositories = extra_repositories
         assert not isinstance(profiles, str), profiles
-        self.profiles = set(profiles)
-        self.worker = worker
+        self.mirrors = mirrors
         self.output_builds = output_builds
+        self.profiles = set(profiles)
         self.storage = storage
+        self.worker = worker
 
         if environ is not None:
             for k, v in environ.items():
@@ -479,6 +481,7 @@ class Build:
                 chroot='{}-{}-sbuild'.format(self.buildable.suite, use_arch),
                 components=self.components,
                 extra_repositories=self.extra_repositories,
+                mirrors=self.mirrors,
                 suite=self.buildable.suite,
                 worker=self.worker,
         ) as chroot:

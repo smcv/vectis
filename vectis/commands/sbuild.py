@@ -41,6 +41,7 @@ def _sbuild(
         archs,
         components,
         indep,
+        mirrors,
         profiles,
         rebuild_source,
         source_only,
@@ -81,6 +82,7 @@ def _sbuild(
                 dpkg_buildpackage_options=dpkg_buildpackage_options,
                 dpkg_source_options=dpkg_source_options,
                 extra_repositories=extra_repositories,
+                mirrors=mirrors,
                 output_builds=buildable.output_builds,
                 profiles=profiles,
                 storage=storage,
@@ -222,7 +224,7 @@ def _autopkgtest(
         lxc_24bit_subnet,
         lxc_worker,
         lxc_worker_suite,
-        mirror,
+        mirrors,
         modes,
         storage,
         vendor,
@@ -269,7 +271,7 @@ def _autopkgtest(
                     lxc_24bit_subnet=lxc_24bit_subnet,
                     lxc_worker=lxc_worker,
                     lxc_worker_suite=lxc_worker_suite,
-                    mirror=mirror,
+                    mirrors=mirrors,
                     modes=modes,
                     output_logs=buildable.output_builds,
                     source_dsc=source_dsc,
@@ -288,7 +290,7 @@ def _piuparts(
         default_architecture,
         *,
         components,
-        mirror,
+        mirrors,
         storage,
         vendor,
         worker_argv,
@@ -314,7 +316,7 @@ def _piuparts(
                         for b in buildable.get_debs(architecture)),
                     components=components,
                     extra_repositories=extra_repositories,
-                    mirror=mirror,
+                    mirrors=mirrors,
                     output_logs=buildable.output_builds,
                     storage=storage,
                     suite=buildable.suite,
@@ -384,6 +386,7 @@ def run(args):
     components = args.components
     link_builds = args.link_builds
     output_builds = args.output_builds
+    mirrors = args.get_mirrors()
     storage = args.storage
     vendor = args.vendor
 
@@ -454,13 +457,14 @@ def run(args):
             assert isinstance(suite, Suite)
 
             for ancestor in suite.hierarchy:
-                if ancestor.mirror is None:
+                mirror = mirrors.lookup_suite(ancestor)
+                if mirror is None:
                     raise ArgumentError(
-                        'mirror or apt_cacher_ng must be configured for '
-                        '{}'.format(ancestor))
+                        'No mirror configured for {}'.format(ancestor))
 
     with VirtWorker(
             args.sbuild_worker,
+            mirrors=mirrors,
             suite=args.sbuild_worker_suite,
     ) as worker:
         default_architecture = worker.dpkg_architecture
@@ -473,6 +477,7 @@ def run(args):
             dpkg_source_options=ds_options,
             extra_repositories=args._extra_repository,
             indep=args._indep,
+            mirrors=mirrors,
             profiles=profiles,
             rebuild_source=args._rebuild_source,
             source_only=args._source_only,
@@ -489,7 +494,7 @@ def run(args):
         lxc_24bit_subnet=args.lxc_24bit_subnet,
         lxc_worker=args.lxc_worker,
         lxc_worker_suite=args.lxc_worker_suite,
-        mirror=args.mirror,
+        mirrors=mirrors,
         modes=args.autopkgtest,
         storage=storage,
         vendor=vendor,
@@ -502,7 +507,7 @@ def run(args):
             buildables, default_architecture,
             components=components,
             extra_repositories=args._extra_repository,
-            mirror=args.mirror,
+            mirrors=mirrors,
             storage=storage,
             vendor=vendor,
             worker_argv=args.worker,

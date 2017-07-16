@@ -39,13 +39,13 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
 
     def __init__(
             self,
+            mirrors,
+            suite,
             components=(),
             extra_repositories=(),
-            mirror=None,
-            suite=None,
             virt=(),
             worker=None):
-        super().__init__()
+        super().__init__(mirrors=mirrors, suite=suite)
 
         if worker is None:
             worker = self.stack.enter_context(HostWorker())
@@ -54,9 +54,7 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
         self.argv = ['autopkgtest', '--apt-upgrade']
         self.components = components
         self.extra_repositories = extra_repositories
-        self.mirror = mirror
         self.sources_list = None
-        self.suite = suite
         self.virt = virt
         self.worker = worker
 
@@ -219,12 +217,13 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
 def run_autopkgtest(
         *,
         components,
-        worker_argv,
-        worker_suite,
+        mirrors,
         modes,
         storage,
         suite,
         vendor,
+        worker_argv,
+        worker_suite,
         architecture=None,
         binaries=(),
         built_binaries=None,
@@ -232,7 +231,6 @@ def run_autopkgtest(
         lxc_24bit_subnet=None,
         lxc_worker=None,
         lxc_worker_suite=None,
-        mirror=None,
         output_logs=None,
         source_dsc=None,
         source_package=None):
@@ -290,6 +288,7 @@ def run_autopkgtest(
                 worker = stack.enter_context(
                     VirtWorker(
                         worker_argv,
+                        mirrors=mirrors,
                         suite=worker_suite,
                     ))
 
@@ -357,6 +356,7 @@ def run_autopkgtest(
                 worker = stack.enter_context(
                     VirtWorker(
                         lxc_worker,
+                        mirrors=mirrors,
                         suite=lxc_worker_suite,
                     ))
 
@@ -416,7 +416,7 @@ def run_autopkgtest(
                 AutopkgtestWorker(
                     components=components,
                     extra_repositories=extra_repositories,
-                    mirror=mirror,
+                    mirrors=mirrors,
                     suite=suite,
                     virt=virt,
                     worker=worker,

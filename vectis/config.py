@@ -4,6 +4,7 @@
 
 import os
 import subprocess
+from string import Template
 from weakref import WeakValueDictionary
 
 from vectis.error import Error
@@ -22,6 +23,39 @@ XDG_DATA_HOME = os.getenv(
     'XDG_DATA_HOME', os.path.expanduser('~/.local/share'))
 XDG_DATA_DIRS = os.getenv(
     'XDG_DATA_DIRS', os.path.expanduser('~/.local/share'))
+
+
+class Mirrors:
+
+    def __init__(self, mapping):
+        self._raw = mapping
+
+    def _lookup_template(self, suite):
+        for uri in suite.uris:
+            value = self._raw.get(uri)
+
+            if value is not None:
+                return value
+
+            value = self._raw.get(uri.rstrip('/'))
+
+            if value is not None:
+                return value
+
+        value = self._raw.get(str(suite.archive))
+
+        if value is not None:
+            return value
+
+        value = self._raw.get(None)
+
+        if value is not None:
+            return value
+
+    def lookup_suite(self, suite):
+        return Template(self._lookup_template(suite)).substitute(
+            archive=suite.archive,
+        )
 
 
 class _ConfigLike:
@@ -57,14 +91,6 @@ class _ConfigLike:
     @property
     def archive(self):
         return self['archive']
-
-    @property
-    def mirror(self):
-        return self['mirror']
-
-    @property
-    def apt_cacher_ng(self):
-        return self['apt_cacher_ng']
 
 
 class Vendor(_ConfigLike):
@@ -295,13 +321,8 @@ class Suite(_ConfigLike):
         return value
 
     @property
-    def mirror(self):
-        value = self['mirror']
-
-        if value is None and self.apt_cacher_ng is not None:
-            value = self.apt_cacher_ng + '/' + self.archive
-
-        return value
+    def uris(self):
+        return self['uris'] or self.vendor['uris']
 
 
 class Directory(_ConfigLike):
@@ -847,3 +868,6 @@ class Config(_ConfigLike):
             return value
 
         return os.path.join(os.path.dirname(__file__), 'keys', value)
+
+    def get_mirrors(self):
+        return Mirrors(self['mirrors'])

@@ -60,11 +60,14 @@ Create `XDG_CONFIG_DIRS/vectis/vectis.yaml` containing:
 ```
 ---
 defaults:
-    apt_cacher_ng: "http://192.168.122.1"
+    mirrors:
+        null: "http://192.168.122.1:3142/${archive}"
 ...
 ```
 
-If you don't do this, you will have to add `--mirror` to most commands.
+If you don't do this, you will have to add `--mirror` (recommended) or
+`--direct` (not recommended unless you are in the same place as the canonical
+upstream source of packages) to most commands.
 
 Usage
 -----
@@ -100,6 +103,47 @@ Usage
 - `vectis run`
 
     Run an executable or shell command in the virtual machine.
+
+Specifying mirrors
+------------------
+
+The recommended configuration (above) uses apt-cacher-ng, but vectis can also
+be used with a local mirror.
+
+To direct (for example) Debian and debian-security accesses to a local mirror,
+use command-line options like one of these:
+
+    # By specifying a canonical URI of the package archive
+    --mirror=http://deb.debian.org/debian=http://mirror/debian
+    --mirror=http://security.debian.org=http://mirror/debian-security
+
+    # By specifying the 'archive' property of the suite after a '/' prefix
+    --mirror=/debian=http://mirror/debian
+    --mirror=/security.debian.org=http://mirror/debian-security
+
+    # By specifying the vendor and suite
+    --mirror=debian=http://mirror/debian
+    --mirror=debian/stretch-security=http://mirror/debian-security
+
+These can also be specified in YAML like this:
+
+    defaults:
+        mirrors:
+            "http://deb.debian.org/debian": "http://mirror/debian"
+            "http://security.debian.org": "http://mirror/debian-security"
+
+If you have a sufficiently fast connection to a particular upstream that no
+mirror is desired, you can select direct access to it:
+
+    --direct=http://myos.example.com/myos
+    # which is just a shortcut for:
+    --mirror=http://myos.example.com/myos=http://myos.example.com/myos
+
+or in YAML:
+
+    defaults:
+        mirrors:
+            "http://myos.example.com/myos": "http://myos.example.com/myos"
 
 Design principles
 -----------------
@@ -154,6 +198,25 @@ on real Debian infrastructure.
   source-only uploads (and is arguably release-critically buggy). Things
   that aren't routinely tested usually don't work, so vectis tests this
   code path.
+
+Parts of the Isle of Wight have erratic mobile Internet coverage due to
+inconveniently-positioned cliffs. vectis is designed for use with a
+local mirror or caching proxy.
+
+* vectis does not make any attempt to cache downloaded packages. Something
+  like apt-cacher-ng or squid can do this better.
+
+* vectis can be configured to use a specific (hopefully local) mirror for
+  particular archives, vendors or suites.
+
+* The vendor/suite configuration shipped with vectis includes canonical URIs
+  for various Debian and Ubuntu archives, but to avoid hitting network
+  mirrors repeatedly, these canonical URIs are not used unless specifically
+  configured.
+
+* The `--direct` command-line option can be used to allow direct use of a
+  particular archive, and is suitable for nearby archives, locations with a
+  transparent caching proxy, or developers willing to waste bandwidth.
 
 Future design principles are not required to have a tenuous analogy
 involving the Isle of Wight.

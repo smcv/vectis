@@ -50,10 +50,10 @@ ln -s "${XDG_CACHE_HOME}/vectis/${arch}/debian/${testing}/autopkgtest.qcow2" "${
 echo "1..1"
 
 $VECTIS --vendor=debian --storage="${storage}" sbuild-tarball \
-    --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" \
+    --mirror="debian=${VECTIS_TEST_DEBIAN_MIRROR}" \
     --suite="${testing}" >&2
 $VECTIS --vendor=debian --storage="${storage}" sbuild \
-    --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" \
+    --mirror="debian=${VECTIS_TEST_DEBIAN_MIRROR}" \
     --suite="${testing}" init-system-helpers >&2
 rm -fr "${storage}"
 

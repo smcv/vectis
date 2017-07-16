@@ -29,10 +29,11 @@ def run(args):
     components = args.components
     debootstrap_script = args.debootstrap_script
     keep = args._keep
-    mirror = args.mirror
+    mirrors = args.get_mirrors()
     storage = args.storage
     suite = args.suite
     test_package = args._test_package
+    uri = args._uri
     vendor = args.vendor
     worker_argv = args.worker
     worker_suite = args.worker_suite
@@ -45,10 +46,13 @@ def run(args):
 
     for suite in (worker_suite, suite):
         for ancestor in suite.hierarchy:
-            if ancestor.mirror is None:
+            mirror = mirrors.lookup_suite(ancestor)
+            if mirror is None:
                 raise ArgumentError(
-                    'mirror or apt_cacher_ng must be configured for '
-                    '{}'.format(ancestor))
+                    'No mirror configured for {}'.format(ancestor))
+
+    if uri is None:
+        uri = mirrors.lookup_suite(suite)
 
     sbuild_tarball = '{arch}/{vendor}/{suite}/sbuild.tar.gz'.format(
         arch=architecture,
@@ -57,7 +61,7 @@ def run(args):
     )
     logger.info('Creating tarball %s...', sbuild_tarball)
 
-    with VirtWorker(worker_argv, suite=worker_suite) as worker:
+    with VirtWorker(worker_argv, mirrors=mirrors, suite=worker_suite) as worker:
         logger.info('Installing debootstrap and sbuild')
         worker.check_call([
             'env',
@@ -119,7 +123,7 @@ def run(args):
             '--components={}'.format(','.join(components)),
             '--make-sbuild-tarball={}/output.tar.gz'.format(worker.scratch),
         ] + debootstrap_args + [
-            str(suite), '{}/chroot'.format(worker.scratch), mirror,
+            str(suite), '{}/chroot'.format(worker.scratch), uri,
             '/usr/share/debootstrap/scripts/{}'.format(debootstrap_script),
         ])
 

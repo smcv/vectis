@@ -40,13 +40,13 @@ class PiupartsWorker(FileProvider, ContainerWorker):
             self,
             *,
             architecture,
-            mirror,
+            mirrors,
             suite,
             tarball,
             components=(),
             extra_repositories=(),
             worker=None):
-        super().__init__()
+        super().__init__(mirrors=mirrors, suite=suite)
 
         if worker is None:
             worker = self.stack.enter_context(HostWorker())
@@ -63,8 +63,6 @@ class PiupartsWorker(FileProvider, ContainerWorker):
         ]
         self.components = components
         self.extra_repositories = extra_repositories
-        self.mirror = mirror
-        self.suite = suite
         self.worker = worker
 
         assert isinstance(self.worker, InteractiveWorker)
@@ -83,21 +81,18 @@ class PiupartsWorker(FileProvider, ContainerWorker):
             else:
                 filtered_components = ancestor.components
 
-            if self.mirror is None:
-                mirror = ancestor.mirror
-            else:
-                mirror = self.mirror
+            uri = self.mirrors.lookup_suite(ancestor)
 
             if ancestor is self.suite.hierarchy[-1]:
                 argv.append('-d')
                 argv.append(ancestor.apt_suite)
                 argv.append('--mirror')
                 argv.append('{} {}'.format(
-                    mirror, ' '.join(filtered_components)))
+                    uri, ' '.join(filtered_components)))
             else:
                 argv.append('--extra-repo')
                 argv.append('deb {} {} {}'.format(
-                    mirror, ancestor.apt_suite, ' '.join(filtered_components)))
+                    uri, ancestor.apt_suite, ' '.join(filtered_components)))
 
         for line in self.extra_repositories:
             argv.append('--extra-repo')
@@ -184,6 +179,7 @@ class PiupartsWorker(FileProvider, ContainerWorker):
 def run_piuparts(
         *,
         components,
+        mirrors,
         storage,
         suite,
         vendor,
@@ -192,7 +188,6 @@ def run_piuparts(
         architecture=None,
         binaries=(),
         extra_repositories=(),
-        mirror=None,
         output_logs=None,
         source_dsc=None,
         source_package=None):
@@ -222,6 +217,7 @@ def run_piuparts(
             worker = stack.enter_context(
                 VirtWorker(
                     worker_argv,
+                    mirrors=mirrors,
                     suite=worker_suite,
                 )
             )
@@ -242,7 +238,7 @@ def run_piuparts(
                     architecture=architecture,
                     components=components,
                     extra_repositories=extra_repositories,
-                    mirror=mirror,
+                    mirrors=mirrors,
                     suite=suite,
                     tarball=worker.make_file_available(tarball, cache=True),
                     worker=worker,

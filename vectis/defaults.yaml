@@ -11,8 +11,16 @@ defaults:
     components: main
     extra_components: []
     archive: null
-    apt_cacher_ng: null
-    mirror: null
+    mirrors:
+        null: null
+        # Examples, in descending order of priority:
+        # By full URI of a canonical mirror:
+        #   http://deb.debian.org/debian: http://mirror/debian
+        # By 'archive' property of a suite:
+        #   security.debian.org: http://mirror/debian-security
+        # Default for everything not otherwise matched:
+        #   null: http://192.168.122.1:3142/${archive}
+    uris: []
     qemu_image: autopkgtest.qcow2
     write_qemu_image: null
     debootstrap_script: null
@@ -85,6 +93,10 @@ vendors:
         worker_vendor: debian
         apt_key_package: debian-archive-keyring
         apt_key: /usr/share/keyrings/debian-archive-keyring.gpg
+        uris:
+            - http://deb.debian.org/debian
+            - http://ftp.debian.org/debian
+            - ftp://ftp.debian.org/debian
         suites:
             wheezy:
                 vmdebootstrap_worker_suite: jessie
@@ -115,6 +127,8 @@ vendors:
             "*-security":
                 archive: "security.debian.org"
                 apt_suite: "*/updates"
+                uris:
+                    - http://security.debian.org
             "*-updates":
                 null: null
             "*-apt.buildd.debian.org":
@@ -122,7 +136,10 @@ vendors:
                 # https://anonscm.debian.org/cgit/mirror/dsa-puppet.git/tree/modules/buildd/
                 apt_key: "buildd.debian.org_archive_key_2017_2018.gpg"
                 apt_suite: "*"
-                components: main
+                components:
+                    - main
+                uris:
+                    - https://apt.buildd.debian.org
     ubuntu:
         apt_key_package: ubuntu-archive-keyring
         apt_key: /usr/share/keyrings/ubuntu-archive-keyring.gpg
@@ -134,6 +151,8 @@ vendors:
         extra_components: restricted multiverse
         kernel_package:
             null: linux-image-generic
+        uris:
+            - http://archive.ubuntu.com/ubuntu
         suites:
             "*-backports":
                 null: null

@@ -20,9 +20,11 @@ def run(args):
         args.suite = args.default_suite
 
     architecture = args.architecture
-    mirror = args.mirror
+    mirrors = args.get_mirrors()
+    security_uri = args._security_uri
     storage = args.storage
     suite = args.suite
+    uri = args._uri
     vendor = args.vendor
     worker_argv = args.worker
     worker_suite = args.worker_suite
@@ -45,7 +47,7 @@ def run(args):
     logger.info('Creating tarballs %s, %s...', rootfs_tarball, meta_tarball)
 
     with VirtWorker(
-            worker_argv, suite=worker_suite,
+            worker_argv, mirrors=mirrors, suite=worker_suite,
     ) as worker:
         logger.info('Installing debootstrap etc.')
         worker.check_call([
@@ -83,8 +85,11 @@ def run(args):
         # We have to provide exactly two apt URLs.
         security_suite = vendor.get_suite(str(suite) + '-security')
 
-        if mirror is None:
-            mirror = suite.mirror
+        if uri is None:
+            uri = mirrors.lookup_suite(suite)
+
+        if security_uri is None:
+            security_uri = mirrors.lookup_suite(security_suite)
 
         argv = [
             'env', 'DEBIAN_FRONTEND=noninteractive',
@@ -96,8 +101,8 @@ def run(args):
             '--',
             '--release={}'.format(suite),
             '--arch={}'.format(architecture),
-            '--mirror={}'.format(mirror),
-            '--security-mirror={}'.format(security_suite.mirror),
+            '--mirror={}'.format(uri),
+            '--security-mirror={}'.format(security_uri),
         ]
 
         if str(vendor) == 'ubuntu':

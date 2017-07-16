@@ -20,6 +20,7 @@ def run(args):
             raise ArgumentError('--suite must be specified')
 
     argv = args._argv
+    mirrors = args.get_mirrors()
     qemu_image = args.qemu_image
     shell_command = args._shell_command
     suite = args.suite
@@ -31,12 +32,15 @@ def run(args):
 
     for suite in (suite,):
         for ancestor in suite.hierarchy:
-            if ancestor.mirror is None:
+            mirror = mirrors.lookup_suite(ancestor)
+            if mirror is None:
                 raise ArgumentError(
-                    'mirror or apt_cacher_ng must be configured for '
-                    '{}'.format(ancestor))
+                    'No mirror configured for {}'.format(ancestor))
 
-    with VirtWorker(['qemu', qemu_image], suite=suite) as worker:
+    with VirtWorker(
+            ['qemu', qemu_image],
+            mirrors=mirrors,
+            suite=suite) as worker:
         if shell_command is not None:
             worker.check_call(['sh', '-c', shell_command] + argv)
         else:

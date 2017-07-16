@@ -43,7 +43,7 @@ def _autopkgtest(
         lxc_24bit_subnet,
         lxc_worker,
         lxc_worker_suite,
-        mirror,
+        mirrors,
         modes,
         storage,
         suite,
@@ -99,7 +99,7 @@ def _autopkgtest(
                 lxc_24bit_subnet=lxc_24bit_subnet,
                 lxc_worker=lxc_worker,
                 lxc_worker_suite=lxc_worker_suite,
-                mirror=mirror,
+                mirrors=mirrors,
                 modes=modes,
                 source_dsc=source_dsc,
                 source_package=source_package,
@@ -115,7 +115,7 @@ def _autopkgtest(
     return failures
 
 
-def run(args):
+def run(args, really=True):
     if args.suite is None:
         if args.default_suite is not None:
             args.suite = args.default_suite
@@ -130,7 +130,7 @@ def run(args):
         lxc_24bit_subnet=args.lxc_24bit_subnet,
         lxc_worker=args.lxc_worker,
         lxc_worker_suite=args.lxc_worker_suite,
-        mirror=args.mirror,
+        mirrors=args.get_mirrors(),
         modes=args.autopkgtest,
         storage=args.storage,
         suite=args.suite,

@@ -29,11 +29,15 @@ def run(args):
     architecture = args.architecture
     keep = args._keep
     kernel_package = args.get_kernel_package(architecture)
-    mirror = args.mirror
+    mirrors = args.get_mirrors()
     out = args.write_qemu_image
     qemu_image_size = args.qemu_image_size
     suite = args.suite
+    uri = args._uri
     vmdebootstrap_options = args.vmdebootstrap_options
+
+    if uri is None:
+        uri = mirrors.lookup_suite(suite)
 
     try:
         version = subprocess.check_output(
@@ -58,9 +62,9 @@ def run(args):
                 version,
                 architecture=architecture,
                 kernel_package=kernel_package,
-                mirror=mirror,
                 qemu_image_size=qemu_image_size,
                 suite=suite,
+                uri=uri,
             ),
         )
         argv.extend(vmdebootstrap_options)
@@ -83,7 +87,7 @@ def run(args):
         try:
             with VirtWorker(
                     ['qemu', '{}.new'.format(out)],
-                    suite=suite, mirror=mirror) as worker:
+                    suite=suite, mirrors=mirrors) as worker:
                 worker.check_call([
                     'env',
                     'DEBIAN_FRONTEND=noninteractive',

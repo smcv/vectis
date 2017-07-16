@@ -39,7 +39,7 @@ class WorkerError(Error):
 
 class BaseWorker(metaclass=ABCMeta):
 
-    def __init__(self):
+    def __init__(self, *, mirrors=None):
         super().__init__()
         self.__open = 0
         self.stack = ExitStack()
@@ -68,12 +68,12 @@ class BaseWorker(metaclass=ABCMeta):
 
 class ContainerWorker(BaseWorker, metaclass=ABCMeta):
 
-    def __init__(self):
+    def __init__(self, *, mirrors, suite):
         super().__init__()
         self.components = ()
         self.extra_repositories = ()
-        self.mirror = None
-        self.suite = None
+        self.mirrors = mirrors
+        self.suite = suite
 
     @abstractmethod
     def install_apt_key(self, apt_key):
@@ -91,6 +91,7 @@ class ContainerWorker(BaseWorker, metaclass=ABCMeta):
         raise NotImplementedError
 
     def write_sources_list(self, writer):
+        assert self.mirrors is not None
         assert self.suite is not None
 
         for ancestor in self.suite.hierarchy:
@@ -100,15 +101,12 @@ class ContainerWorker(BaseWorker, metaclass=ABCMeta):
             else:
                 filtered_components = ancestor.components
 
-            if self.mirror is None:
-                mirror = ancestor.mirror
-            else:
-                mirror = self.mirror
+            uri = self.mirrors.lookup_suite(ancestor)
 
-            line = '{mirror} {suite} {components}'.format(
+            line = '{uri} {suite} {components}'.format(
                 components=' '.join(filtered_components),
-                mirror=mirror,
                 suite=ancestor.apt_suite,
+                uri=uri,
             )
             logger.info('%r: %s => deb %s', self, ancestor, line)
 
@@ -146,8 +144,8 @@ class FileProvider(BaseWorker, metaclass=ABCMeta):
 
 class InteractiveWorker(BaseWorker, metaclass=ABCMeta):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.__dpkg_architecture = None
 
     def call(self, argv, **kwargs):
@@ -221,15 +219,15 @@ class SchrootWorker(ContainerWorker, InteractiveWorker):
             self,
             *,
             architecture,
+            mirrors,
             suite,
             worker,
             chroot=None,
             components=(),
             extra_repositories=(),
-            mirror=None,
             storage=None,
             tarball=None):
-        super().__init__()
+        super().__init__(mirrors=mirrors, suite=suite)
 
         if chroot is None:
             chroot = '{}-{}-{}'.format(suite.vendor, suite, architecture)
@@ -245,8 +243,6 @@ class SchrootWorker(ContainerWorker, InteractiveWorker):
         self.components = components
         self.__dpkg_architecture = architecture
         self.extra_repositories = extra_repositories
-        self.mirror = mirror
-        self.suite = suite
         self.tarball = tarball
         self.worker = worker
 
@@ -351,11 +347,12 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
     def __init__(
             self,
             argv,
+            *,
+            mirrors,
+            suite,
             components=(),
-            extra_repositories=(),
-            mirror=None,
-            suite=None):
-        super().__init__()
+            extra_repositories=()):
+        super().__init__(mirrors=mirrors, suite=suite)
 
         self.__cached_copies = {}
         self.__command_wrapper_enabled = False
@@ -365,8 +362,6 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
         self.command_wrapper = None
         self.components = components
         self.extra_repositories = extra_repositories
-        self.mirror = mirror
-        self.suite = suite
         self.user = 'user'
         self.virt_process = None
 

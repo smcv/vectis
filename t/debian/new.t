@@ -57,11 +57,11 @@ echo "1..1"
 
 $VECTIS --vendor=debian --storage="${storage}" \
     new \
-    --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" \
+    --mirror="debian=${VECTIS_TEST_DEBIAN_MIRROR}" \
     --suite="${testing}" >&2
 test ! -L "${storage}/${arch}/debian/${testing}/autopkgtest.qcow2"
 $VECTIS --vendor=debian --storage="${storage}" sbuild \
-    --mirror="${VECTIS_TEST_DEBIAN_MIRROR}" \
+    --mirror="debian=${VECTIS_TEST_DEBIAN_MIRROR}" \
     --suite="${testing}" \
     init-system-helpers >&2
 rm -fr "${storage}"

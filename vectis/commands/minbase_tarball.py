@@ -25,9 +25,10 @@ def run(args):
             raise ArgumentError('--suite must be specified')
 
     architecture = args.architecture
-    mirror = args.mirror
+    mirrors = args.get_mirrors()
     storage = args.storage
     suite = args.suite
+    uri = args._uri
     vendor = args.vendor
     worker_argv = args.worker
     worker_suite = args.worker_suite
@@ -39,13 +40,13 @@ def run(args):
 
     for suite in (worker_suite, suite):
         for ancestor in suite.hierarchy:
-            if ancestor.mirror is None:
+            mirror = mirrors.lookup_suite(ancestor)
+            if mirror is None:
                 raise ArgumentError(
-                    'mirror or apt_cacher_ng must be configured for {}'.format(
-                        ancestor))
+                    'No mirror configured for {}'.format(ancestor))
 
-    if mirror is None:
-        mirror = suite.mirror
+    if uri is None:
+        uri = mirrors.lookup_suite(suite)
 
     minbase_tarball = '{arch}/{vendor}/{suite}/minbase.tar.gz'.format(
         arch=architecture,
@@ -54,7 +55,7 @@ def run(args):
     )
     logger.info('Creating tarball %s...', minbase_tarball)
 
-    with VirtWorker(worker_argv, suite=worker_suite) as worker:
+    with VirtWorker(worker_argv, mirrors=mirrors, suite=worker_suite) as worker:
         logger.info('Installing debootstrap')
         worker.check_call([
             'env',
@@ -120,7 +121,7 @@ def run(args):
         ] + debootstrap_args + [
             str(suite),
             '{}/chroot'.format(worker.scratch),
-            mirror,
+            uri,
             '/usr/share/debootstrap/scripts/{}'.format(
                 args.debootstrap_script),
         ])
