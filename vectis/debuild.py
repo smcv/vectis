@@ -587,7 +587,6 @@ class Build:
                     '    rename($orig,$_) || die("$!");\n' +
                     '}\n' +
                     "'")
-                assert ' ' not in perl
 
                 argv.append(
                     '--finished-build-commands=perl -e {} %p'.format(perl))
