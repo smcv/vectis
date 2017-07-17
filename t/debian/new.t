@@ -52,6 +52,8 @@ mkdir -p "${storage}/${arch}/debian/${testing}"
 ln -s "${XDG_CACHE_HOME}/vectis/${arch}/debian/${stable}/autopkgtest.qcow2" "${storage}/${arch}/debian/${stable}/"
 ln -s "${XDG_CACHE_HOME}/vectis/${arch}/debian/${testing}/autopkgtest.qcow2" "${storage}/${arch}/debian/${testing}/"
 ln -s "${XDG_CACHE_HOME}/vectis/${arch}/debian/${testing}/sbuild.tar.gz" "${storage}/${arch}/debian/${testing}/"
+# doesn't have to exist
+ln -s "${XDG_CACHE_HOME}/vectis/${arch}/debian/${testing}/minbase.tar.gz" "${storage}/${arch}/debian/${testing}/"
 
 echo "1..1"
 
