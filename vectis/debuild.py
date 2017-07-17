@@ -738,7 +738,12 @@ class Build:
                     self.buildable))
 
         copied_back = self.copy_back_product(
-            '{}_{}.changes'.format(self.buildable.product_prefix, self.arch))
+            '{}_{}.changes'.format(
+                self.buildable.product_prefix,
+                product_arch),
+            '{}_{}.changes'.format(
+                self.buildable.product_prefix,
+                self.arch))
 
         if copied_back is not None:
             self.buildable.changes_produced[self.arch] = copied_back
@@ -779,7 +784,10 @@ class Build:
                     # if necessary.
                     self.copy_back_product(f['name'], skip_if_exists=True)
 
-    def copy_back_product(self, base, *, skip_if_exists=False):
+    def copy_back_product(self, base, to_base=None, *, skip_if_exists=False):
+        if to_base is None:
+            to_base = base
+
         try:
             self.buildable.check_build_product(base)
         except ArgumentError as e:
@@ -787,13 +795,18 @@ class Build:
             return None
         else:
             product = '{}/out/{}'.format(self.worker.scratch, base)
-            copied_back = os.path.join(self.output_builds, base)
+            copied_back = os.path.join(self.output_builds, to_base)
             copied_back = os.path.abspath(copied_back)
 
             if skip_if_exists and os.path.exists(copied_back):
                 return copied_back
 
-            logger.info('Additionally copying %s back to host...', base)
+            if to_base != base:
+                logger.info(
+                    'Additionally copying %s back to host as %s...',
+                    base, to_base)
+            else:
+                logger.info('Additionally copying %s back to host...', base)
 
             if not skip_if_exists:
                 with suppress(FileNotFoundError):
@@ -802,7 +815,7 @@ class Build:
             self.worker.copy_to_host(product, copied_back)
 
             for l in self.buildable.link_builds:
-                symlink = os.path.join(l, base)
+                symlink = os.path.join(l, to_base)
 
                 with suppress(FileNotFoundError):
                     os.unlink(symlink)
