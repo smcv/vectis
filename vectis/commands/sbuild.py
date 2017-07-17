@@ -83,7 +83,7 @@ def _sbuild(
                 dpkg_source_options=dpkg_source_options,
                 extra_repositories=extra_repositories,
                 mirrors=mirrors,
-                output_builds=buildable.output_builds,
+                output_builds=output_builds,
                 profiles=profiles,
                 storage=storage,
             )
