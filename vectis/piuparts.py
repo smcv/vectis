@@ -212,7 +212,7 @@ def run_piuparts(
             if not os.path.exists(tarball):
                 logger.info('Required tarball %s does not exist',
                             tarball)
-                return
+                return []
 
             worker = stack.enter_context(
                 VirtWorker(
