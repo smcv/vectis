@@ -28,7 +28,10 @@ XDG_DATA_DIRS = os.getenv(
 class Mirrors:
 
     def __init__(self, mapping):
-        self._raw = mapping
+        if mapping is None:
+            self._raw = {}
+        else:
+            self._raw = mapping
 
     def _lookup_template(self, suite):
         for uri in suite.uris:
