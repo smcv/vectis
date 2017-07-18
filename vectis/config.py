@@ -184,6 +184,15 @@ class Vendor(_ConfigLike):
         if raw is None and not create:
             return None
 
+        if base is None:
+            for r in self._raw:
+                p = r.get('vendors', {}).get(str(self._name), {})
+                s = p.get('suites', {}).get(name, {})
+
+                if 'base' in s:
+                    base = self.get_suite(s['base'])
+                    break
+
         s = Suite(name, self, self._raw, base=base, pattern=pattern)
         self._suites[original_name] = s
         self._suites[name] = s
@@ -224,15 +233,12 @@ class Suite(_ConfigLike):
         self._name = name
         self._vendor = vendor
         self._raw = raw
-        self.base = None
+        self.base = base
 
         if pattern is None:
             self._pattern = name
         else:
             self._pattern = pattern
-
-        if base is None:
-            base = vendor.get_suite(self.__get('base'))
 
         self.base = base
         self.hierarchy = []
