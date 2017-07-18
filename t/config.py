@@ -94,6 +94,8 @@ class DefaultsTestCase(unittest.TestCase):
 
         self.assertEqual(c.autopkgtest, ['lxc', 'qemu'])
         self.assertEqual(c.suite, None)
+        with self.assertRaises(AttributeError):
+            c.apt_suite
 
         try:
             import distro_info
@@ -162,6 +164,9 @@ class DefaultsTestCase(unittest.TestCase):
             c.get_mirrors().lookup_suite(sarge),
             'http://192.168.122.1:3142/debian')
 
+        with self.assertRaises(AttributeError):
+            c.apt_suite
+
     def test_debian(self):
         c = self.__config
         c.vendor = 'debian'
@@ -216,6 +221,9 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(c.output_builds, '..')
         self.assertEqual(c.architecture, 'mips')
         self.assertEqual(c.worker_architecture, 'mips')
+
+        with self.assertRaises(AttributeError):
+            c.apt_suite
 
         # Below this point relies on knowledge of distro_info
         try:
@@ -506,7 +514,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(c.sbuild_resolver, [])
         self.assertEqual(c.apt_key,
                 '/usr/share/keyrings/ubuntu-archive-keyring.gpg')
-        self.assertIsNone(c.apt_suite)
+        with self.assertRaises(AttributeError):
+            c.apt_suite
         self.assertIsNone(c.dpkg_source_diff_ignore)
         self.assertEqual(c.dpkg_source_tar_ignore, [])
         self.assertEqual(c.dpkg_source_extend_diff_ignore, [])

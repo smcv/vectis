@@ -301,7 +301,7 @@ class Suite(_ConfigLike):
 
     @property
     def apt_suite(self):
-        suite = self['apt_suite']
+        suite = self.__get('apt_suite')
 
         if suite is None:
             return str(self.suite)
