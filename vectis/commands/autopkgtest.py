@@ -66,7 +66,7 @@ def _autopkgtest(
                         if f['name'].endswith('.deb'):
                             binaries.append(n)
                         elif f['name'].endswith('.dsc'):
-                            sources.append(Source(f['name'], dsc=Dsc(open(n))))
+                            sources.append(Source(n, dsc=Dsc(open(n))))
 
             elif thing.endswith('.dsc'):
                 sources.append(Source(thing, dsc=Dsc(open(thing))))
