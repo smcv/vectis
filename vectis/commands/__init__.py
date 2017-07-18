@@ -106,12 +106,12 @@ base.add_argument(
     '--mirror',
     action=_MirrorAction,
     help='Use MIRROR for URI, for vendors/suites whose archive is ARCHIVE, '
-         'for VENDOR/SUITE, for VENDOR, or for suites not otherwise matched',
+         'or for suites not otherwise matched',
 )
 base.add_argument(
     '--direct',
     action=_DirectAction,
-    help='Download the given URI, ARCHIVE, VENDOR/SUITE or VENDOR from its '
+    help='Download the given URI or ARCHIVE from its '
          'canonical URI',
 )
 
