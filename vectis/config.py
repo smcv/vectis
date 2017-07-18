@@ -296,6 +296,12 @@ class Suite(_ConfigLike):
             if name in s:
                 return s[name]
 
+        for r in self._raw:
+            p = r.get('vendors', {}).get(str(self._vendor), {})
+
+            if name in p:
+                return p[name]
+
         return None
 
     @property
