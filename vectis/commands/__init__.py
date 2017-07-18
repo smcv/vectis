@@ -103,13 +103,13 @@ base.add_argument(
         args.vendor),
 )
 base.add_argument(
-    '--mirror', metavar='[URI=|/ARCHIVE=|VENDOR/SUITE=|VENDOR=]MIRROR',
+    '--mirror',
     action=_MirrorAction,
     help='Use MIRROR for URI, for vendors/suites whose archive is ARCHIVE, '
          'for VENDOR/SUITE, for VENDOR, or for suites not otherwise matched',
 )
 base.add_argument(
-    '--direct', metavar='[URI|/ARCHIVE|VENDOR/SUITE|VENDOR]',
+    '--direct',
     action=_DirectAction,
     help='Download the given URI, ARCHIVE, VENDOR/SUITE or VENDOR from its '
          'canonical URI',
