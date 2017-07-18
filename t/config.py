@@ -54,7 +54,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.worker_vendor, debian)
         self.assertIs(c.sbuild_worker_vendor, debian)
         self.assertIs(c.vmdebootstrap_worker_vendor, debian)
-        self.assertEqual(c.archive, None)
+        with self.assertRaises(AttributeError):
+            c.archive
         self.assertIs(c.sbuild_together, False)
         self.assertEqual(c.output_builds, '..')
         self.assertEqual(c.qemu_image_size, '42G')
@@ -208,7 +209,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.worker_vendor, debian)
         self.assertIs(c.sbuild_worker_vendor, debian)
         self.assertIs(c.vmdebootstrap_worker_vendor, debian)
-        self.assertEqual(c.archive, None)
+        with self.assertRaises(AttributeError):
+            c.archive
         self.assertEqual(c.qemu_image_size, '42G')
         self.assertGreaterEqual(c.parallel, 1)
         self.assertIs(c.sbuild_together, False)
@@ -312,7 +314,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(c.vmdebootstrap_options,
                 ['--boottype=ext3', '--extlinux', '--mbr', '--no-grub',
                     '--enable-dhcp'])
-        self.assertEqual(c.archive, None)
+        with self.assertRaises(AttributeError):
+            c.archive
         self.assertEqual(c.qemu_image_size, '42G')
         self.assertGreaterEqual(c.parallel, 1)
         self.assertIs(c.sbuild_together, False)
@@ -374,7 +377,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.worker_vendor, debian)
         self.assertIs(c.sbuild_worker_vendor, debian)
         self.assertIs(c.vmdebootstrap_worker_vendor, debian)
-        self.assertEqual(c.archive, 'apt.buildd.debian.org')
+        with self.assertRaises(AttributeError):
+            c.archive
         self.assertEqual(c.qemu_image_size, '42G')
         self.assertGreaterEqual(c.parallel, 1)
         self.assertIs(c.sbuild_together, False)
@@ -456,7 +460,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(security.hierarchy[0], security)
         self.assertEqual(str(security.hierarchy[1]), str(stable))
 
-        self.assertEqual(c.archive, 'security.debian.org')
+        with self.assertRaises(AttributeError):
+            c.archive
 
     def test_debian_wheezy_security(self):
         c = self.__config
@@ -500,7 +505,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.worker_vendor, ubuntu)
         self.assertIs(c.sbuild_worker_vendor, ubuntu)
         self.assertIs(c.vmdebootstrap_worker_vendor, ubuntu)
-        self.assertEqual(c.archive, None)
+        with self.assertRaises(AttributeError):
+            c.archive
         self.assertEqual(c.autopkgtest, ['lxc', 'qemu'])
         self.assertEqual(c.components, {'main', 'universe'})
         self.assertEqual(c.extra_components, {'restricted',
@@ -584,7 +590,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.sbuild_worker_vendor, ubuntu)
         self.assertIs(c.vmdebootstrap_worker_vendor, ubuntu)
 
-        self.assertEqual(c.archive, None)
+        with self.assertRaises(AttributeError):
+            c.archive
         self.assertEqual(c.qemu_image_size, '42G')
         self.assertGreaterEqual(c.parallel, 1)
         self.assertIs(c.sbuild_together, False)
@@ -640,7 +647,8 @@ class DefaultsTestCase(unittest.TestCase):
                 '/usr/share/keyrings/ubuntu-archive-keyring.gpg')
         self.assertEqual(sec.apt_suite, 'xenial-security')
 
-        self.assertEqual(c.archive, None)
+        with self.assertRaises(AttributeError):
+            c.archive
         self.assertEqual(c.qemu_image_size, '42G')
         self.assertGreaterEqual(c.parallel, 1)
         self.assertIs(c.sbuild_together, False)
@@ -677,14 +685,16 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(str(steamos), 'steamos')
         self.assertEqual(steamos.components, {'main'})
         self.assertEqual(list(brewmaster.hierarchy), [brewmaster])
-        self.assertEqual(steamos.archive, None)
+        with self.assertRaises(AttributeError):
+            steamos.archive
 
         self.assertEqual(c.components, {'main'})
         self.assertEqual(c.vendor, steamos)
         self.assertIs(c.worker_vendor, debian)
         self.assertIs(c.sbuild_worker_vendor, debian)
         self.assertIs(c.vmdebootstrap_worker_vendor, debian)
-        self.assertEqual(c.archive, None)
+        with self.assertRaises(AttributeError):
+            c.archive
         self.assertEqual(c.autopkgtest, ['schroot', 'qemu'])
 
         self.assertIsNone(steamos.get_suite('xyzzy', create=False))

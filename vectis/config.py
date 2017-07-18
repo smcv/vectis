@@ -88,10 +88,6 @@ class _ConfigLike:
     def extra_components(self):
         return self._get_string_set('extra_components')
 
-    @property
-    def archive(self):
-        return self['archive']
-
 
 class Vendor(_ConfigLike):
 
@@ -287,7 +283,7 @@ class Suite(_ConfigLike):
 
     def __get(self, name):
         if (name not in self._raw[-1]['defaults'] and
-                name not in ('apt_suite', 'base')):
+                name not in ('apt_suite', 'archive', 'base')):
             raise KeyError('{!r} does not configure {!r}'.format(self, name))
 
         for r in self._raw:
@@ -313,7 +309,7 @@ class Suite(_ConfigLike):
 
     @property
     def archive(self):
-        value = self['archive']
+        value = self.__get('archive')
 
         if value is None:
             value = str(self.vendor)
@@ -598,6 +594,9 @@ class Config(_ConfigLike):
         return value
 
     def __getitem__(self, name):
+        if name not in self._raw[-1]['defaults']:
+            raise KeyError('{!r} does not configure {!r}'.format(self, name))
+
         if name in self._overrides:
             return self._overrides[name]
 

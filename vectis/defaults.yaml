@@ -10,7 +10,6 @@ defaults:
     qemu_image_size: 42G
     components: main
     extra_components: []
-    archive: null
     mirrors:
         null: null
         # Examples, in descending order of priority:
