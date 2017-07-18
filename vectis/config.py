@@ -854,6 +854,11 @@ class Config(_ConfigLike):
 
     @property
     def debootstrap_script(self):
+        value = self['debootstrap_script']
+
+        if value is not None:
+            return value
+
         if self.suite is None:
             return None
 
