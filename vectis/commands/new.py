@@ -69,7 +69,7 @@ def new_ubuntu_cloud(
         vendor):
     out_dir = os.path.dirname(out)
     argv = ['autopkgtest-buildvm-ubuntu-cloud']
-    suite = str(vendor.get_suite(suite))
+    suite = str(args.get_suite(vendor, suite))
 
     argv.append('--arch={}'.format(architecture))
     argv.append('--disk-size={}'.format(qemu_image_size))

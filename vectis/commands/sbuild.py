@@ -450,7 +450,7 @@ def run(args):
             link_builds=link_builds,
             output_builds=output_builds,
             vendor=vendor)
-        buildable.select_suite(args.suite)
+        buildable.select_suite(args, args.suite)
         buildables.append(buildable)
 
         for suite in (buildable.suite, args.sbuild_worker_suite):

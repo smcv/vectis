@@ -98,7 +98,6 @@ class Vendor(_ConfigLike):
         super(Vendor, self).__init__()
         self._name = name
         self._raw = raw
-        self._suites = WeakValueDictionary()
 
         for r in self._raw:
             p = r.get('vendors', {}).get(self._name, {})
@@ -124,79 +123,6 @@ class Vendor(_ConfigLike):
     @property
     def default_worker_suite(self):
         return self['default_worker_suite']
-
-    def get_suite(self, name, create=True):
-        original_name = name
-
-        if name is None:
-            return None
-
-        if isinstance(name, Suite):
-            return name
-
-        s = self._suites.get(name)
-
-        if s is not None:
-            return s
-
-        raw = None
-        aliases = set()
-        base = None
-        pattern = None
-
-        while True:
-            for r in self._raw:
-                p = r.get('vendors', {}).get(self._name, {})
-                raw = p.get('suites', {}).get(name)
-
-                if raw:
-                    break
-
-            if raw is None or 'alias_for' not in raw:
-                break
-
-            name = raw['alias_for']
-            if name in aliases:
-                raise ConfigError(
-                    '{!r}/{!r} is an alias for itself'.format(self, name))
-            aliases.add(name)
-            continue
-
-        s = self._suites.get(name)
-
-        if s is not None:
-            return s
-
-        if raw is None and '-' in name:
-            base, pocket = name.split('-', 1)
-            base = self.get_suite(base, create=False)
-
-            if base is not None:
-                pattern = '*-{}'.format(pocket)
-                for r in self._raw:
-                    p = r.get('vendors', {}).get(self._name, {})
-                    raw = p.get('suites', {}).get(pattern)
-
-                    if raw is not None:
-                        name = '{}-{}'.format(base, pocket)
-                        break
-
-        if raw is None and not create:
-            return None
-
-        if base is None:
-            for r in self._raw:
-                p = r.get('vendors', {}).get(str(self._name), {})
-                s = p.get('suites', {}).get(name, {})
-
-                if 'base' in s:
-                    base = self.get_suite(s['base'])
-                    break
-
-        s = Suite(name, self, self._raw, base=base, pattern=pattern)
-        self._suites[original_name] = s
-        self._suites[name] = s
-        return s
 
     def __str__(self):
         return self._name
@@ -375,6 +301,7 @@ class Config(_ConfigLike):
     def __init__(self, config_layers=(), current_directory=None):
         super(Config, self).__init__()
 
+        self._suites = WeakValueDictionary()
         self._vendors = {}
         self._overrides = {}
         self._relevant_directory = None
@@ -638,7 +565,7 @@ class Config(_ConfigLike):
         if suite is None:
             return None
 
-        return self.vendor.get_suite(suite)
+        return self.get_suite(self.vendor, suite)
 
     @property
     def vendor(self):
@@ -691,7 +618,7 @@ class Config(_ConfigLike):
         if value is None:
             return None
 
-        return self.worker_vendor.get_suite(value, True)
+        return self.get_suite(self.worker_vendor, value, True)
 
     @property
     def lxc_worker_suite(self):
@@ -703,7 +630,7 @@ class Config(_ConfigLike):
         if value is None:
             return None
 
-        return self.lxc_worker_vendor.get_suite(value, True)
+        return self.get_suite(self.lxc_worker_vendor, value, True)
 
     @property
     def sbuild_worker_suite(self):
@@ -715,7 +642,7 @@ class Config(_ConfigLike):
         if value is None:
             return None
 
-        return self.sbuild_worker_vendor.get_suite(value, True)
+        return self.get_suite(self.sbuild_worker_vendor, value, True)
 
     @property
     def vmdebootstrap_worker_suite(self):
@@ -727,7 +654,7 @@ class Config(_ConfigLike):
         if value is None:
             return None
 
-        return self.vmdebootstrap_worker_vendor.get_suite(value, True)
+        return self.get_suite(self.vmdebootstrap_worker_vendor, value, True)
 
     @property
     def qemu_image(self):
@@ -890,3 +817,76 @@ class Config(_ConfigLike):
 
     def get_mirrors(self):
         return Mirrors(self['mirrors'])
+
+    def get_suite(self, vendor, name, create=True):
+        original_name = name
+
+        if name is None:
+            return None
+
+        if isinstance(name, Suite):
+            return name
+
+        s = self._suites.get((str(vendor), name))
+
+        if s is not None:
+            return s
+
+        raw = None
+        aliases = set()
+        base = None
+        pattern = None
+
+        while True:
+            for r in self._raw:
+                p = r.get('vendors', {}).get(str(vendor), {})
+                raw = p.get('suites', {}).get(name)
+
+                if raw:
+                    break
+
+            if raw is None or 'alias_for' not in raw:
+                break
+
+            name = raw['alias_for']
+            if name in aliases:
+                raise ConfigError(
+                    '{!r}/{!r} is an alias for itself'.format(vendor, name))
+            aliases.add(name)
+            continue
+
+        s = self._suites.get((str(vendor), name))
+
+        if s is not None:
+            return s
+
+        if raw is None and '-' in name:
+            base, pocket = name.split('-', 1)
+            base = self.get_suite(vendor, base, create=False)
+
+            if base is not None:
+                pattern = '*-{}'.format(pocket)
+                for r in self._raw:
+                    p = r.get('vendors', {}).get(str(vendor), {})
+                    raw = p.get('suites', {}).get(pattern)
+
+                    if raw is not None:
+                        name = '{}-{}'.format(base, pocket)
+                        break
+
+        if raw is None and not create:
+            return None
+
+        if base is None:
+            for r in self._raw:
+                p = r.get('vendors', {}).get(str(vendor), {})
+                s = p.get('suites', {}).get(name, {})
+
+                if 'base' in s:
+                    base = self.get_suite(vendor, s['base'])
+                    break
+
+        s = Suite(name, vendor, self._raw, base=base, pattern=pattern)
+        self._suites[(str(vendor), original_name)] = s
+        self._suites[(str(vendor), name)] = s
+        return s

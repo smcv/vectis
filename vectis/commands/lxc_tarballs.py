@@ -83,7 +83,7 @@ def run(args):
 
         # FIXME: This is silly, but it's a limitation of the lxc templates.
         # We have to provide exactly two apt URLs.
-        security_suite = vendor.get_suite(str(suite) + '-security')
+        security_suite = args.get_suite(vendor, str(suite) + '-security')
 
         if uri is None:
             uri = mirrors.lookup_suite(suite)

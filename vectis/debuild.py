@@ -349,7 +349,7 @@ class Buildable:
                 'Architecture-independent packages will be built alongside %s',
                 self.together_with)
 
-    def select_suite(self, override):
+    def select_suite(self, factory, override):
         suite_name = override
 
         if suite_name is None:
@@ -374,7 +374,7 @@ class Buildable:
                     'Replacing {}-UNRELEASED with {}'.format(
                         suite_name, suite_name))
 
-            self.suite = self.vendor.get_suite(suite_name)
+            self.suite = factory.get_suite(self.vendor, suite_name)
 
         if self.nominal_suite is None:
             self.nominal_suite = str(self.suite)

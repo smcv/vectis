@@ -27,9 +27,12 @@ class DefaultsTestCase(unittest.TestCase):
         self.__config = Config(config_layers=(dict(
                     defaults=dict(
                         mirrors={
-                            None: 'http://192.168.122.1:3142/${archive}',
-                            'steamos': 'http://localhost/steamos',
-                            'http://archive.ubuntu.com/ubuntu': 'http://mirror/ubuntu',
+                            None:
+                              'http://192.168.122.1:3142/${archive}',
+                            'steamos':
+                              'http://localhost/steamos',
+                            'http://archive.ubuntu.com/ubuntu':
+                              'http://mirror/ubuntu',
                         },
                         architecture='mips',
                         )),),
@@ -104,12 +107,12 @@ class DefaultsTestCase(unittest.TestCase):
             pass
         else:
             self.assertEqual(c.worker_suite,
-                    c.vendor.get_suite(
+                    c.get_suite(c.vendor,
                         distro_info.DebianDistroInfo().stable()))
             self.assertEqual(c.default_worker_suite,
                         distro_info.DebianDistroInfo().stable())
 
-        stable = c.vendor.get_suite('stable')
+        stable = c.get_suite(c.vendor, 'stable')
         self.assertEqual(c.sbuild_worker_suite, stable)
         self.assertEqual(c.default_suite, 'sid')
         self.assertEqual(c.components, {'main'})
@@ -133,8 +136,8 @@ class DefaultsTestCase(unittest.TestCase):
         c.vmdebootstrap_worker_vendor = 'ubuntu'
 
         debian = c._get_vendor('debian')
-        potato = debian.get_suite('potato')
-        sarge = debian.get_suite('sarge')
+        potato = c.get_suite(debian, 'potato')
+        sarge = c.get_suite(debian, 'sarge')
         self.assertEqual(list(potato.hierarchy), [potato])
         self.assertEqual(list(sarge.hierarchy), [sarge])
         self.assertEqual(c.suite, potato)
@@ -176,19 +179,19 @@ class DefaultsTestCase(unittest.TestCase):
         debian = c._get_vendor('debian')
         self.assertIs(c.vendor, debian)
 
-        sid = debian.get_suite('sid')
+        sid = c.get_suite(debian, 'sid')
 
         self.assertIs(c.suite, sid)
 
         # Properties of the vendor itself
         self.assertEqual(str(debian), 'debian')
         self.assertEqual(debian.default_suite, 'sid')
-        self.assertIs(debian.get_suite('unstable'), sid)
+        self.assertIs(c.get_suite(debian, 'unstable'), sid)
         self.assertEqual(debian.components, {'main'})
         self.assertEqual(debian.extra_components, {'contrib', 'non-free'})
         self.assertEqual(debian.all_components, {'main', 'contrib',
             'non-free'})
-        self.assertIsNone(debian.get_suite('xenial', create=False))
+        self.assertIsNone(c.get_suite(debian, 'xenial', create=False))
 
         # Properties of the suite itswelf
         self.assertEqual(sid.apt_key,
@@ -237,19 +240,19 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(debian.default_worker_suite,
                 debian_info.stable())
         self.assertIs(c.sbuild_worker_suite,
-                debian.get_suite(debian_info.stable()))
-        self.assertIs(c.worker_suite, debian.get_suite(
+                c.get_suite(debian, debian_info.stable()))
+        self.assertIs(c.worker_suite, c.get_suite(debian, 
             debian_info.stable()))
 
-        self.assertEqual(str(debian.get_suite('unstable')),
+        self.assertEqual(str(c.get_suite(debian, 'unstable')),
                 'sid')
-        self.assertEqual(str(debian.get_suite('testing')),
+        self.assertEqual(str(c.get_suite(debian, 'testing')),
                 debian_info.testing())
-        self.assertEqual(str(debian.get_suite('oldstable')),
+        self.assertEqual(str(c.get_suite(debian, 'oldstable')),
                 debian_info.old())
-        self.assertEqual(str(debian.get_suite('rc-buggy')),
+        self.assertEqual(str(c.get_suite(debian, 'rc-buggy')),
                 'experimental')
-        stable = debian.get_suite('stable')
+        stable = c.get_suite(debian, 'stable')
         self.assertEqual(str(stable), debian_info.stable())
 
     def test_debian_experimental(self):
@@ -260,14 +263,14 @@ class DefaultsTestCase(unittest.TestCase):
         debian = c._get_vendor('debian')
         self.assertIs(c.vendor, debian)
 
-        experimental = debian.get_suite('experimental')
-        self.assertIs(debian.get_suite('rc-buggy'), experimental)
+        experimental = c.get_suite(debian, 'experimental')
+        self.assertIs(c.get_suite(debian, 'rc-buggy'), experimental)
         self.assertIs(c.suite, experimental)
 
         # Properties of the suite itself
         self.assertEqual(list(experimental.hierarchy),
-                [experimental, debian.get_suite('sid')])
-        self.assertIs(experimental.base, debian.get_suite('sid'))
+                [experimental, c.get_suite(debian, 'sid')])
+        self.assertIs(experimental.base, c.get_suite(debian, 'sid'))
         self.assertEqual(experimental.sbuild_resolver[0],
                 '--build-dep-resolver=aspcud')
 
@@ -283,7 +286,7 @@ class DefaultsTestCase(unittest.TestCase):
         debian = c._get_vendor('debian')
         self.assertIs(c.vendor, debian)
 
-        wheezy = debian.get_suite('wheezy', True)
+        wheezy = c.get_suite(debian, 'wheezy', True)
         self.assertEqual(list(wheezy.hierarchy), [wheezy])
         self.assertIs(c.suite, wheezy)
         self.assertEqual(wheezy.components, {'main'})
@@ -310,7 +313,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.sbuild_worker_vendor, debian)
         self.assertIs(c.vmdebootstrap_worker_vendor, debian)
         self.assertIs(c.vmdebootstrap_worker_suite,
-                debian.get_suite('jessie'))
+                c.get_suite(debian, 'jessie'))
         self.assertEqual(c.vmdebootstrap_options,
                 ['--boottype=ext3', '--extlinux', '--mbr', '--no-grub',
                     '--enable-dhcp'])
@@ -334,7 +337,7 @@ class DefaultsTestCase(unittest.TestCase):
         except ImportError:
             return
 
-        stable = debian.get_suite('stable')
+        stable = c.get_suite(debian, 'stable')
         self.assertIs(c.worker_suite, stable)
         self.assertIs(c.sbuild_worker_suite, stable)
 
@@ -346,8 +349,8 @@ class DefaultsTestCase(unittest.TestCase):
         debian = c._get_vendor('debian')
         self.assertIs(c.vendor, debian)
 
-        jessie = debian.get_suite('jessie')
-        buildd = debian.get_suite('jessie-apt.buildd.debian.org')
+        jessie = c.get_suite(debian, 'jessie')
+        buildd = c.get_suite(debian, 'jessie-apt.buildd.debian.org')
         self.assertIs(c.suite, buildd)
 
         self.assertEqual(list(buildd.hierarchy), [buildd, jessie])
@@ -398,7 +401,7 @@ class DefaultsTestCase(unittest.TestCase):
         except ImportError:
             return
 
-        stable = debian.get_suite('stable')
+        stable = c.get_suite(debian, 'stable')
         self.assertIs(c.worker_suite, stable)
         self.assertIs(c.sbuild_worker_suite, stable)
 
@@ -417,8 +420,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.vendor, debian)
 
         debian_info = distro_info.DebianDistroInfo()
-        backports = debian.get_suite('stable-backports')
-        stable = debian.get_suite('stable')
+        backports = c.get_suite(debian, 'stable-backports')
+        stable = c.get_suite(debian, 'stable')
         self.assertIs(c.suite, backports)
         self.assertEqual(str(backports),
                 debian_info.stable() + '-backports')
@@ -448,8 +451,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.vendor, debian)
 
         debian_info = distro_info.DebianDistroInfo()
-        security = debian.get_suite('stable-security')
-        stable = debian.get_suite('stable')
+        security = c.get_suite(debian, 'stable-security')
+        stable = c.get_suite(debian, 'stable')
 
         self.assertEqual(security.apt_suite,
                 '{}/updates'.format(debian_info.stable()))
@@ -471,8 +474,8 @@ class DefaultsTestCase(unittest.TestCase):
         debian = c._get_vendor('debian')
         self.assertIs(c.vendor, debian)
 
-        wheezy = debian.get_suite('wheezy', True)
-        sec = debian.get_suite('wheezy-security', True)
+        wheezy = c.get_suite(debian, 'wheezy', True)
+        sec = c.get_suite(debian, 'wheezy-security', True)
         self.assertEqual(list(wheezy.hierarchy), [wheezy])
         self.assertEqual(list(sec.hierarchy), [sec, wheezy])
         self.assertIs(c.suite, sec)
@@ -480,7 +483,7 @@ class DefaultsTestCase(unittest.TestCase):
         # Properties of the Config determined by it being wheezy-security
         # We inherit these from wheezy
         self.assertIs(c.vmdebootstrap_worker_suite,
-                debian.get_suite('jessie'))
+                c.get_suite(debian, 'jessie'))
         self.assertEqual(c.vmdebootstrap_options,
                 ['--boottype=ext3', '--extlinux', '--mbr', '--no-grub',
                     '--enable-dhcp'])
@@ -493,8 +496,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.vendor, ubuntu)
 
         self.assertEqual(str(ubuntu), 'ubuntu')
-        self.assertIsNone(ubuntu.get_suite('unstable', create=False))
-        self.assertIsNone(ubuntu.get_suite('stable', create=False))
+        self.assertIsNone(c.get_suite(ubuntu, 'unstable', create=False))
+        self.assertIsNone(c.get_suite(ubuntu, 'stable', create=False))
 
         self.assertEqual(c.components, {'main', 'universe'})
         self.assertEqual(c.extra_components, {'restricted',
@@ -539,17 +542,17 @@ class DefaultsTestCase(unittest.TestCase):
         except distro_info.DistroDataOutdated:
             ubuntu_devel = ubuntu_info.stable()
 
-        self.assertEqual(str(ubuntu.get_suite('devel')), ubuntu_devel)
+        self.assertEqual(str(c.get_suite(ubuntu, 'devel')), ubuntu_devel)
         self.assertEqual(ubuntu.default_suite, ubuntu_devel)
         self.assertEqual(ubuntu.default_worker_suite,
                 ubuntu_info.lts() + '-backports')
-        devel = ubuntu.get_suite('devel')
+        devel = c.get_suite(ubuntu, 'devel')
         self.assertEqual(devel.archive, 'ubuntu')
         self.assertEqual(
             c.get_mirrors().lookup_suite(devel),
             'http://mirror/ubuntu')
 
-        backports = ubuntu.get_suite(ubuntu_info.lts() + '-backports')
+        backports = c.get_suite(ubuntu, ubuntu_info.lts() + '-backports')
         self.assertEqual(c.worker_suite, backports)
         self.assertEqual(c.sbuild_worker_suite, backports)
         self.assertEqual(c.vmdebootstrap_worker_suite, backports)
@@ -564,7 +567,7 @@ class DefaultsTestCase(unittest.TestCase):
         c.suite = 'xenial'
 
         ubuntu = c._get_vendor('ubuntu')
-        xenial = ubuntu.get_suite('xenial', True)
+        xenial = c.get_suite(ubuntu, 'xenial', True)
         self.assertEqual(list(xenial.hierarchy), [xenial])
         self.assertEqual(xenial.components, {'main', 'universe'})
         self.assertEqual(xenial.extra_components, {'multiverse',
@@ -611,7 +614,7 @@ class DefaultsTestCase(unittest.TestCase):
             return
 
         ubuntu_info = distro_info.UbuntuDistroInfo()
-        backports = ubuntu.get_suite(ubuntu_info.lts() + '-backports')
+        backports = c.get_suite(ubuntu, ubuntu_info.lts() + '-backports')
         self.assertIs(c.worker_suite, backports)
         self.assertIs(c.sbuild_worker_suite, backports)
         self.assertIs(c.vmdebootstrap_worker_suite, backports)
@@ -630,8 +633,8 @@ class DefaultsTestCase(unittest.TestCase):
         c.suite = 'xenial-security'
 
         ubuntu = c._get_vendor('ubuntu')
-        sec = ubuntu.get_suite('xenial-security', True)
-        xenial = ubuntu.get_suite('xenial', True)
+        sec = c.get_suite(ubuntu, 'xenial-security', True)
+        xenial = c.get_suite(ubuntu, 'xenial', True)
         self.assertEqual(list(sec.hierarchy), [sec, xenial])
         self.assertIs(sec.base, xenial)
         self.assertEqual(sec.components, {'main', 'universe'})
@@ -668,7 +671,7 @@ class DefaultsTestCase(unittest.TestCase):
             return
 
         ubuntu_info = distro_info.UbuntuDistroInfo()
-        backports = ubuntu.get_suite(ubuntu_info.lts() + '-backports')
+        backports = c.get_suite(ubuntu, ubuntu_info.lts() + '-backports')
         self.assertIs(c.worker_suite, backports)
         self.assertIs(c.sbuild_worker_suite, backports)
         self.assertIs(c.vmdebootstrap_worker_suite, backports)
@@ -680,7 +683,7 @@ class DefaultsTestCase(unittest.TestCase):
 
         steamos = c._get_vendor('steamos')
         debian = c._get_vendor('debian')
-        brewmaster = steamos.get_suite('brewmaster')
+        brewmaster = c.get_suite(steamos, 'brewmaster')
 
         self.assertEqual(str(steamos), 'steamos')
         self.assertEqual(steamos.components, {'main'})
@@ -697,9 +700,11 @@ class DefaultsTestCase(unittest.TestCase):
             c.archive
         self.assertEqual(c.autopkgtest, ['schroot', 'qemu'])
 
-        self.assertIsNone(steamos.get_suite('xyzzy', create=False))
-        self.assertIsNotNone(steamos.get_suite('xyzzy'))
-        self.assertIs(steamos.get_suite('xyzzy'), steamos.get_suite('xyzzy'))
+        self.assertIsNone(c.get_suite(steamos, 'xyzzy', create=False))
+        self.assertIsNotNone(c.get_suite(steamos, 'xyzzy'))
+        self.assertIs(
+            c.get_suite(steamos, 'xyzzy'),
+            c.get_suite(steamos, 'xyzzy'))
 
         self.assertEqual(
             c.get_mirrors().lookup_suite(brewmaster),
@@ -712,7 +717,9 @@ class DefaultsTestCase(unittest.TestCase):
             return
 
         debian_info = distro_info.DebianDistroInfo()
-        self.assertIs(c.worker_suite, debian.get_suite(debian_info.stable()))
+        self.assertIs(
+            c.worker_suite,
+            c.get_suite(debian, debian_info.stable()))
 
     def tearDown(self):
         pass
