@@ -55,8 +55,15 @@ class Mirrors:
         if value is not None:
             return value
 
+        return None
+
     def lookup_suite(self, suite):
-        return Template(self._lookup_template(suite)).substitute(
+        t = self._lookup_template(suite)
+
+        if t is None:
+            return None
+
+        return Template(t).substitute(
             archive=suite.archive,
         )
 
