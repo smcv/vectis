@@ -408,7 +408,7 @@ class Config(_ConfigLike):
         assert self._relevant_directory is not None
         self._path_based = Directory(self._relevant_directory, self._raw)
 
-    def _get_vendor(self, name):
+    def get_vendor(self, name):
         if name not in self._vendors:
             self._vendors[name] = Vendor(name, self._raw)
         return self._vendors[name]
@@ -569,11 +569,11 @@ class Config(_ConfigLike):
 
     @property
     def vendor(self):
-        return self._get_vendor(self['vendor'])
+        return self.get_vendor(self['vendor'])
 
     @property
     def worker_vendor(self):
-        return self._get_vendor(self['worker_vendor'])
+        return self.get_vendor(self['worker_vendor'])
 
     @property
     def vmdebootstrap_worker_vendor(self):
@@ -582,7 +582,7 @@ class Config(_ConfigLike):
         if value is None:
             value = self['worker_vendor']
 
-        return self._get_vendor(value)
+        return self.get_vendor(value)
 
     @property
     def lxc_worker_vendor(self):
@@ -591,7 +591,7 @@ class Config(_ConfigLike):
         if value is None:
             value = self['worker_vendor']
 
-        return self._get_vendor(value)
+        return self.get_vendor(value)
 
     @property
     def sbuild_worker_vendor(self):
@@ -600,7 +600,7 @@ class Config(_ConfigLike):
         if value is None:
             value = self['worker_vendor']
 
-        return self._get_vendor(value)
+        return self.get_vendor(value)
 
     def __setattr__(self, name, value):
         if name.startswith('_'):
@@ -883,7 +883,15 @@ class Config(_ConfigLike):
                 s = p.get('suites', {}).get(name, {})
 
                 if 'base' in s:
-                    base = self.get_suite(vendor, s['base'])
+                    b = s['base']
+
+                    if '/' in b:
+                        v, b = b.split('/', 1)
+                        base_vendor = self.get_vendor(v)
+                    else:
+                        base_vendor = vendor
+
+                    base = self.get_suite(base_vendor, b)
                     break
 
         s = Suite(name, vendor, self._raw, base=base, pattern=pattern)

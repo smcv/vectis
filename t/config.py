@@ -4,9 +4,12 @@
 # SPDX-License-Identifier: GPL-2.0+
 # (see vectis/__init__.py)
 
+import io
 import os
 import subprocess
 import unittest
+
+import yaml
 
 import vectis.config
 from vectis.config import (
@@ -22,21 +25,39 @@ try:
 except:
     ARCHITECTURE = None
 
+CONFIG="""
+defaults:
+    mirrors:
+        null: http://192.168.122.1:3142/${archive}
+        steamos: http://localhost/steamos
+        http://archive.ubuntu.com/ubuntu: http://mirror/ubuntu
+    architecture: mips
+"""
+
+VENDORS="""
+vendors:
+    steamrt:
+        archive: repo.steamstatic.com/steamrt
+        uris:
+            - http://repo.steamstatic.com/steamrt
+        components:
+            - main
+            - contrib
+            - non-free
+        suites:
+            scout:
+                base: ubuntu/precise
+"""
+
 class DefaultsTestCase(unittest.TestCase):
     def setUp(self):
-        self.__config = Config(config_layers=(dict(
-                    defaults=dict(
-                        mirrors={
-                            None:
-                              'http://192.168.122.1:3142/${archive}',
-                            'steamos':
-                              'http://localhost/steamos',
-                            'http://archive.ubuntu.com/ubuntu':
-                              'http://mirror/ubuntu',
-                        },
-                        architecture='mips',
-                        )),),
-                current_directory='/')
+        self.__config = Config(
+            config_layers=(
+                yaml.safe_load(io.StringIO(CONFIG)),
+                yaml.safe_load(io.StringIO(VENDORS)),
+            ),
+            current_directory='/',
+        )
 
     def test_defaults(self):
         self.__config = Config(config_layers=({},), current_directory='/')
@@ -45,8 +66,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertGreaterEqual(c.parallel, 1)
         self.assertIs(type(c.parallel), int)
 
-        debian = c._get_vendor('debian')
-        ubuntu = c._get_vendor('ubuntu')
+        debian = c.get_vendor('debian')
+        ubuntu = c.get_vendor('ubuntu')
 
         self.assertEqual(str(c.vendor), 'debian')
         self.assertEqual(str(c.worker_vendor), 'debian')
@@ -135,7 +156,7 @@ class DefaultsTestCase(unittest.TestCase):
         c.vmdebootstrap_worker_suite = 'xenial'
         c.vmdebootstrap_worker_vendor = 'ubuntu'
 
-        debian = c._get_vendor('debian')
+        debian = c.get_vendor('debian')
         potato = c.get_suite(debian, 'potato')
         sarge = c.get_suite(debian, 'sarge')
         self.assertEqual(list(potato.hierarchy), [potato])
@@ -176,7 +197,7 @@ class DefaultsTestCase(unittest.TestCase):
         c.vendor = 'debian'
         c.suite = 'sid'
 
-        debian = c._get_vendor('debian')
+        debian = c.get_vendor('debian')
         self.assertIs(c.vendor, debian)
 
         sid = c.get_suite(debian, 'sid')
@@ -260,7 +281,7 @@ class DefaultsTestCase(unittest.TestCase):
         c.vendor = 'debian'
         c.suite = 'experimental'
 
-        debian = c._get_vendor('debian')
+        debian = c.get_vendor('debian')
         self.assertIs(c.vendor, debian)
 
         experimental = c.get_suite(debian, 'experimental')
@@ -283,7 +304,7 @@ class DefaultsTestCase(unittest.TestCase):
         c.vendor = 'debian'
         c.suite = 'wheezy'
 
-        debian = c._get_vendor('debian')
+        debian = c.get_vendor('debian')
         self.assertIs(c.vendor, debian)
 
         wheezy = c.get_suite(debian, 'wheezy', True)
@@ -346,7 +367,7 @@ class DefaultsTestCase(unittest.TestCase):
         c.vendor = 'debian'
         c.suite = 'jessie-apt.buildd.debian.org'
 
-        debian = c._get_vendor('debian')
+        debian = c.get_vendor('debian')
         self.assertIs(c.vendor, debian)
 
         jessie = c.get_suite(debian, 'jessie')
@@ -415,7 +436,7 @@ class DefaultsTestCase(unittest.TestCase):
         c.vendor = 'debian'
         c.suite = 'stable-backports'
 
-        debian = c._get_vendor('debian')
+        debian = c.get_vendor('debian')
 
         self.assertIs(c.vendor, debian)
 
@@ -447,7 +468,7 @@ class DefaultsTestCase(unittest.TestCase):
         except ImportError:
             return
 
-        debian = c._get_vendor('debian')
+        debian = c.get_vendor('debian')
         self.assertIs(c.vendor, debian)
 
         debian_info = distro_info.DebianDistroInfo()
@@ -471,7 +492,7 @@ class DefaultsTestCase(unittest.TestCase):
         c.vendor = 'debian'
         c.suite = 'wheezy-security'
 
-        debian = c._get_vendor('debian')
+        debian = c.get_vendor('debian')
         self.assertIs(c.vendor, debian)
 
         wheezy = c.get_suite(debian, 'wheezy', True)
@@ -491,7 +512,7 @@ class DefaultsTestCase(unittest.TestCase):
     def test_ubuntu(self):
         c = self.__config
         c.vendor = 'ubuntu'
-        ubuntu = c._get_vendor('ubuntu')
+        ubuntu = c.get_vendor('ubuntu')
 
         self.assertIs(c.vendor, ubuntu)
 
@@ -566,7 +587,7 @@ class DefaultsTestCase(unittest.TestCase):
         c.vendor = 'ubuntu'
         c.suite = 'xenial'
 
-        ubuntu = c._get_vendor('ubuntu')
+        ubuntu = c.get_vendor('ubuntu')
         xenial = c.get_suite(ubuntu, 'xenial', True)
         self.assertEqual(list(xenial.hierarchy), [xenial])
         self.assertEqual(xenial.components, {'main', 'universe'})
@@ -632,7 +653,7 @@ class DefaultsTestCase(unittest.TestCase):
         c.vendor = 'ubuntu'
         c.suite = 'xenial-security'
 
-        ubuntu = c._get_vendor('ubuntu')
+        ubuntu = c.get_vendor('ubuntu')
         sec = c.get_suite(ubuntu, 'xenial-security', True)
         xenial = c.get_suite(ubuntu, 'xenial', True)
         self.assertEqual(list(sec.hierarchy), [sec, xenial])
@@ -681,8 +702,8 @@ class DefaultsTestCase(unittest.TestCase):
         c.vendor = 'steamos'
         c.suite = 'brewmaster'
 
-        steamos = c._get_vendor('steamos')
-        debian = c._get_vendor('debian')
+        steamos = c.get_vendor('steamos')
+        debian = c.get_vendor('debian')
         brewmaster = c.get_suite(steamos, 'brewmaster')
 
         self.assertEqual(str(steamos), 'steamos')
@@ -720,6 +741,46 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(
             c.worker_suite,
             c.get_suite(debian, debian_info.stable()))
+
+    def test_cross_vendor(self):
+        c = self.__config
+        c.vendor = 'steamrt'
+        c.suite = 'scout'
+
+        steamrt = c.get_vendor('steamrt')
+        ubuntu = c.get_vendor('ubuntu')
+        scout = c.get_suite(steamrt, 'scout')
+        precise = c.get_suite(ubuntu, 'precise')
+
+        self.assertEqual(list(scout.hierarchy), [scout, precise])
+
+        self.assertEqual(c.components, {'main', 'contrib', 'non-free'})
+        self.assertEqual(c.vendor, steamrt)
+
+        # TODO: not sure whether it's correct for these to be inherited
+        # from Ubuntu due to the cross-vendor base suite?
+        self.assertIs(c.worker_vendor, ubuntu)
+        self.assertIs(c.sbuild_worker_vendor, ubuntu)
+        self.assertIs(c.vmdebootstrap_worker_vendor, ubuntu)
+
+        # TODO: not sure whether it's correct for these to be inherited
+        # from Ubuntu due to the cross-vendor base suite?
+        self.assertEqual(c.autopkgtest, ['lxc', 'qemu'])
+
+        self.assertEqual(
+            c.get_mirrors().lookup_suite(scout),
+            'http://192.168.122.1:3142/repo.steamstatic.com/steamrt')
+        self.assertEqual(scout.archive, 'repo.steamstatic.com/steamrt')
+
+        try:
+            import distro_info
+        except ImportError:
+            return
+
+        ubuntu_info = distro_info.UbuntuDistroInfo()
+        self.assertIs(
+            c.worker_suite,
+            c.get_suite(ubuntu, ubuntu_info.lts() + '-backports'))
 
     def tearDown(self):
         pass
