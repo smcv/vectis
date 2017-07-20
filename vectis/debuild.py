@@ -544,6 +544,7 @@ class Build:
             # resolver
             if child.sbuild_resolver:
                 argv.extend(child.sbuild_resolver)
+                break
 
         if self.arch == 'all':
             logger.info('Architecture: all')
