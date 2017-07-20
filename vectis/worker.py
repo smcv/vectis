@@ -315,6 +315,7 @@ class SchrootWorker(ContainerWorker, InteractiveWorker):
             '/etc/schroot/setup.d/60vectis-sources')
         self.worker.check_call(
             ['chmod', '0755', '/etc/schroot/setup.d/60vectis-sources'])
+        self.install_apt_keys()
 
     def install_apt_key(self, apt_key):
         self.worker.check_call(

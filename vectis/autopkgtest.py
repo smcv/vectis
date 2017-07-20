@@ -75,6 +75,7 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
         sources_list = self.worker.make_file_available(self.sources_list)
         self.argv.append(
             '--copy={}:{}'.format(sources_list, '/etc/apt/sources.list'))
+        self.install_apt_keys()
 
     def call_autopkgtest(
             self,

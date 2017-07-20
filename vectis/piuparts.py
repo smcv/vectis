@@ -99,6 +99,7 @@ class PiupartsWorker(FileProvider, ContainerWorker):
             argv.append(line)
 
         self.apt_related_argv = argv
+        self.install_apt_keys()
 
     def install_apt_key(self, apt_key):
         logger.debug('TODO: piuparts does not have an option to install '
