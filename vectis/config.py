@@ -489,8 +489,20 @@ class Config(_ConfigLike):
             'storage', os.path.join(XDG_CACHE_HOME, 'vectis'))
 
     @property
-    def output_builds(self):
-        return self._get_filename('output_builds')
+    def output_dir(self):
+        """
+        The directory in which we will place the results, overriding
+        output_parent.
+        """
+        return self._get_filename('output_dir')
+
+    @property
+    def output_parent(self):
+        """
+        The directory in which we will create a new subdirectory for the
+        results.
+        """
+        return self._get_filename('output_parent')
 
     @property
     def link_builds(self):

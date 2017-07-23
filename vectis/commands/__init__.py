@@ -83,6 +83,17 @@ def add_worker_options(p, context=None, context_implicit=False):
             getattr(args, dest_prefix + 'worker_suite')),
     )
 
+def add_output_options(p):
+    p.add_argument(
+        '--output-parent',
+        help='Leave output in subdirectories of this directory [default: ..]',
+    )
+    p.add_argument(
+        '--output-dirs',
+        help='Leave output in this directory, which must be empty or not exist '
+             '[default: create a new directory in OUTPUT_PARENT]',
+    )
+
 args = Config()
 
 base = argparse.ArgumentParser(
@@ -194,6 +205,7 @@ p = subparsers.add_parser(
     conflict_handler='resolve',
     parents=(base,),
 )
+add_output_options(p)
 p.add_argument(
     '--qemu-image',
     help='Virtual machine image to use [default: {}]'.format(args.qemu_image),
@@ -318,10 +330,8 @@ p.add_argument(
     '--components', action=AppendCommaSeparated,
     help='Distribution components',
 )
-p.add_argument(
-    '--output-builds', '--build-area',
-    help='Leave output here [default: parent directory]',
-)
+add_output_options(p)
+
 p.add_argument(
     '--versions-since', '-v', '--since-version',
     dest='_versions_since', default=None,

@@ -41,7 +41,14 @@ logger = logging.getLogger(__name__)
 
 class Buildable:
 
-    def __init__(self, buildable, *, link_builds=(), output_builds, vendor):
+    def __init__(
+            self,
+            buildable,
+            *,
+            link_builds=(),
+            output_dir=None,
+            output_parent,
+            vendor):
         self.buildable = buildable
 
         self._product_prefix = None
@@ -58,7 +65,7 @@ class Buildable:
         self.logs = {}
         self.merged_changes = OrderedDict()
         self.nominal_suite = None
-        self.output_builds = None
+        self.output_dir = output_dir
         self.piuparts_failures = []
         self.source_from_archive = False
         self.source_package = None
@@ -147,43 +154,50 @@ class Buildable:
 
         timestamp = time.strftime('%Y%m%dt%H%M%S', time.gmtime())
 
-        if self._version is None:
-            dirname = '{}_{}'.format(self.source_package, timestamp)
-        else:
-            dirname = '{}_{}_{}'.format(
-                self.source_package,
-                self._version,
-                timestamp)
+        if self.output_dir is None:
+            if self._version is None:
+                dirname = '{}_{}'.format(self.source_package, timestamp)
+            else:
+                dirname = '{}_{}_{}'.format(
+                    self.source_package,
+                    self._version,
+                    timestamp)
 
-        self.output_builds = os.path.join(output_builds, dirname)
-        # If someone already created this, we'll just crash out.
-        os.mkdir(self.output_builds)
+            self.output_dir = os.path.join(output_parent, dirname)
 
-        # For convenience, create a symbolic link for the latest build of
-        # each source package: hello -> hello_2.10-1_20170319t102623
-        unversioned_symlink = os.path.join(output_builds, self.source_package)
-
-        with suppress(FileNotFoundError):
-            os.unlink(unversioned_symlink)
-
-        os.symlink(dirname, unversioned_symlink)
-
-        # If we know the version, also create a symbolic link for the latest
-        # build of each source/version pair:
-        # hello_2.10-1 -> hello_2.10-1_20170319t102623
-        if self._version is not None:
-            versioned_symlink = os.path.join(
-                output_builds, self.source_package)
+            # For convenience, create a symbolic link for the latest build of
+            # each source package: hello -> hello_2.10-1_20170319t102623
+            unversioned_symlink = os.path.join(
+                output_parent, self.source_package)
 
             with suppress(FileNotFoundError):
-                os.unlink(versioned_symlink)
+                os.unlink(unversioned_symlink)
 
-            os.symlink(dirname, versioned_symlink)
+            os.symlink(dirname, unversioned_symlink)
+
+            # If we know the version, also create a symbolic link for the
+            # latest build of each source/version pair:
+            # hello_2.10-1 -> hello_2.10-1_20170319t102623
+            if self._version is not None:
+                versioned_symlink = os.path.join(
+                    output_parent, self.source_package)
+
+                with suppress(FileNotFoundError):
+                    os.unlink(versioned_symlink)
+
+                os.symlink(dirname, versioned_symlink)
+
+        # It's OK if the output directory exists but is empty.
+        with suppress(FileNotFoundError):
+            os.rmdir(self.output_dir)
+
+        # Otherwise, if someone already created this, we'll just crash out.
+        os.mkdir(self.output_dir)
 
         if self.dsc is not None:
             abs_file = os.path.abspath(self.dsc_name)
             abs_dir, base = os.path.split(abs_file)
-            os.symlink(abs_file, os.path.join(self.output_builds, base))
+            os.symlink(abs_file, os.path.join(self.output_dir, base))
 
             for l in self.link_builds:
                 symlink = os.path.join(l, base)
@@ -197,7 +211,7 @@ class Buildable:
                 abs_file = os.path.join(abs_dir, f['name'])
                 os.symlink(
                     abs_file,
-                    os.path.join(self.output_builds, f['name']))
+                    os.path.join(self.output_dir, f['name']))
 
                 for l in self.link_builds:
                     symlink = os.path.join(l, f['name'])
@@ -433,7 +447,7 @@ class Build:
             worker,
             *,
             mirrors,
-            output_builds,
+            output_dir,
             profiles,
             storage,
             deb_build_options=(),
@@ -451,7 +465,7 @@ class Build:
         self.extra_repositories = extra_repositories
         assert not isinstance(profiles, str), profiles
         self.mirrors = mirrors
-        self.output_builds = output_builds
+        self.output_dir = output_dir
         self.profiles = set(profiles)
         self.storage = storage
         self.worker = worker
@@ -658,11 +672,11 @@ class Build:
                     universal_newlines=True).rstrip('\n')
 
                 if (self.worker.call(['test', '-e', product]) == 0 and
-                        self.output_builds is not None):
+                        self.output_dir is not None):
                     logger.info('Copying %s back to host as %s_%s.build...',
                                 product, self.buildable.product_prefix, self.arch)
                     copied_back = os.path.join(
-                        self.output_builds,
+                        self.output_dir,
                         '{}_{}_{}.build'.format(
                             self.buildable.product_prefix, self.arch,
                             time.strftime('%Y%m%dt%H%M%S', time.gmtime())))
@@ -670,7 +684,7 @@ class Build:
                     self.buildable.logs[self.arch] = copied_back
 
                     symlink = os.path.join(
-                        self.output_builds,
+                        self.output_dir,
                         '{}_{}.build'.format(
                             self.buildable.product_prefix, self.arch))
                     try:
@@ -715,7 +729,7 @@ class Build:
                 self.buildable.binary_packages = [
                     p.strip() for p in self.buildable.dsc['binary'].split(',')]
 
-        if self.arch == 'source' and self.output_builds is not None:
+        if self.arch == 'source' and self.output_dir is not None:
             # Make sure the orig.tar.* are in the out directory, because
             # we will be building from the rebuilt source in future
             self.worker.check_call([
@@ -724,7 +738,7 @@ class Build:
                 'sh',  # argv[0]
                 self.worker.scratch])
 
-        if self.output_builds is None:
+        if self.output_dir is None:
             return
 
         for product_arch in (self.arch, self.worker.dpkg_architecture):
@@ -760,7 +774,7 @@ class Build:
                         # expect to find exactly one .dsc file
                         assert self.buildable.dsc_name is None
                         self.buildable.dsc_name = os.path.join(
-                            self.output_builds, f['name'])
+                            self.output_dir, f['name'])
 
                 assert self.buildable.dsc_name is not None
                 # Save some space
@@ -796,7 +810,7 @@ class Build:
             return None
         else:
             product = '{}/out/{}'.format(self.worker.scratch, base)
-            copied_back = os.path.join(self.output_builds, to_base)
+            copied_back = os.path.join(self.output_dir, to_base)
             copied_back = os.path.abspath(copied_back)
 
             if skip_if_exists and os.path.exists(copied_back):

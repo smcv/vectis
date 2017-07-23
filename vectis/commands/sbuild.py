@@ -74,7 +74,9 @@ def _sbuild(
 
         buildable.copy_source_to(worker)
 
-        def new_build(arch, output_builds=buildable.output_builds):
+        def new_build(
+                arch,
+                output_dir=buildable.output_dir):
             return Build(
                 buildable, arch, worker,
                 components=components,
@@ -83,7 +85,7 @@ def _sbuild(
                 dpkg_source_options=dpkg_source_options,
                 extra_repositories=extra_repositories,
                 mirrors=mirrors,
-                output_builds=output_builds,
+                output_dir=output_dir,
                 profiles=profiles,
                 storage=storage,
             )
@@ -100,7 +102,10 @@ def _sbuild(
                 logger.info(
                     'Rebuilding and discarding source to discover supported '
                     'architectures')
-                new_build('source', output_builds=None).sbuild()
+                new_build(
+                    'source',
+                    output_dir=None,
+                ).sbuild()
         elif source_only:
             # TODO: With jessie's sbuild, this doesn't work for
             # sources that only build Architecture: all binaries.
@@ -118,7 +123,7 @@ def _sbuild(
 
         if buildable.sourceful_changes_name:
             base = '{}_source.changes'.format(buildable.product_prefix)
-            c = os.path.join(buildable.output_builds, base)
+            c = os.path.join(buildable.output_dir, base)
             c = os.path.abspath(c)
             if 'source' not in buildable.changes_produced:
                 with AtomicWriter(c) as writer:
@@ -142,7 +147,7 @@ def _sbuild(
         if ('all' in buildable.changes_produced and
                 'source' in buildable.merged_changes):
             base = '{}_source+all.changes'.format(buildable.product_prefix)
-            c = os.path.join(buildable.output_builds, base)
+            c = os.path.join(buildable.output_dir, base)
             c = os.path.abspath(c)
             buildable.merged_changes['source+all'] = c
             with AtomicWriter(c) as writer:
@@ -171,7 +176,7 @@ def _sbuild(
                 binary_group = 'source+binary'
 
         base = '{}_{}.changes'.format(buildable.product_prefix, binary_group)
-        c = os.path.join(buildable.output_builds, base)
+        c = os.path.join(buildable.output_dir, base)
         c = os.path.abspath(c)
 
         if len(binary_changes) > 1:
@@ -196,7 +201,7 @@ def _sbuild(
         if ('source' in buildable.merged_changes and
                 'binary' in buildable.merged_changes):
             base = '{}_source+binary.changes'.format(buildable.product_prefix)
-            c = os.path.join(buildable.output_builds, base)
+            c = os.path.join(buildable.output_dir, base)
             c = os.path.abspath(c)
             buildable.merged_changes['source+binary'] = c
 
@@ -273,7 +278,7 @@ def _autopkgtest(
                     lxc_worker_suite=lxc_worker_suite,
                     mirrors=mirrors,
                     modes=modes,
-                    output_logs=buildable.output_builds,
+                    output_logs=buildable.output_dir,
                     source_dsc=source_dsc,
                     source_package=source_package,
                     storage=storage,
@@ -317,7 +322,7 @@ def _piuparts(
                     components=components,
                     extra_repositories=extra_repositories,
                     mirrors=mirrors,
-                    output_logs=buildable.output_builds,
+                    output_logs=buildable.output_dir,
                     storage=storage,
                     suite=buildable.suite,
                     vendor=vendor,
@@ -376,7 +381,7 @@ def _publish(
                     '-b', reprepro_dir, 'include',
                     str(reprepro_suite),
                     os.path.join(
-                        buildable.output_builds,
+                        buildable.output_dir,
                         buildable.merged_changes[x]),
                 ])
                 break
@@ -385,7 +390,8 @@ def _publish(
 def run(args):
     components = args.components
     link_builds = args.link_builds
-    output_builds = args.output_builds
+    output_dir = args.output_dir
+    output_parent = args.output_parent
     mirrors = args.get_mirrors()
     storage = args.storage
     vendor = args.vendor
@@ -448,7 +454,8 @@ def run(args):
         buildable = Buildable(
             a,
             link_builds=link_builds,
-            output_builds=output_builds,
+            output_dir=output_dir,
+            output_parent=output_parent,
             vendor=vendor)
         buildable.select_suite(args, args.suite)
         buildables.append(buildable)
@@ -544,5 +551,5 @@ def run(args):
         logger.info(
             'Output directory for %s: %s',
             buildable,
-            buildable.output_builds,
+            buildable.output_dir,
         )

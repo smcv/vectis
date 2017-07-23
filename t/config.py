@@ -81,7 +81,7 @@ class DefaultsTestCase(unittest.TestCase):
         with self.assertRaises(AttributeError):
             c.archive
         self.assertIs(c.sbuild_together, False)
-        self.assertEqual(c.output_builds, '..')
+        self.assertEqual(c.output_parent, '..')
         self.assertEqual(c.qemu_image_size, '42G')
         self.assertIsNone(c.sbuild_buildables)
         self.assertEqual(c.sbuild_resolver, [])
@@ -244,7 +244,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIsNone(c.dpkg_source_diff_ignore)
         self.assertEqual(c.dpkg_source_tar_ignore, [])
         self.assertEqual(c.dpkg_source_extend_diff_ignore, [])
-        self.assertEqual(c.output_builds, '..')
+        self.assertEqual(c.output_parent, '..')
         self.assertEqual(c.architecture, 'mips')
         self.assertEqual(c.worker_architecture, 'mips')
 
@@ -349,7 +349,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIsNone(c.dpkg_source_diff_ignore)
         self.assertEqual(c.dpkg_source_tar_ignore, [])
         self.assertEqual(c.dpkg_source_extend_diff_ignore, [])
-        self.assertEqual(c.output_builds, '..')
+        self.assertEqual(c.output_parent, '..')
         self.assertEqual(c.debootstrap_script, 'wheezy')
         self.assertIs(c.suite, wheezy)
 
@@ -413,7 +413,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIsNone(c.dpkg_source_diff_ignore)
         self.assertEqual(c.dpkg_source_tar_ignore, [])
         self.assertEqual(c.dpkg_source_extend_diff_ignore, [])
-        self.assertEqual(c.output_builds, '..')
+        self.assertEqual(c.output_parent, '..')
         # FIXME: this makes little sense
         self.assertEqual(c.debootstrap_script, 'jessie-apt.buildd.debian.org')
 
@@ -549,7 +549,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIsNone(c.dpkg_source_diff_ignore)
         self.assertEqual(c.dpkg_source_tar_ignore, [])
         self.assertEqual(c.dpkg_source_extend_diff_ignore, [])
-        self.assertEqual(c.output_builds, '..')
+        self.assertEqual(c.output_parent, '..')
 
         try:
             import distro_info
@@ -625,7 +625,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIsNone(c.dpkg_source_diff_ignore)
         self.assertEqual(c.dpkg_source_tar_ignore, [])
         self.assertEqual(c.dpkg_source_extend_diff_ignore, [])
-        self.assertEqual(c.output_builds, '..')
+        self.assertEqual(c.output_parent, '..')
         self.assertEqual(c.debootstrap_script, 'xenial')
         self.assertIs(c.suite, xenial)
 
@@ -682,7 +682,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIsNone(c.dpkg_source_diff_ignore)
         self.assertEqual(c.dpkg_source_tar_ignore, [])
         self.assertEqual(c.dpkg_source_extend_diff_ignore, [])
-        self.assertEqual(c.output_builds, '..')
+        self.assertEqual(c.output_parent, '..')
         self.assertEqual(c.debootstrap_script, 'xenial-security')
         self.assertIs(c.suite, sec)
 
