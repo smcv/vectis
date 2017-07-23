@@ -351,12 +351,14 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
             *,
             mirrors,
             suite,
+            apt_update=True,
             components=(),
             extra_repositories=()):
         super().__init__(mirrors=mirrors, suite=suite)
 
         self.__cached_copies = {}
         self.__command_wrapper_enabled = False
+        self.apt_update = apt_update
         self.argv = argv
         self.call_argv = None
         self.capabilities = set()
@@ -534,10 +536,12 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
             self.copy_to_guest(sources_list, '/etc/apt/sources.list')
 
         self.install_apt_keys()
-        self.check_call([
-            'env', 'DEBIAN_FRONTEND=noninteractive',
-            'apt-get', '-y', 'update',
-        ])
+
+        if self.apt_update:
+            self.check_call([
+                'env', 'DEBIAN_FRONTEND=noninteractive',
+                'apt-get', '-y', 'update',
+            ])
 
     def install_apt_key(self, apt_key):
         self.copy_to_guest(

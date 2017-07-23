@@ -210,6 +210,10 @@ p = subparsers.add_parser(
 )
 add_output_options(p)
 p.add_argument(
+    '--apt-update', dest='_apt_update', default=False,
+    help='Update apt lists [default: do not update]',
+)
+p.add_argument(
     '--in', '--input', dest='_input', default=None,
     help='Input directory or file to be copied to ./in/ and made available '
          'in the environment as $VECTIS_IN',

@@ -23,6 +23,7 @@ def run(args):
         else:
             raise ArgumentError('--suite must be specified')
 
+    apt_update = args._apt_update
     argv = args._argv
     chdir = args._chdir
     mirrors = args.get_mirrors()
@@ -57,6 +58,7 @@ def run(args):
 
     with VirtWorker(
             ['qemu', qemu_image],
+            apt_update=apt_update,
             mirrors=mirrors,
             suite=suite) as worker:
         worker_input = worker.scratch + '/in'
