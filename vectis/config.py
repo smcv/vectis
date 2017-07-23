@@ -442,6 +442,9 @@ class Config(_ConfigLike):
         if value is None:
             value = default
 
+        if value is None:
+            return value
+
         value = os.path.expandvars(value)
         value = os.path.expanduser(value)
         return value
