@@ -3,6 +3,10 @@
 # (see vectis/__init__.py)
 
 import logging
+import os
+import subprocess
+import time
+from contextlib import suppress
 
 from vectis.error import ArgumentError
 from vectis.worker import (
@@ -20,10 +24,24 @@ def run(args):
             raise ArgumentError('--suite must be specified')
 
     argv = args._argv
+    chdir = args._chdir
     mirrors = args.get_mirrors()
+    input_ = args._input
+    output_dir = args.output_dir
+    output_parent = args.output_parent
     qemu_image = args.qemu_image
     shell_command = args._shell_command
     suite = args.suite
+    timestamp = time.strftime('%Y%m%dt%H%M%S', time.gmtime())
+
+    if output_dir is None:
+        output_dir = os.path.join(
+            output_parent, 'vectis-run_{}'.format(timestamp))
+
+        with suppress(FileNotFoundError):
+            os.rmdir(output_dir)
+
+        os.mkdir(output_dir)
 
     if shell_command is None and not argv:
         raise ArgumentError(
@@ -41,7 +59,58 @@ def run(args):
             ['qemu', qemu_image],
             mirrors=mirrors,
             suite=suite) as worker:
-        if shell_command is not None:
-            worker.check_call(['sh', '-c', shell_command] + argv)
-        else:
-            worker.check_call(argv)
+        worker_input = worker.scratch + '/in'
+        temp = worker.scratch + '/tmp'
+        artifacts = worker.scratch + '/out'
+        worker.check_call(['mkdir', artifacts, worker_input, temp])
+
+        if chdir == 'in':
+            chdir = worker_input
+        elif chdir == 'out':
+            chdir = artifacts
+        elif chdir == 'tmp':
+            chdir = temp
+        elif chdir[0] != '/' and chdir != '.':
+            raise ArgumentError(
+                "Argument to --chdir must be 'in', 'out', 'tmp', '.' or absolute")
+
+        wrapper = [
+            'sh',
+            '-c',
+            'cd "$1" && shift && exec "$@"',
+            'sh',
+            chdir,
+            'env',
+            'AUTOPKGTEST_ARTIFACTS={}'.format(artifacts),
+            'ADT_ARTIFACTS={}'.format(artifacts),
+            'VECTIS_OUT={}'.format(artifacts),
+            'VECTIS_TMP={}'.format(temp),
+            'AUTOPKGTEST_TMP={}'.format(temp),
+            'ADTTMP={}'.format(temp),
+        ]
+
+        if input_ is not None:
+            if os.path.isdir(input_):
+                worker.copy_to_guest(
+                    os.path.join(input_, ''), worker_input + '/')
+            else:
+                worker_input = worker_input + '/' + os.path.basename(input_)
+                worker.copy_to_guest(input_, worker_input)
+
+            wrapper.append('VECTIS_IN={}'.format(worker_input))
+
+        try:
+            if shell_command is not None:
+                worker.check_call(wrapper + ['sh', '-c', shell_command] + argv)
+            else:
+                worker.check_call(wrapper + argv)
+        finally:
+            if worker.call(
+                    ['rmdir', artifacts], stderr=subprocess.DEVNULL) == 0:
+                logger.info('Command produced no artifacts')
+                os.rmdir(output_dir)
+            else:
+                worker.copy_to_host(
+                    artifacts + '/', os.path.join(output_dir, ''))
+                logger.info(
+                    'Artifacts produced by command are in %s', output_dir)

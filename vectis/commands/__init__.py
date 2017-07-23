@@ -197,7 +197,10 @@ p.add_argument(
     help='apt URI, e.g. http://mirror/debian [default: auto]',
 )
 
-help = 'Run a script or command'
+help = ('Run a script or command, which may write output to ./out/ or '
+        'equivalently $VECTIS_OUT or $AUTOPKGTEST_ARTIFACTS, and may '
+        'use ./tmp/ or equivalently $VECTIS_TMP or $AUTOPKGTEST_TMP '
+        'as a temporary workspace')
 p = subparsers.add_parser(
     'run',
     help=help, description=help,
@@ -206,6 +209,16 @@ p = subparsers.add_parser(
     parents=(base,),
 )
 add_output_options(p)
+p.add_argument(
+    '--in', '--input', dest='_input', default=None,
+    help='Input directory or file to be copied to ./in/ and made available '
+         'in the environment as $VECTIS_IN',
+)
+p.add_argument(
+    '--chdir', dest='_chdir', metavar='PATH', default='.',
+    help="Change directory to '.', 'in', 'out', 'tmp' or an absolute path "
+    "before running the script or command [default: .]",
+)
 p.add_argument(
     '--qemu-image',
     help='Virtual machine image to use [default: {}]'.format(args.qemu_image),
