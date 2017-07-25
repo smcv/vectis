@@ -297,6 +297,7 @@ def _piuparts(
         components,
         mirrors,
         storage,
+        tarballs,
         vendor,
         worker_argv,
         worker_suite,
@@ -325,6 +326,7 @@ def _piuparts(
                     output_logs=buildable.output_dir,
                     storage=storage,
                     suite=buildable.suite,
+                    tarballs=tarballs,
                     vendor=vendor,
                     worker_argv=worker_argv,
                     worker_suite=worker_suite,
@@ -509,13 +511,14 @@ def run(args):
         worker_suite=args.worker_suite,
     )
 
-    if args.piuparts:
+    if args.piuparts_tarballs:
         _piuparts(
             buildables, default_architecture,
             components=components,
             extra_repositories=args._extra_repository,
             mirrors=mirrors,
             storage=storage,
+            tarballs=args.piuparts_tarballs,
             vendor=vendor,
             worker_argv=args.worker,
             worker_suite=args.worker_suite,

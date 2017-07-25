@@ -183,6 +183,7 @@ def run_piuparts(
         mirrors,
         storage,
         suite,
+        tarballs,
         vendor,
         worker_argv,
         worker_suite,
@@ -193,6 +194,8 @@ def run_piuparts(
         source_dsc=None,
         source_package=None):
     failures = []
+    # We may need to iterate these more than once
+    binaries = list(binaries)
 
     with ExitStack() as stack:
         worker = stack.enter_context(
@@ -214,20 +217,13 @@ def run_piuparts(
             'piuparts',
         ])
 
-        for mode in ('install-purge',):
-            if output_logs is None:
-                output_dir = None
-            else:
-                output_dir = os.path.join(
-                    output_logs,
-                    'piuparts_{}_{}'.format(mode, architecture))
-
+        for basename in tarballs:
             tarball = os.path.join(
                 storage,
                 architecture,
                 str(vendor),
                 str(suite.hierarchy[-1]),
-                'minbase.tar.gz')
+                basename)
 
             if not os.path.exists(tarball):
                 logger.info('Required tarball %s does not exist',
@@ -241,26 +237,36 @@ def run_piuparts(
                     extra_repositories=extra_repositories,
                     mirrors=mirrors,
                     suite=suite,
-                    tarball=worker.make_file_available(tarball, cache=True),
+                    tarball=worker.make_file_available(
+                        tarball, cache=True),
                     worker=worker,
                 )
             )
 
-            output_on_worker = worker.new_directory()
-
-            if not piuparts.call_piuparts(
-                    binaries=binaries,
-                    output_dir=output_on_worker,
-            ):
-                if output_dir is None:
-                    failures.append(mode)
+            for mode in ('install-purge',):
+                if output_logs is None:
+                    output_dir = None
                 else:
-                    failures.append(output_dir)
+                    output_dir = os.path.join(
+                        output_logs,
+                        'piuparts_{}_{}_{}'.format(
+                            mode, basename, architecture))
 
-            if output_dir is not None:
-                worker.copy_to_host(
-                    os.path.join(output_on_worker, ''),
-                    os.path.join(output_dir, ''),
-                )
+                output_on_worker = worker.new_directory()
+
+                if not piuparts.call_piuparts(
+                        binaries=binaries,
+                        output_dir=output_on_worker,
+                ):
+                    if output_dir is None:
+                        failures.append(mode)
+                    else:
+                        failures.append(output_dir)
+
+                if output_dir is not None:
+                    worker.copy_to_host(
+                        os.path.join(output_on_worker, ''),
+                        os.path.join(output_dir, ''),
+                    )
 
     return failures

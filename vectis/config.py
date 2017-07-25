@@ -679,6 +679,33 @@ class Config(_ConfigLike):
         return self.get_suite(self.vmdebootstrap_worker_vendor, value, True)
 
     @property
+    def piuparts_tarballs(self):
+        return self['piuparts_tarballs']
+
+    def get_piuparts_tarballs(self,
+            architecture=None,
+            suite=None,
+            vendor=None):
+        value = self.piuparts_tarballs
+
+        if architecture is None:
+            architecture = self.architecture
+
+        if suite is None:
+            suite = self.suite
+
+        if vendor is None:
+            vendor = suite.vendor
+
+        for v in value:
+            if '/' in v:
+                yield v
+            else:
+                yield os.path.join(
+                    self.storage, architecture, str(vendor),
+                    str(suite.hierarchy[-1]), value)
+
+    @property
     def qemu_image(self):
         value = self['qemu_image']
 

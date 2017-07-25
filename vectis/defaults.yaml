@@ -60,7 +60,10 @@ defaults:
     autopkgtest:
         - schroot
         - qemu
-    piuparts: true
+    piuparts_tarballs:
+        - minbase.tar.gz
+        # TODO: also minbase-merged-usr.tar.gz when #815084 is fixed in
+        # a version of piuparts we can use
 
     parallel: null
     sbuild_together: false
