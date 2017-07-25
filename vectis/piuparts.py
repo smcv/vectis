@@ -194,8 +194,27 @@ def run_piuparts(
         source_package=None):
     failures = []
 
-    for mode in ('install-purge',):
-        with ExitStack() as stack:
+    with ExitStack() as stack:
+        worker = stack.enter_context(
+            VirtWorker(
+                worker_argv,
+                mirrors=mirrors,
+                suite=worker_suite,
+            )
+        )
+
+        worker.check_call([
+            'env',
+            'DEBIAN_FRONTEND=noninteractive',
+            'apt-get',
+            '-y',
+            '-t', worker_suite.apt_suite,
+            'install',
+
+            'piuparts',
+        ])
+
+        for mode in ('install-purge',):
             if output_logs is None:
                 output_dir = None
             else:
@@ -213,26 +232,7 @@ def run_piuparts(
             if not os.path.exists(tarball):
                 logger.info('Required tarball %s does not exist',
                             tarball)
-                return []
-
-            worker = stack.enter_context(
-                VirtWorker(
-                    worker_argv,
-                    mirrors=mirrors,
-                    suite=worker_suite,
-                )
-            )
-
-            worker.check_call([
-                'env',
-                'DEBIAN_FRONTEND=noninteractive',
-                'apt-get',
-                '-y',
-                '-t', worker_suite.apt_suite,
-                'install',
-
-                'piuparts',
-            ])
+                continue
 
             piuparts = stack.enter_context(
                 PiupartsWorker(
