@@ -289,6 +289,11 @@ p.add_argument(
         args.debootstrap_script),
 )
 p.add_argument(
+    '--merged-usr', '--usrmerge', dest='_merged_usr',
+    default=False, action='store_true',
+    help="carry out the /usr merge [default: don't]",
+)
+p.add_argument(
     '--uri', dest='_uri', default=None,
     help='apt URI, e.g. http://mirror/debian [default: auto]',
 )

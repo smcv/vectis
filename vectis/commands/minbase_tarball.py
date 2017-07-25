@@ -48,8 +48,14 @@ def run(args):
     if uri is None:
         uri = mirrors.lookup_suite(suite)
 
-    minbase_tarball = '{arch}/{vendor}/{suite}/minbase.tar.gz'.format(
+    if args._merged_usr:
+        basename = 'minbase-merged-usr'
+    else:
+        basename = 'minbase'
+
+    minbase_tarball = '{arch}/{vendor}/{suite}/{basename}.tar.gz'.format(
         arch=architecture,
+        basename=basename,
         vendor=vendor,
         suite=suite,
     )
@@ -106,8 +112,11 @@ def run(args):
             ','.join(args.components)))
 
         if debootstrap_version >= Version('1.0.86~'):
-            # piuparts really doesn't like merged /usr
-            debootstrap_args.append('--no-merged-usr')
+            if args._merged_usr:
+                debootstrap_args.append('--merged-usr')
+            else:
+                # piuparts really doesn't like merged /usr
+                debootstrap_args.append('--no-merged-usr')
 
         worker.check_call([
             'env', 'DEBIAN_FRONTEND=noninteractive',
