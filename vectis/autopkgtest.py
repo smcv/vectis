@@ -290,6 +290,7 @@ def run_autopkgtest(
                     VirtWorker(
                         worker_argv,
                         mirrors=mirrors,
+                        storage=storage,
                         suite=worker_suite,
                     ))
 
@@ -358,6 +359,7 @@ def run_autopkgtest(
                     VirtWorker(
                         lxc_worker,
                         mirrors=mirrors,
+                        storage=storage,
                         suite=lxc_worker_suite,
                     ))
 

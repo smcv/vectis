@@ -32,6 +32,7 @@ def run(args):
     mirrors = args.get_mirrors()
     out = args.write_qemu_image
     qemu_image_size = args.qemu_image_size
+    storage = args.storage
     suite = args.suite
     uri = args._uri
     vmdebootstrap_options = args.vmdebootstrap_options
@@ -87,7 +88,9 @@ def run(args):
         try:
             with VirtWorker(
                     ['qemu', '{}.new'.format(out)],
-                    suite=suite, mirrors=mirrors) as worker:
+                    storage=storage,
+                    suite=suite,
+                    mirrors=mirrors) as worker:
                 worker.check_call([
                     'env',
                     'DEBIAN_FRONTEND=noninteractive',

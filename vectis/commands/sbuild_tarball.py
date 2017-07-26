@@ -61,7 +61,12 @@ def run(args):
     )
     logger.info('Creating tarball %s...', sbuild_tarball)
 
-    with VirtWorker(worker_argv, mirrors=mirrors, suite=worker_suite) as worker:
+    with VirtWorker(
+            worker_argv,
+            mirrors=mirrors,
+            storage=storage,
+            suite=worker_suite,
+    ) as worker:
         logger.info('Installing debootstrap and sbuild')
         worker.check_call([
             'env',

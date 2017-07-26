@@ -100,6 +100,7 @@ def new(
         mirrors,
         out,
         qemu_image_size,
+        storage,
         suite,
         uri,
         vmdebootstrap_options,
@@ -116,6 +117,7 @@ def new(
     with VirtWorker(
             vmdebootstrap_worker,
             mirrors=mirrors,
+            storage=storage,
             suite=vmdebootstrap_worker_suite,
     ) as worker:
         worker.check_call([
@@ -241,6 +243,7 @@ def run(args):
     mirrors = args.get_mirrors()
     out = args.write_qemu_image
     qemu_image_size = args.qemu_image_size
+    storage=args.storage
     suite = args.suite
     uri = args._uri
     vendor = args.vendor
@@ -272,6 +275,7 @@ def run(args):
             mirrors=mirrors,
             out=out,
             qemu_image_size=qemu_image_size,
+            storage=storage,
             suite=suite,
             uri=uri,
             vmdebootstrap_options=vmdebootstrap_options,
@@ -283,6 +287,7 @@ def run(args):
         with VirtWorker(
                 ['qemu', created],
                 mirrors=mirrors,
+                storage=storage,
                 suite=suite,
         ) as worker:
             worker.set_up_apt()

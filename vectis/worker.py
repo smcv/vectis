@@ -350,6 +350,7 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
             argv,
             *,
             mirrors,
+            storage,
             suite,
             apt_update=True,
             components=(),

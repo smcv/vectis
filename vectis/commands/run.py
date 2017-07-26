@@ -32,6 +32,7 @@ def run(args):
     output_parent = args.output_parent
     qemu_image = args.qemu_image
     shell_command = args._shell_command
+    storage = args.storage
     suite = args.suite
     timestamp = time.strftime('%Y%m%dt%H%M%S', time.gmtime())
 
@@ -60,7 +61,9 @@ def run(args):
             ['qemu', qemu_image],
             apt_update=apt_update,
             mirrors=mirrors,
-            suite=suite) as worker:
+            storage=storage,
+            suite=suite,
+    ) as worker:
         worker_input = worker.scratch + '/in'
         temp = worker.scratch + '/tmp'
         artifacts = worker.scratch + '/out'

@@ -474,6 +474,7 @@ def run(args):
     with VirtWorker(
             args.sbuild_worker,
             mirrors=mirrors,
+            storage=storage,
             suite=args.sbuild_worker_suite,
     ) as worker:
         default_architecture = worker.dpkg_architecture

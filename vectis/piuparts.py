@@ -202,6 +202,7 @@ def run_piuparts(
             VirtWorker(
                 worker_argv,
                 mirrors=mirrors,
+                storage=storage,
                 suite=worker_suite,
             )
         )
