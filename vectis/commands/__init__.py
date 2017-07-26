@@ -89,7 +89,7 @@ def add_output_options(p):
         help='Leave output in subdirectories of this directory [default: ..]',
     )
     p.add_argument(
-        '--output-dirs',
+        '--output-dir',
         help='Leave output in this directory, which must be empty or not exist '
              '[default: create a new directory in OUTPUT_PARENT]',
     )
