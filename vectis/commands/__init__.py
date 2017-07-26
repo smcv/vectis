@@ -114,14 +114,12 @@ base.add_argument(
         args.vendor),
 )
 base.add_argument(
-    '--mirror',
-    action=_MirrorAction,
+    '--mirror', dest='mirrors', action=_MirrorAction,
     help='Use MIRROR for URI, for vendors/suites whose archive is ARCHIVE, '
          'or for suites not otherwise matched',
 )
 base.add_argument(
-    '--direct',
-    action=_DirectAction,
+    '--direct', dest='mirrors', action=_DirectAction,
     help='Download the given URI or ARCHIVE from its '
          'canonical URI',
 )
