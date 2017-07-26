@@ -16,6 +16,9 @@ from vectis.autopkgtest import (
 from vectis.error import (
     ArgumentError,
 )
+from vectis.worker import (
+    VirtWorker,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -42,14 +45,13 @@ def _autopkgtest(
         built_binaries,
         lxc_24bit_subnet,
         lxc_worker,
-        lxc_worker_suite,
         mirrors,
         modes,
+        schroot_worker,
         storage,
         suite,
         vendor,
-        worker_argv,
-        worker_suite,
+        worker,
         extra_repositories=()):
     binaries = []
     sources = []
@@ -98,16 +100,15 @@ def _autopkgtest(
                 extra_repositories=extra_repositories,
                 lxc_24bit_subnet=lxc_24bit_subnet,
                 lxc_worker=lxc_worker,
-                lxc_worker_suite=lxc_worker_suite,
                 mirrors=mirrors,
                 modes=modes,
+                schroot_worker=schroot_worker,
                 source_dsc=source_dsc,
                 source_package=source_package,
                 storage=storage,
                 suite=suite,
                 vendor=vendor,
-                worker_argv=worker_argv,
-                worker_suite=worker_suite,
+                worker=worker,
         ):
             source.failures.append(failure)
             failures.add(source)
@@ -122,21 +123,41 @@ def run(args, really=True):
         else:
             raise ArgumentError('--suite must be specified')
 
+    mirrors=args.get_mirrors()
+
+    worker = VirtWorker(
+        args.worker,
+        mirrors=mirrors,
+        storage=args.storage,
+        suite=args.worker_suite,
+    )
+
+    if (args.lxc_worker == args.worker and
+            args.lxc_worker_suite == args.worker_suite):
+        lxc_worker = worker
+    else:
+        lxc_worker = VirtWorker(
+            args.lxc_worker,
+            mirrors=mirrors,
+            storage=args.storage,
+            suite=args.lxc_worker_suite,
+        )
+
     failures = _autopkgtest(
         args._things,
         architecture=args.architecture,
         built_binaries=args._built_binaries,
         extra_repositories=args._extra_repository,
         lxc_24bit_subnet=args.lxc_24bit_subnet,
-        lxc_worker=args.lxc_worker,
-        lxc_worker_suite=args.lxc_worker_suite,
-        mirrors=args.get_mirrors(),
+        lxc_worker=lxc_worker,
+        worker=worker,
+        mirrors=mirrors,
         modes=args.autopkgtest,
+        # use the misc worker instead of a specific schroot worker
+        schroot_worker=None,
         storage=args.storage,
         suite=args.suite,
         vendor=args.vendor,
-        worker_argv=args.worker,
-        worker_suite=args.worker_suite,
     )
 
     for failure in sorted(failures):

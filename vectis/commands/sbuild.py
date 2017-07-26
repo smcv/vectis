@@ -228,13 +228,12 @@ def _autopkgtest(
         components,
         lxc_24bit_subnet,
         lxc_worker,
-        lxc_worker_suite,
         mirrors,
         modes,
+        schroot_worker,
         storage,
         vendor,
-        worker_argv,
-        worker_suite,
+        worker,
         extra_repositories=()):
     for buildable in buildables:
         source_dsc = None
@@ -275,17 +274,16 @@ def _autopkgtest(
                     extra_repositories=extra_repositories,
                     lxc_24bit_subnet=lxc_24bit_subnet,
                     lxc_worker=lxc_worker,
-                    lxc_worker_suite=lxc_worker_suite,
                     mirrors=mirrors,
                     modes=modes,
                     output_logs=buildable.output_dir,
+                    schroot_worker=schroot_worker,
                     source_dsc=source_dsc,
                     source_package=source_package,
                     storage=storage,
                     suite=buildable.suite,
                     vendor=vendor,
-                    worker_argv=worker_argv,
-                    worker_suite=worker_suite,
+                    worker=worker,
                 ),
             )
 
@@ -299,8 +297,7 @@ def _piuparts(
         storage,
         tarballs,
         vendor,
-        worker_argv,
-        worker_suite,
+        worker,
         extra_repositories=()):
     for buildable in buildables:
         test_architectures = []
@@ -328,8 +325,7 @@ def _piuparts(
                     suite=buildable.suite,
                     tarballs=tarballs,
                     vendor=vendor,
-                    worker_argv=worker_argv,
-                    worker_suite=worker_suite,
+                    worker=worker,
                 ),
             )
 
@@ -471,12 +467,14 @@ def run(args):
                     raise ArgumentError(
                         'No mirror configured for {}'.format(ancestor))
 
-    with VirtWorker(
-            args.sbuild_worker,
-            mirrors=mirrors,
-            storage=storage,
-            suite=args.sbuild_worker_suite,
-    ) as worker:
+    sbuild_worker = VirtWorker(
+        args.sbuild_worker,
+        mirrors=mirrors,
+        storage=storage,
+        suite=args.sbuild_worker_suite,
+    )
+
+    with sbuild_worker as worker:
         default_architecture = worker.dpkg_architecture
         _sbuild(
             buildables,
@@ -497,19 +495,40 @@ def run(args):
             worker=worker,
         )
 
+    if (args.worker == args.sbuild_worker and
+            args.worker_suite == args.sbuild_worker_suite):
+        misc_worker = sbuild_worker
+    else:
+        misc_worker = VirtWorker(
+            args.worker,
+            mirrors=mirrors,
+            storage=storage,
+            suite=args.worker_suite,
+        )
+
+    if (args.lxc_worker == args.sbuild_worker and
+            args.lxc_worker_suite == args.sbuild_worker_suite):
+        lxc_worker = sbuild_worker
+    else:
+        lxc_worker = VirtWorker(
+            args.lxc_worker,
+            mirrors=mirrors,
+            storage=storage,
+            suite=args.lxc_worker_suite,
+        )
+
     _autopkgtest(
         buildables, default_architecture,
         components=components,
         extra_repositories=args._extra_repository,
         lxc_24bit_subnet=args.lxc_24bit_subnet,
-        lxc_worker=args.lxc_worker,
-        lxc_worker_suite=args.lxc_worker_suite,
+        lxc_worker=lxc_worker,
         mirrors=mirrors,
         modes=args.autopkgtest,
+        schroot_worker=sbuild_worker,
         storage=storage,
         vendor=vendor,
-        worker_argv=args.worker,
-        worker_suite=args.worker_suite,
+        worker=misc_worker,
     )
 
     if args.piuparts_tarballs:
@@ -521,8 +540,7 @@ def run(args):
             storage=storage,
             tarballs=args.piuparts_tarballs,
             vendor=vendor,
-            worker_argv=args.worker,
-            worker_suite=args.worker_suite,
+            worker=misc_worker,
         )
 
     _summarize(buildables)

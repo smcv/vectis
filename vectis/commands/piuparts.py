@@ -16,6 +16,9 @@ from vectis.piuparts import (
     Binary,
     run_piuparts,
 )
+from vectis.worker import (
+    VirtWorker,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +32,7 @@ def _piuparts(
         suite,
         tarballs,
         vendor,
-        worker_argv,
-        worker_suite,
+        worker,
         extra_repositories=()):
     binaries = []
 
@@ -61,8 +63,7 @@ def _piuparts(
         suite=suite,
         tarballs=tarballs,
         vendor=vendor,
-        worker_argv=worker_argv,
-        worker_suite=worker_suite,
+        worker=worker,
     )
 
 
@@ -73,6 +74,12 @@ def run(args):
         else:
             raise ArgumentError('--suite must be specified')
 
+    worker = VirtWorker(
+        args.worker,
+        mirrors=args.get_mirrors(),
+        storage=args.storage,
+        suite=args.worker_suite,
+    )
     failures = _piuparts(
         args._things,
         architecture=args.architecture,
@@ -86,8 +93,7 @@ def run(args):
             vendor=args.vendor,
         ),
         vendor=args.vendor,
-        worker_argv=args.worker,
-        worker_suite=args.worker_suite,
+        worker=worker,
     )
 
     for failure in sorted(failures):

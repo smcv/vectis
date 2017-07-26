@@ -14,7 +14,6 @@ from vectis.worker import (
     FileProvider,
     HostWorker,
     InteractiveWorker,
-    VirtWorker,
 )
 
 logger = logging.getLogger(__name__)
@@ -185,8 +184,7 @@ def run_piuparts(
         suite,
         tarballs,
         vendor,
-        worker_argv,
-        worker_suite,
+        worker,
         architecture=None,
         binaries=(),
         extra_repositories=(),
@@ -198,21 +196,13 @@ def run_piuparts(
     binaries = list(binaries)
 
     with ExitStack() as stack:
-        worker = stack.enter_context(
-            VirtWorker(
-                worker_argv,
-                mirrors=mirrors,
-                storage=storage,
-                suite=worker_suite,
-            )
-        )
-
+        stack.enter_context(worker)
         worker.check_call([
             'env',
             'DEBIAN_FRONTEND=noninteractive',
             'apt-get',
             '-y',
-            '-t', worker_suite.apt_suite,
+            '-t', worker.suite.apt_suite,
             'install',
 
             'piuparts',

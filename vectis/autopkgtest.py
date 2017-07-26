@@ -26,7 +26,6 @@ from vectis.worker import (
     ContainerWorker,
     FileProvider,
     HostWorker,
-    VirtWorker,
 )
 from vectis.util import (
     AtomicWriter,
@@ -223,25 +222,24 @@ def run_autopkgtest(
         storage,
         suite,
         vendor,
-        worker_argv,
-        worker_suite,
+        worker,
         architecture=None,
         binaries=(),
         built_binaries=None,
         extra_repositories=(),
         lxc_24bit_subnet=None,
         lxc_worker=None,
-        lxc_worker_suite=None,
         output_logs=None,
+        schroot_worker=None,
         source_dsc=None,
         source_package=None):
     failures = []
 
     if lxc_worker is None:
-        lxc_worker = worker_argv
+        lxc_worker = worker
 
-    if lxc_worker_suite is None:
-        lxc_worker_suite = worker_suite
+    if schroot_worker is None:
+        schroot_worker = worker
 
     logger.info('Testing in modes: %r', modes)
 
@@ -286,20 +284,13 @@ def run_autopkgtest(
                                 tarball)
                     continue
 
-                worker = stack.enter_context(
-                    VirtWorker(
-                        worker_argv,
-                        mirrors=mirrors,
-                        storage=storage,
-                        suite=worker_suite,
-                    ))
-
+                worker = stack.enter_context(schroot_worker)
                 worker.check_call([
                     'env',
                     'DEBIAN_FRONTEND=noninteractive',
                     'apt-get',
                     '-y',
-                    '-t', worker_suite.apt_suite,
+                    '-t', worker.suite.apt_suite,
                     'install',
 
                     'autopkgtest',
@@ -355,20 +346,13 @@ def run_autopkgtest(
                                 rootfs, meta)
                     continue
 
-                worker = stack.enter_context(
-                    VirtWorker(
-                        lxc_worker,
-                        mirrors=mirrors,
-                        storage=storage,
-                        suite=lxc_worker_suite,
-                    ))
-
+                worker=stack.enter_context(lxc_worker)
                 worker.check_call([
                     'env',
                     'DEBIAN_FRONTEND=noninteractive',
                     'apt-get',
                     '-y',
-                    '-t', lxc_worker_suite.apt_suite,
+                    '-t', lxc_worker.suite.apt_suite,
                     'install',
 
                     'autopkgtest',
