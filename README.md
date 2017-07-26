@@ -41,7 +41,8 @@ Requirements
   - vmdebootstrap
 
 * In the guest virtual machine:
-  - Debian 8 (jessie) or newer, or a similarly recent Debian derivative
+  - Debian 9 (stretch) or Ubuntu 16.04 LTS (xenial) or newer, or a
+    similarly recent Debian derivative
 
 * In the apt archive used by the guest virtual machine:
   - python3
@@ -90,15 +91,33 @@ Usage
 
 - `vectis sbuild-tarball`
 
-    Create a base tarball for sbuild/schroot.
+    Create a base tarball with `build-essential`, suitable for
+    building Debian packages with `sbuild` or developing and debugging
+    in a container like `schroot` or `systemd-nspawn`.
 
 - `vectis sbuild`
 
-    Build Debian packages from source.
+    Build Debian packages from source. By default this command will also
+    run `autopkgtest` and `piuparts` to test the new packages. It can
+    also insert them into a `reprepro` apt repository.
+
+- `vectis autopkgtest`
+
+    Run the `autopkgtest` automated tests for some packages.
+
+- `vectis piuparts`
+
+    Run the `piuparts` automated test for some packages.
 
 - `vectis minbase-tarball`
 
-    Create a minimal base tarball for piuparts.
+    Create a minimal base tarball suitable for running `piuparts` or
+    running software in a container like `schroot` or `systemd-nspawn`.
+
+- `vectis lxc-tarballs`
+
+    Create a lxc container that can be copied into a virtual machine and
+    run. vectis uses this for autopkgtest.
 
 - `vectis run`
 
@@ -117,19 +136,15 @@ use command-line options like one of these:
     --mirror=http://deb.debian.org/debian=http://mirror/debian
     --mirror=http://security.debian.org=http://mirror/debian-security
 
-    # By specifying the 'archive' property of the suite after a '/' prefix
-    --mirror=/debian=http://mirror/debian
-    --mirror=/security.debian.org=http://mirror/debian-security
-
-    # By specifying the vendor and suite
+    # By specifying the 'archive' property of the suite
     --mirror=debian=http://mirror/debian
-    --mirror=debian/stretch-security=http://mirror/debian-security
+    --mirror=security.debian.org=http://mirror/debian-security
 
 These can also be specified in YAML like this:
 
     defaults:
         mirrors:
-            "http://deb.debian.org/debian": "http://mirror/debian"
+            "debian": "http://mirror/debian"
             "http://security.debian.org": "http://mirror/debian-security"
 
 If you have a sufficiently fast connection to a particular upstream that no
