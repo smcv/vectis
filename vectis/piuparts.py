@@ -217,6 +217,11 @@ def run_piuparts(
             'piuparts',
         ])
 
+        # FIXME: hack
+        worker.copy_to_guest(
+            '/home/smcv/src/debian/piuparts/piuparts.py',
+            '/usr/sbin/piuparts')
+
         for basename in tarballs:
             tarball = os.path.join(
                 storage,
