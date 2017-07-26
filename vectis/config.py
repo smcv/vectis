@@ -703,7 +703,7 @@ class Config(_ConfigLike):
             else:
                 yield os.path.join(
                     self.storage, architecture, str(vendor),
-                    str(suite.hierarchy[-1]), value)
+                    str(suite.hierarchy[-1]), v)
 
     @property
     def qemu_image(self):
