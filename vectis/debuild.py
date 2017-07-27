@@ -432,7 +432,7 @@ class Buildable:
         if base.endswith(('.changes', '.dsc', '.buildinfo', '.diff.gz')):
             return
 
-        if base.endswith(('.tar.xz', '.tar.gz', '.tar.bz2', '.tar.lzma')):
+        if base.startswith(self.source_package + '_') and '.tar.' in base:
             return
 
         raise ArgumentError('Unexpected filename')
