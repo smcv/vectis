@@ -4,6 +4,7 @@
 
 import os
 import subprocess
+import sys
 from string import Template
 from weakref import WeakValueDictionary
 
@@ -418,6 +419,24 @@ class Config(_ConfigLike):
     def __delattr__(self, name):
         with suppress(KeyError):
             del self._overrides[name]
+
+    def dump(self, stream=sys.stdout):
+        d = {}
+
+        for k in sorted(self._raw[-1]['defaults']):
+            try:
+                v = getattr(self, k, self[k])
+            except Exception as e:
+                print('# {}: {}'.format(k, repr(str(e))), file=stream)
+            else:
+                if isinstance(v, (set, tuple)):
+                    v = list(v)
+                elif isinstance(v, Suite) or isinstance(v, Vendor):
+                    v = str(v)
+
+                d[k] = v
+
+        yaml.dump(d, stream)
 
     def get_vendor(self, name):
         if name not in self._vendors:

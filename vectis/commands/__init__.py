@@ -573,6 +573,10 @@ def main():
 
     parser.parse_args(namespace=args)
 
+    if 'VECTIS_DEBUG_COMMAND_LINE' in os.environ:
+        args.dump()
+        return
+
     try:
         importlib.import_module(
             'vectis.commands.' + args._subcommand.replace('-', '_')).run(args)
