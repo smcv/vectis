@@ -68,6 +68,13 @@ def _sbuild(
         'sbuild',
         'schroot',
     ])
+    # Be like the real Debian build infrastructure: give sbuild a
+    # nonexistent home directory.
+    worker.check_call([
+        'usermod',
+        '-d', '/nonexistent',
+        'sbuild',
+    ])
 
     for buildable in buildables:
         logger.info('Processing: %s', buildable)
