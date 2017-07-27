@@ -166,9 +166,9 @@ class Buildable:
             self.output_dir = os.path.join(output_parent, dirname)
 
             # For convenience, create a symbolic link for the latest build of
-            # each source package: hello -> hello_2.10-1_20170319t102623
+            # each source package: hello_latest -> hello_2.10-1_20170319t102623
             unversioned_symlink = os.path.join(
-                output_parent, self.source_package)
+                output_parent, self.source_package + '_latest')
 
             with suppress(FileNotFoundError):
                 os.unlink(unversioned_symlink)
