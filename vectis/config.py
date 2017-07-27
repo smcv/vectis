@@ -415,6 +415,10 @@ class Config(_ConfigLike):
         assert self._relevant_directory is not None
         self._path_based = Directory(self._relevant_directory, self._raw)
 
+    def __delattr__(self, name):
+        with suppress(KeyError):
+            del self._overrides[name]
+
     def get_vendor(self, name):
         if name not in self._vendors:
             self._vendors[name] = Vendor(name, self._raw)

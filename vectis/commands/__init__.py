@@ -5,6 +5,7 @@
 import argparse
 import importlib
 import logging
+import os
 import subprocess
 import sys
 
@@ -12,6 +13,25 @@ from vectis.config import (Config)
 from vectis.error import (Error)
 
 logger = logging.getLogger(__name__)
+
+
+class _AutopkgtestAction(argparse.Action):
+
+    def __call__(self, parser, namespace, value, option_string=None):
+        if value is True:
+            with suppress(AttributeError):
+                delattr(namespace, self.dest)
+            return
+
+        items = list(value.split(','))
+        setattr(namespace, self.dest, items)
+
+
+class AssignCommaSeparated(argparse.Action):
+
+    def __call__(self, parser, namespace, value, option_string=None):
+        items = list(value.split(','))
+        setattr(namespace, self.dest, items)
 
 
 class AppendCommaSeparated(argparse.Action):
@@ -430,13 +450,29 @@ p.add_argument(
     help='Build with --dpkg-source-opt=--extend-diff-ignore=PATTERN',
 )
 p.add_argument(
-    '--autopkgtest', action='store_true',
-    help='Run autopkgtest after building',
+    '--autopkgtest', nargs='?', metavar='MODE[,MODE]',
+    action=_AutopkgtestAction, const=True,
+    help='Run autopkgtest [with the given modes] [default: {}]'.format(
+        ','.join(args.autopkgtest),
+    ),
 )
 p.add_argument(
     '--no-autopkgtest', dest='autopkgtest', action='store_const',
     const=(),
     help='Do not run autopkgtest after building',
+)
+p.add_argument(
+    '--piuparts', dest='piuparts_tarballs', nargs='?',
+    metavar='TARBALL[,TARBALL]',
+    action=_AutopkgtestAction, const=True,
+    help='Run piuparts [with the given base tarballs] [default: {}]'.format(
+        ','.join(args.piuparts_tarballs),
+    ),
+)
+p.add_argument(
+    '--no-piuparts', dest='piuparts_tarballs', action='store_const',
+    const=(),
+    help='Do not run piuparts after building',
 )
 p.add_argument(
     '--build-profiles', '-P', dest='_build_profiles',
