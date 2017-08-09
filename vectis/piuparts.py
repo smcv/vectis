@@ -131,9 +131,9 @@ class PiupartsWorker(FileProvider, ContainerWorker):
 
         return (self.worker.call(argv + self.apt_related_argv + packages) == 0)
 
-    def new_directory(self, prefix=''):
+    def new_directory(self, prefix='', tmpdir=None):
         # assume /tmp is initially empty and mktemp won't collide
-        d = self.worker.new_directory()
+        d = self.worker.new_directory(prefix, tmpdir)
         self.argv.append('--bindmount={}'.format(d))
         self.__bound.add(d)
         return d
