@@ -188,9 +188,7 @@ def run_piuparts(
         architecture=None,
         binaries=(),
         extra_repositories=(),
-        output_logs=None,
-        source_dsc=None,
-        source_package=None):
+        output_logs=None):
     failures = []
     # We may need to iterate these more than once
     binaries = list(binaries)
