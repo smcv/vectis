@@ -267,13 +267,13 @@ class SchrootWorker(ContainerWorker, InteractiveWorker):
 
         tmp = TemporaryDirectory(prefix='vectis-worker-')
         tmp = self.stack.enter_context(tmp)
-        self.sources_list = os.path.join(tmp, 'sources.list')
+        sources_list = os.path.join(tmp, 'sources.list')
 
-        with AtomicWriter(self.sources_list) as writer:
+        with AtomicWriter(sources_list) as writer:
             self.write_sources_list(writer)
         self.worker.check_call(['mkdir', '-p', '/etc/schroot/sources.list.d'])
         self.worker.copy_to_guest(
-            self.sources_list,
+            sources_list,
             '/etc/schroot/sources.list.d/{}'.format(self.chroot))
 
         with AtomicWriter(os.path.join(tmp, 'sbuild.conf')) as writer:
