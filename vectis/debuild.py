@@ -249,9 +249,9 @@ class Buildable:
 
             worker.copy_to_guest(
                 self.dsc_name,
-                    '{}/in/{}'.format(
-                        worker.scratch,
-                        os.path.basename(self.dsc_name)))
+                '{}/in/{}'.format(
+                    worker.scratch,
+                    os.path.basename(self.dsc_name)))
 
             for f in self.dsc['files']:
                 worker.copy_to_guest(
@@ -281,8 +281,8 @@ class Buildable:
                 for orig_pattern in (
                         orig_glob_prefix + '.orig.tar.*',
                         orig_glob_prefix + '.orig-*.tar.*'):
-                    logger.info('Looking for original tarballs: {}'.format(
-                        orig_pattern))
+                    logger.info(
+                        'Looking for original tarballs: %s', orig_pattern)
 
                     for orig in glob.glob(orig_pattern):
                         logger.info('Copying original tarball: %s', orig)
@@ -378,15 +378,14 @@ class Buildable:
             self.suite = suite_name
         else:
             if suite_name == 'UNRELEASED':
-                logger.info('Replacing UNRELEASED with {}'.format(
-                    self.vendor.default_suite))
+                logger.info(
+                    'Replacing UNRELEASED with %s', self.vendor.default_suite)
                 suite_name = self.vendor.default_suite
 
             if suite_name.endswith('-UNRELEASED'):
                 suite_name = suite_name[:-len('-UNRELEASED')]
                 logger.info(
-                    'Replacing {}-UNRELEASED with {}'.format(
-                        suite_name, suite_name))
+                    'Replacing %s-UNRELEASED with %s', suite_name, suite_name)
 
             self.suite = factory.get_suite(self.vendor, suite_name)
 
@@ -490,14 +489,14 @@ class Build:
             use_arch = self.arch
 
         with SchrootWorker(
-                storage=self.storage,
-                architecture=use_arch,
-                chroot='{}-{}-sbuild'.format(self.buildable.suite, use_arch),
-                components=self.components,
-                extra_repositories=self.extra_repositories,
-                mirrors=self.mirrors,
-                suite=self.buildable.suite,
-                worker=self.worker,
+            storage=self.storage,
+            architecture=use_arch,
+            chroot='{}-{}-sbuild'.format(self.buildable.suite, use_arch),
+            components=self.components,
+            extra_repositories=self.extra_repositories,
+            mirrors=self.mirrors,
+            suite=self.buildable.suite,
+            worker=self.worker,
         ) as chroot:
             self._sbuild(chroot)
 
@@ -542,9 +541,9 @@ class Build:
 
         argv.extend((
             'sbuild',
-                '-c', chroot.chroot,
-                '-d', str(self.buildable.nominal_suite),
-                '--no-run-lintian',
+            '-c', chroot.chroot,
+            '-d', str(self.buildable.nominal_suite),
+            '--no-run-lintian',
         ))
 
         if self.profiles:
@@ -741,11 +740,14 @@ class Build:
         if self.output_dir is None:
             return
 
-        for product_arch in (self.arch, self.worker.dpkg_architecture):
+        product_arch = None
+
+        for candidate in (self.arch, self.worker.dpkg_architecture):
             product = '{}/out/{}_{}.changes'.format(
                 self.worker.scratch, self.buildable.product_prefix,
-                product_arch)
+                candidate)
             if self.worker.call(['test', '-e', product]) == 0:
+                product_arch = candidate
                 break
         else:
             raise CannotHappen(
