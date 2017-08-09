@@ -82,6 +82,7 @@ dist_test_scripts = \
 	${NULL}
 
 dist_slow_test_scripts = \
+	t/debian/autopkgtest.t \
 	t/debian/bootstrap.t \
 	t/debian/new.t \
 	t/debian/sbuild_tarball.t \
