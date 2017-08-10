@@ -8,6 +8,7 @@ import logging
 import os
 import subprocess
 import sys
+from contextlib import suppress
 
 from vectis.config import (Config)
 from vectis.error import (Error)

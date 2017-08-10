@@ -5,6 +5,7 @@
 import os
 import subprocess
 import sys
+from contextlib import suppress
 from string import Template
 from weakref import WeakValueDictionary
 
