@@ -236,7 +236,7 @@ class SchrootWorker(ContainerWorker, InteractiveWorker):
             assert storage is not None
 
             tarball = os.path.join(
-                storage, architecture, str(suite.vendor),
+                storage, architecture, str(suite.hierarchy[-1].vendor),
                 str(suite.hierarchy[-1]), 'sbuild.tar.gz')
 
         self.chroot = chroot
