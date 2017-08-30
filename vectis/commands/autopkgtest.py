@@ -63,7 +63,8 @@ def _autopkgtest(
                     c = Changes(reader)
 
                     for f in c['files']:
-                        n = os.path.join(os.path.dirname(thing), f['name'])
+                        n = os.path.join(
+                            os.path.dirname(thing) or os.curdir, f['name'])
 
                         if f['name'].endswith('.deb'):
                             binaries.append(n)

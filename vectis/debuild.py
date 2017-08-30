@@ -100,7 +100,7 @@ class Buildable:
                         self.binary_packages.append(binary)
 
             elif self.buildable.endswith('.changes'):
-                self.dirname = os.path.dirname(self.buildable)
+                self.dirname = os.path.dirname(self.buildable) or os.curdir
                 self.sourceful_changes_name = self.buildable
                 sourceful_changes = Changes(open(self.buildable))
                 if 'source' not in sourceful_changes['architecture'].split():
@@ -127,7 +127,7 @@ class Buildable:
                 self.dsc = Dsc(open(self.dsc_name))
 
             elif self.buildable.endswith('.dsc'):
-                self.dirname = os.path.dirname(self.buildable)
+                self.dirname = os.path.dirname(self.buildable) or os.curdir
                 self.dsc_name = self.buildable
                 self.dsc = Dsc(open(self.dsc_name))
 
@@ -452,7 +452,12 @@ class Buildable:
                 if (f['name'].endswith('_{}.deb'.format(architecture)) or
                         f['name'].endswith('_all.deb')):
                     assert '/' not in f['name']
-                    ret.add(os.path.join(os.path.dirname(v), f['name']))
+                    ret.add(
+                        os.path.join(
+                            os.path.dirname(v) or os.curdir,
+                            f['name'],
+                        ),
+                    )
 
         return sorted(ret)
 

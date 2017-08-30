@@ -207,10 +207,16 @@ class HostWorker(InteractiveWorker, FileProvider):
             self, TemporaryDirectory(prefix=prefix))
 
     def make_dsc_file_available(self, filename, owner=None):
-        return os.path.dirname(filename), os.path.basename(filename)
+        return (
+            os.path.dirname(filename) or os.curdir,
+            os.path.basename(filename),
+        )
 
     def make_changes_file_available(self, filename, owner=None):
-        return os.path.dirname(filename), os.path.basename(filename)
+        return (
+            os.path.dirname(filename) or os.curdir,
+            os.path.basename(filename),
+        )
 
 
 class SchrootWorker(ContainerWorker, InteractiveWorker):
@@ -595,7 +601,7 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
         return d
 
     def make_dsc_file_available(self, filename, owner=None):
-        d = os.path.dirname(filename)
+        d = os.path.dirname(filename) or os.curdir
 
         with open(filename) as reader:
             dsc = Dsc(reader)
@@ -614,7 +620,7 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
         return files[0], os.path.basename(filename)
 
     def make_changes_file_available(self, filename, owner=None):
-        d = os.path.dirname(filename)
+        d = os.path.dirname(filename) or os.curdir
 
         with open(filename) as reader:
             changes = Changes(reader)

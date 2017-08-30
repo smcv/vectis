@@ -67,7 +67,7 @@ def new_ubuntu_cloud(
         suite,
         uri,
         vendor):
-    out_dir = os.path.dirname(out)
+    out_dir = os.path.dirname(out) or os.curdir
     argv = ['autopkgtest-buildvm-ubuntu-cloud']
 
     argv.append('--arch={}'.format(architecture))
@@ -254,7 +254,7 @@ def run(args):
     if uri is None:
         uri = mirrors.lookup_suite(suite)
 
-    os.makedirs(os.path.dirname(out), exist_ok=True)
+    os.makedirs(os.path.dirname(out) or os.curdir, exist_ok=True)
 
     if False:
         created = new_ubuntu_cloud(

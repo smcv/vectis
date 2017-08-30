@@ -175,7 +175,7 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
         return in_autopkgtest
 
     def make_dsc_file_available(self, filename, owner=None):
-        d = os.path.dirname(filename)
+        d = os.path.dirname(filename) or os.curdir
 
         with open(filename) as reader:
             dsc = Dsc(reader)
@@ -193,7 +193,7 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
         return to, os.path.basename(filename)
 
     def make_changes_file_available(self, filename, owner=None):
-        d = os.path.dirname(filename)
+        d = os.path.dirname(filename) or os.curdir
 
         with open(filename) as reader:
             changes = Changes(reader)

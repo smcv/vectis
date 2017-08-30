@@ -82,7 +82,7 @@ def run(args):
             '{}/output.raw'.format(scratch),
             '{}/output.qcow2'.format(scratch),
         ])
-        os.makedirs(os.path.dirname(out), exist_ok=True)
+        os.makedirs(os.path.dirname(out) or os.curdir, exist_ok=True)
         shutil.move('{}/output.qcow2'.format(scratch), out + '.new')
 
         try:

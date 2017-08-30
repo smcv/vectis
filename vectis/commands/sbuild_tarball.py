@@ -133,7 +133,7 @@ def run(args):
         ])
 
         out = os.path.join(storage, sbuild_tarball)
-        os.makedirs(os.path.dirname(out), exist_ok=True)
+        os.makedirs(os.path.dirname(out) or os.curdir, exist_ok=True)
 
         # Smoke-test the new tarball before being prepared to use it.
         if test_package:

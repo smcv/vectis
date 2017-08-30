@@ -128,14 +128,14 @@ def run(args):
         ])
 
         out = os.path.join(storage, rootfs_tarball)
-        os.makedirs(os.path.dirname(out), exist_ok=True)
+        os.makedirs(os.path.dirname(out) or os.curdir, exist_ok=True)
         worker.copy_to_host(
             '{}/rootfs.tar.gz'.format(worker.scratch), out + '.new')
         # FIXME: smoke-test it?
         os.rename(out + '.new', out)
 
         out = os.path.join(storage, meta_tarball)
-        os.makedirs(os.path.dirname(out), exist_ok=True)
+        os.makedirs(os.path.dirname(out) or os.curdir, exist_ok=True)
         worker.copy_to_host(
             '{}/meta.tar.gz'.format(worker.scratch), out + '.new')
         # FIXME: smoke-test it?

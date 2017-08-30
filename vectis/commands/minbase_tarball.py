@@ -150,7 +150,7 @@ def run(args):
         ])
 
         out = os.path.join(storage, minbase_tarball)
-        os.makedirs(os.path.dirname(out), exist_ok=True)
+        os.makedirs(os.path.dirname(out) or os.curdir, exist_ok=True)
         worker.copy_to_host(
             '{}/output.tar.gz'.format(worker.scratch), out + '.new')
         # FIXME: smoke-test it?
