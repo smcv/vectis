@@ -323,8 +323,10 @@ class Buildable:
         builds_i386 = False
         builds_natively = False
         need_source = (
-            build_source or
-            (build_source is None and self.dsc_name is None)
+            build_source or (
+                build_source is None and
+                self.dsc_name is None and
+                not self.source_from_archive)
         )
 
         if source_only:
