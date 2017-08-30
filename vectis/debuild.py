@@ -62,6 +62,7 @@ class Buildable:
         self.dsc = None
         self.dsc_name = None
         self.indep = False
+        self.indep_together_with = None
         self.link_builds = link_builds
         self.logs = {}
         self.merged_changes = OrderedDict()
@@ -71,9 +72,9 @@ class Buildable:
         self.piuparts_failures = []
         self.source_from_archive = False
         self.source_package = None
+        self.source_together_with = None
         self.sourceful_changes_name = None
         self.suite = None
-        self.together_with = None
         self.vendor = vendor
         self._version = None
 
@@ -309,9 +310,31 @@ class Buildable:
                                 '{}/out/{}'.format(worker.scratch, base),
                             ])
 
-    def select_archs(self, worker_arch, archs, indep, together):
+    def select_archs(
+            self,
+            *,
+            worker_arch,
+            archs,
+            indep,
+            indep_together,
+            build_source,
+            source_only,
+            source_together):
         builds_i386 = False
         builds_natively = False
+        need_source = (
+            build_source or
+            (build_source is None and self.dsc_name is None)
+        )
+
+        if source_only:
+            if need_source:
+                self.archs = ['source']
+            else:
+                logger.warning('Nothing to do')
+                self.archs = []
+
+            return
 
         for wildcard in self.arch_wildcards:
             if subprocess.call(
@@ -361,20 +384,31 @@ class Buildable:
             indep = False
 
         if indep:
-            if together and self.archs:
+            if indep_together and self.archs:
                 if worker_arch in self.archs:
-                    self.together_with = worker_arch
+                    self.indep_together_with = worker_arch
                 else:
-                    self.together_with = self.archs[0]
+                    self.indep_together_with = self.archs[0]
             else:
                 self.archs.append('all')
 
+        if need_source:
+            if source_together and self.archs:
+                self.source_together_with = self.archs[0]
+            else:
+                self.archs[:0] = ['source']
+
         logger.info('Selected architectures: %r', self.archs)
 
-        if indep and self.together_with is not None:
+        if need_source and self.source_together_with is not None:
+            logger.info(
+                'Clean source package will be built alongside %s',
+                self.source_together_with)
+
+        if indep and self.indep_together_with is not None:
             logger.info(
                 'Architecture-independent packages will be built alongside %s',
-                self.together_with)
+                self.indep_together_with)
 
     def select_suite(self, factory, override):
         suite_name = override
@@ -581,18 +615,13 @@ class Build:
                 argv.append('--arch-all-only')
             else:
                 argv.append('--no-arch-any')
-        elif self.arch == self.buildable.together_with:
+        elif self.arch == self.buildable.indep_together_with:
             logger.info('Architecture: %s + all', self.arch)
             argv.append('-A')
             argv.append('--arch')
             argv.append(self.arch)
         elif self.arch == 'source':
             logger.info('Source-only')
-            argv.append('--source')
-
-            for x in self.dpkg_source_options:
-                argv.append('--debbuildopt=--source-option={}'.format(x))
-
             argv.append('--no-arch-any')
 
             if sbuild_version < Version('0.69.0'):
@@ -638,14 +667,13 @@ class Build:
                     os.path.basename(self.buildable.dsc_name)))
         elif self.buildable.source_from_archive:
             argv.append(self.buildable.buildable)
-        else:
-            # Build a clean source package as a side-effect of the first
+        elif self.arch in ('source', self.buildable.source_together_with):
+            # Build a clean source package as a side-effect of one
             # build.
-            if '--source' not in argv:
-                argv.append('--source')
+            argv.append('--source')
 
-                for x in self.dpkg_source_options:
-                    argv.append('--debbuildopt=--source-option={}'.format(x))
+            for x in self.dpkg_source_options:
+                argv.append('--debbuildopt=--source-option={}'.format(x))
 
             # jessie sbuild doesn't support --no-clean-source so build
             # the temporary source package ourselves.

@@ -43,7 +43,7 @@ def _sbuild(
         indep,
         mirrors,
         profiles,
-        rebuild_source,
+        build_source,
         source_only,
         storage,
         vendor,
@@ -52,7 +52,8 @@ def _sbuild(
         dpkg_buildpackage_options=(),
         dpkg_source_options=(),
         extra_repositories=(),
-        together=False):
+        indep_together=False,
+        source_together=False):
 
     logger.info('Installing sbuild')
     worker.check_call([
@@ -102,7 +103,7 @@ def _sbuild(
             # building one and (usually) throwing it away.
             # TODO: With jessie's sbuild, this doesn't work for
             # sources that only build Architecture: all binaries.
-            if rebuild_source:
+            if build_source:
                 logger.info('Rebuilding source as requested')
                 new_build('source').sbuild()
             else:
@@ -113,20 +114,21 @@ def _sbuild(
                     'source',
                     output_dir=None,
                 ).sbuild()
-        elif source_only:
-            # TODO: With jessie's sbuild, this doesn't work for
-            # sources that only build Architecture: all binaries.
-            logger.info('Doing source-only build as requested')
-            new_build('source').sbuild()
 
-        if not source_only:
-            buildable.select_archs(
-                worker.dpkg_architecture, archs, indep, together)
+        buildable.select_archs(
+            worker_arch=worker.dpkg_architecture,
+            archs=archs,
+            indep=indep,
+            indep_together=indep_together,
+            build_source=build_source,
+            source_only=source_only,
+            source_together=source_together,
+        )
 
-            logger.info('Binary builds: %r', list(buildable.archs))
+        logger.info('Builds required: %r', list(buildable.archs))
 
-            for arch in buildable.archs:
-                new_build(arch).sbuild()
+        for arch in buildable.archs:
+            new_build(arch).sbuild()
 
         if buildable.sourceful_changes_name:
             base = '{}_source.changes'.format(buildable.product_prefix)
@@ -494,12 +496,13 @@ def run(args):
             dpkg_source_options=ds_options,
             extra_repositories=args._extra_repository,
             indep=args._indep,
+            indep_together=args.sbuild_indep_together,
             mirrors=mirrors,
             profiles=profiles,
-            rebuild_source=args._rebuild_source,
+            build_source=args._build_source,
             source_only=args._source_only,
             storage=storage,
-            together=args.sbuild_together,
+            source_together=args.sbuild_source_together,
             vendor=vendor,
             worker=worker,
         )

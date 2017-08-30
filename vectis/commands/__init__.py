@@ -408,13 +408,24 @@ p.add_argument(
     help='Build architecture-independent packages (default: build all)',
 )
 p.add_argument(
-    '--source-only', action='store_true', dest='_source_only', default=False,
-    help='Only build a source package',
+    '--binaries', action='store_false', dest='_source_only', default=False,
+    help='Build binary packages [default: build binaries]',
 )
 p.add_argument(
-    '--rebuild-source', action='store_true', dest='_rebuild_source',
-    default=False,
-    help='Rebuild a supplied .dsc file',
+    '--no-binaries', '--source-only',
+    action='store_true', dest='_source_only', default=False,
+    help='Do not build binary packages [default: build binaries]',
+)
+p.add_argument(
+    '--rebuild-source', action='store_true', dest='_build_source',
+    default=None,
+    help='Build source package '
+         '[default: only if we do not already have one]',
+)
+p.add_argument(
+    '--no-source', action='store_false', dest='_build_source',
+    help='Do not build source package '
+         '[default: only if we do not already have one]',
 )
 p.add_argument(
     '--architecture', '--arch', '-a', action='append', dest='_archs',
@@ -423,12 +434,23 @@ p.add_argument(
          '(default: architectures installed on host machine, or '
          'host machine architecture if not installed)')
 p.add_argument(
-    '--together', dest='sbuild_together', action='store_true',
+    '--together', '--indep-together',
+    dest='sbuild_indep_together', action='store_true',
     help='Build architecture-independent packages along with first '
          'architecture',
 )
 p.add_argument(
-    '--apart', dest='sbuild_together', action='store_false',
+    '--apart', '--indep-apart',
+    dest='sbuild_indep_together', action='store_false',
+    help='Build architecture-independent packages separately',
+)
+p.add_argument(
+    '--source-together', dest='sbuild_source_together', action='store_true',
+    help='Build architecture-independent packages along with first '
+         'architecture',
+)
+p.add_argument(
+    '--source-apart', dest='sbuild_source_together', action='store_false',
     help='Build architecture-independent packages separately',
 )
 p.add_argument(

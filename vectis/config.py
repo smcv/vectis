@@ -478,8 +478,12 @@ class Config(_ConfigLike):
         return self._get_int('parallel')
 
     @property
-    def sbuild_together(self):
-        return self._get_bool('sbuild_together')
+    def sbuild_indep_together(self):
+        return self._get_bool('sbuild_indep_together')
+
+    @property
+    def sbuild_source_together(self):
+        return self._get_bool('sbuild_source_together')
 
     def _get_bool(self, name):
         value = self[name]
