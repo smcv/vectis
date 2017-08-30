@@ -80,7 +80,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.vmdebootstrap_worker_vendor, debian)
         with self.assertRaises(AttributeError):
             c.archive
-        self.assertIs(c.sbuild_together, False)
+        self.assertIs(c.sbuild_indep_together, False)
+        self.assertIs(c.sbuild_source_together, False)
         self.assertEqual(c.output_parent, '..')
         self.assertEqual(c.qemu_image_size, '42G')
         self.assertIsNone(c.sbuild_buildables)
@@ -237,7 +238,8 @@ class DefaultsTestCase(unittest.TestCase):
             c.archive
         self.assertEqual(c.qemu_image_size, '42G')
         self.assertGreaterEqual(c.parallel, 1)
-        self.assertIs(c.sbuild_together, False)
+        self.assertIs(c.sbuild_indep_together, False)
+        self.assertIs(c.sbuild_source_together, False)
         self.assertEqual(c.sbuild_resolver, [])
         self.assertEqual(c.apt_key,
                 '/usr/share/keyrings/debian-archive-keyring.gpg')
@@ -342,7 +344,8 @@ class DefaultsTestCase(unittest.TestCase):
             c.archive
         self.assertEqual(c.qemu_image_size, '42G')
         self.assertGreaterEqual(c.parallel, 1)
-        self.assertIs(c.sbuild_together, False)
+        self.assertIs(c.sbuild_indep_together, False)
+        self.assertIs(c.sbuild_source_together, False)
         self.assertEqual(c.sbuild_resolver, [])
         self.assertEqual(c.apt_key,
                 '/usr/share/keyrings/debian-archive-keyring.gpg')
@@ -405,7 +408,8 @@ class DefaultsTestCase(unittest.TestCase):
             c.archive
         self.assertEqual(c.qemu_image_size, '42G')
         self.assertGreaterEqual(c.parallel, 1)
-        self.assertIs(c.sbuild_together, False)
+        self.assertIs(c.sbuild_indep_together, False)
+        self.assertIs(c.sbuild_source_together, False)
         self.assertEqual(c.sbuild_resolver, [])
         self.assertEqual(c.apt_key,
                 os.path.join(os.path.dirname(vectis.config.__file__),
@@ -540,7 +544,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.vendor, ubuntu)
         self.assertEqual(c.qemu_image_size, '42G')
         self.assertGreaterEqual(c.parallel, 1)
-        self.assertIs(c.sbuild_together, False)
+        self.assertIs(c.sbuild_indep_together, False)
+        self.assertIs(c.sbuild_source_together, False)
         self.assertEqual(c.sbuild_resolver, [])
         self.assertEqual(c.apt_key,
                 '/usr/share/keyrings/ubuntu-archive-keyring.gpg')
@@ -618,7 +623,8 @@ class DefaultsTestCase(unittest.TestCase):
             c.archive
         self.assertEqual(c.qemu_image_size, '42G')
         self.assertGreaterEqual(c.parallel, 1)
-        self.assertIs(c.sbuild_together, False)
+        self.assertIs(c.sbuild_indep_together, False)
+        self.assertIs(c.sbuild_source_together, False)
         self.assertEqual(c.sbuild_resolver, [])
         self.assertEqual(c.apt_key,
                 '/usr/share/keyrings/ubuntu-archive-keyring.gpg')
@@ -675,7 +681,8 @@ class DefaultsTestCase(unittest.TestCase):
             c.archive
         self.assertEqual(c.qemu_image_size, '42G')
         self.assertGreaterEqual(c.parallel, 1)
-        self.assertIs(c.sbuild_together, False)
+        self.assertIs(c.sbuild_indep_together, False)
+        self.assertIs(c.sbuild_source_together, False)
         self.assertEqual(c.sbuild_resolver, [])
         self.assertEqual(c.apt_key,
                 '/usr/share/keyrings/ubuntu-archive-keyring.gpg')
