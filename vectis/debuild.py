@@ -46,6 +46,7 @@ class Buildable:
             buildable,
             *,
             link_builds=(),
+            orig_dirs=('..',),
             output_dir=None,
             output_parent,
             vendor):
@@ -65,6 +66,7 @@ class Buildable:
         self.logs = {}
         self.merged_changes = OrderedDict()
         self.nominal_suite = None
+        self.orig_dirs = orig_dirs
         self.output_dir = output_dir
         self.piuparts_failures = []
         self.source_from_archive = False
@@ -271,30 +273,41 @@ class Buildable:
                     'install', '-d', '-m755', '-osbuild', '-gsbuild',
                     '{}/out'.format(worker.scratch)])
 
-                orig_glob_prefix = glob.escape(
-                    os.path.join(
-                        self.buildable, '..',
-                        '{}_{}'.format(
-                            self.source_package,
-                            self._version.upstream_version)))
+                origs_copied = set()
 
-                for orig_pattern in (
-                        orig_glob_prefix + '.orig.tar.*',
-                        orig_glob_prefix + '.orig-*.tar.*'):
-                    logger.info(
-                        'Looking for original tarballs: %s', orig_pattern)
+                for orig_dir in self.orig_dirs:
+                    orig_glob_prefix = glob.escape(
+                        os.path.join(
+                            self.buildable, orig_dir,
+                            '{}_{}'.format(
+                                self.source_package,
+                                self._version.upstream_version)))
 
-                    for orig in glob.glob(orig_pattern):
-                        logger.info('Copying original tarball: %s', orig)
-                        worker.copy_to_guest(
-                            orig, '{}/in/{}'.format(
-                                worker.scratch,
-                                os.path.basename(orig)))
-                        worker.check_call([
-                            'ln', '-s', '{}/in/{}'.format(
-                                worker.scratch, os.path.basename(orig)),
-                            '{}/out/{}'.format(
-                                worker.scratch, os.path.basename(orig))])
+                    for orig_pattern in (
+                            orig_glob_prefix + '.orig.tar.*',
+                            orig_glob_prefix + '.orig-*.tar.*'):
+                        logger.info(
+                            'Looking for original tarballs: %s', orig_pattern)
+
+                        for orig in glob.glob(orig_pattern):
+                            base = os.path.basename(orig)
+
+                            if base in origs_copied:
+                                logger.info(
+                                    'Already copied %s; ignoring %s', base,
+                                    orig)
+                                continue
+
+                            origs_copied.add(base)
+                            logger.info('Copying original tarball: %s', orig)
+                            worker.copy_to_guest(
+                                orig, '{}/in/{}'.format(
+                                    worker.scratch, base))
+                            worker.check_call([
+                                'ln', '-s',
+                                '{}/in/{}'.format(worker.scratch, base),
+                                '{}/out/{}'.format(worker.scratch, base),
+                            ])
 
     def select_archs(self, worker_arch, archs, indep, together):
         builds_i386 = False

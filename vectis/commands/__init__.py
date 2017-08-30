@@ -1,4 +1,5 @@
 # Copyright © 2015-2017 Simon McVittie
+# Copyright © 2017 Collabora Ltd.
 # SPDX-License-Identifier: GPL-2.0+
 # (see vectis/__init__.py)
 
@@ -28,10 +29,25 @@ class _AutopkgtestAction(argparse.Action):
         setattr(namespace, self.dest, items)
 
 
+class _AssignList(argparse.Action):
+
+    def __call__(self, parser, namespace, value, option_string=None):
+        items = [value]
+        setattr(namespace, self.dest, items)
+
+
 class AssignCommaSeparated(argparse.Action):
 
     def __call__(self, parser, namespace, value, option_string=None):
         items = list(value.split(','))
+        setattr(namespace, self.dest, items)
+
+
+class _AppendForceList(argparse.Action):
+
+    def __call__(self, parser, namespace, value, option_string=None):
+        items = list(getattr(namespace, self.dest, []))
+        items.append(value)
         setattr(namespace, self.dest, items)
 
 
@@ -493,6 +509,16 @@ p.add_argument(
 p.add_argument(
     '-s', dest='_source_modifier', choices=['a', 'i', 'd'], default=None,
     help='Always, maybe or never include orig.tar.* in changes file',
+)
+p.add_argument(
+    '--orig-dir', dest='orig_dirs', action=_AssignList,
+    default=args.orig_dirs, metavar='DIR',
+    help='Replace search path for orig*.tar.* with only DIR',
+)
+p.add_argument(
+    '--add-orig-dir', dest='orig_dirs', action=_AppendForceList,
+    metavar='DIR',
+    help='Add DIR to search path for orig*.tar.*',
 )
 
 help = 'Run autopkgtest tests'

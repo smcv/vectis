@@ -395,6 +395,7 @@ def _publish(
 def run(args):
     components = args.components
     link_builds = args.link_builds
+    orig_dirs = args.orig_dirs
     output_dir = args.output_dir
     output_parent = args.output_parent
     mirrors = args.get_mirrors()
@@ -459,6 +460,7 @@ def run(args):
         buildable = Buildable(
             a,
             link_builds=link_builds,
+            orig_dirs=orig_dirs,
             output_dir=output_dir,
             output_parent=output_parent,
             vendor=vendor)

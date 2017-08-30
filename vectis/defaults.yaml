@@ -67,6 +67,7 @@ defaults:
 
     parallel: null
     sbuild_together: false
+    orig_dirs: [".."]
     output_dir: null
     output_parent: ".."
     link_builds: [".."]
