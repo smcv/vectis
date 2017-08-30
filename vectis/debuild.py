@@ -659,6 +659,14 @@ class Build:
             argv.append('--arch')
             argv.append(self.arch)
 
+        if self.arch in ('source', self.buildable.source_together_with):
+            # Build a clean source package as a side-effect of one
+            # build.
+            argv.append('--source')
+
+            for x in self.dpkg_source_options:
+                argv.append('--debbuildopt=--source-option={}'.format(x))
+
         if self.buildable.dsc_name is not None:
             if 'source' in self.buildable.changes_produced:
                 # We rebuilt the source already. Use the rebuilt version
@@ -674,14 +682,7 @@ class Build:
                     os.path.basename(self.buildable.dsc_name)))
         elif self.buildable.source_from_archive:
             argv.append(self.buildable.buildable)
-        elif self.arch in ('source', self.buildable.source_together_with):
-            # Build a clean source package as a side-effect of one
-            # build.
-            argv.append('--source')
-
-            for x in self.dpkg_source_options:
-                argv.append('--debbuildopt=--source-option={}'.format(x))
-
+        else:
             # jessie sbuild doesn't support --no-clean-source so build
             # the temporary source package ourselves.
             ds_argv = [
