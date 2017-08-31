@@ -478,11 +478,15 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
     def copy_to_guest(self, host_path, guest_path, *, cache=False):
         assert host_path is not None
         assert guest_path is not None
-        logger.info('Copying host:{} to guest:{}'.format(
-            host_path, guest_path))
 
         if cache and self.__cached_copies.get(host_path) == guest_path:
+            logger.info(
+                'host:%s is already available at guest:%s, not copying again',
+                host_path, guest_path,
+            )
             return
+
+        logger.info('Copying host:%s to guest:%s', host_path, guest_path)
 
         if not os.path.exists(host_path):
             raise WorkerError(
