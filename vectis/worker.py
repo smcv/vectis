@@ -576,7 +576,7 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
         in_guest = '{}/{}/{}'.format(
             in_dir, unique, os.path.basename(filename))
         self.check_call(['mkdir', '{}/{}'.format(in_dir, unique)])
-        self.copy_to_guest(filename, in_guest)
+        self.copy_to_guest(filename, in_guest, cache=cache)
 
         if owner is not None:
             self.check_call([
