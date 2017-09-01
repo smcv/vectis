@@ -181,8 +181,8 @@ def _sbuild(
             if k != 'source':
                 binary_changes.append(v)
 
-            if v == buildable.sourceful_changes_name:
-                binary_group = 'source+binary'
+                if v == buildable.sourceful_changes_name:
+                    binary_group = 'source+binary'
 
         base = '{}_{}.changes'.format(buildable.product_prefix, binary_group)
         c = os.path.join(buildable.output_dir, base)
