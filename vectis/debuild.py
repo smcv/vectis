@@ -183,7 +183,8 @@ class Buildable:
             # hello_2.10-1 -> hello_2.10-1_20170319t102623
             if self._version is not None:
                 versioned_symlink = os.path.join(
-                    output_parent, self.source_package + '_' + self._version)
+                    output_parent,
+                    '{}_{}'.format(self.source_package, self._version))
 
                 with suppress(FileNotFoundError):
                     os.unlink(versioned_symlink)
