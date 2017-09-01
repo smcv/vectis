@@ -143,14 +143,6 @@ def _sbuild(
                         buildable.sourceful_changes_name,
                     ], stdout=writer)
 
-                for l in buildable.link_builds:
-                    symlink = os.path.join(l, base)
-
-                    with suppress(FileNotFoundError):
-                        os.unlink(symlink)
-
-                    os.symlink(c, symlink)
-
             buildable.merged_changes['source'] = c
 
         if ('all' in buildable.changes_produced and
@@ -165,14 +157,6 @@ def _sbuild(
                     buildable.changes_produced['all'],
                     buildable.merged_changes['source'],
                 ], stdout=writer)
-
-            for l in buildable.link_builds:
-                symlink = os.path.join(l, base)
-
-                with suppress(FileNotFoundError):
-                    os.unlink(symlink)
-
-                os.symlink(c, symlink)
 
         binary_group = 'binary'
 
@@ -198,15 +182,6 @@ def _sbuild(
             buildable.merged_changes[binary_group] = c
         # else it was source-only: no binary changes
 
-        if binary_group in buildable.merged_changes:
-            for l in buildable.link_builds:
-                symlink = os.path.join(l, base)
-
-                with suppress(FileNotFoundError):
-                    os.unlink(symlink)
-
-                os.symlink(c, symlink)
-
         if ('source' in buildable.merged_changes and
                 'binary' in buildable.merged_changes):
             base = '{}_source+binary.changes'.format(buildable.product_prefix)
@@ -221,13 +196,18 @@ def _sbuild(
                     buildable.merged_changes['binary'],
                 ], stdout=writer)
 
+        for ident, linkable in (
+                list(buildable.merged_changes.items()) +
+                list(buildable.changes_produced.items())):
+            base = os.path.basename(linkable)
+
             for l in buildable.link_builds:
                 symlink = os.path.join(l, base)
 
                 with suppress(FileNotFoundError):
                     os.unlink(symlink)
 
-                os.symlink(c, symlink)
+                os.symlink(linkable, symlink)
 
 
 def _autopkgtest(
