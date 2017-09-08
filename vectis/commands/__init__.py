@@ -529,8 +529,19 @@ p.add_argument(
     help='Set something in DEB_BUILD_OPTIONS',
 )
 p.add_argument(
-    '-s', dest='_source_modifier', choices=['a', 'i', 'd'], default=None,
+    '--include-orig-source', '-s', dest='_include_orig_source',
+    choices=[
+        'yes', 'force', 'always', 'a',
+        'auto', 'maybe', 'i',
+        'no', 'never', 'd',
+    ],
+    default=None,
     help='Always, maybe or never include orig.tar.* in changes file',
+)
+p.add_argument(
+    '--force-orig-source', dest='_include_orig_source',
+    action='store_const', const='yes',
+    help='Equivalent to --include-orig-source=yes',
 )
 p.add_argument(
     '--orig-dir', dest='orig_dirs', action=_AssignList,

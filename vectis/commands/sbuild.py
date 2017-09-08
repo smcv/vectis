@@ -416,8 +416,23 @@ def run(args):
     if args._versions_since:
         db_options.append('-v{}'.format(args._versions_since))
 
-    if args._source_modifier:
-        db_options.append('-s{}'.format(args._source_modifier))
+    if args._include_orig_source is not None:
+        MAP = {
+            'yes': 'a',
+            'always': 'a',
+            'force': 'a',
+            'a': 'a',
+
+            'auto': 'i',
+            'maybe': 'i',
+            'i': 'i',
+
+            'no': 'd',
+            'never': 'd',
+            'd': 'd',
+        }
+
+        db_options.append('-s{}'.format(MAP[args._include_orig_source]))
 
     ds_options = []
 
