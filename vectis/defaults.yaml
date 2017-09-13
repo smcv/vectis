@@ -101,8 +101,12 @@ vendors:
             - http://deb.debian.org/debian
             - http://ftp.debian.org/debian
             - ftp://ftp.debian.org/debian
+        kernel_package:
+            i386: linux-image-686
         suites:
             wheezy:
+                kernel_package:
+                    i386: linux-image-486
                 vmdebootstrap_worker_suite: jessie
                 vmdebootstrap_options:
                     - "--boottype=ext3"
@@ -110,6 +114,9 @@ vendors:
                     - "--mbr"
                     - "--no-grub"
                     - "--enable-dhcp"
+            jessie:
+                kernel_package:
+                    i386: linux-image-586
             sid: {}
             unstable:
                 alias_for: sid
