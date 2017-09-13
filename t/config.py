@@ -83,7 +83,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.sbuild_indep_together, False)
         self.assertIs(c.sbuild_source_together, False)
         self.assertEqual(c.output_parent, '..')
-        self.assertEqual(c.qemu_image_size, '42G')
+        self.assertEqual(c.qemu_image_size, '10G')
         self.assertIsNone(c.sbuild_buildables)
         self.assertEqual(c.sbuild_resolver, [])
         self.assertEqual(c.debootstrap_script, None)
@@ -236,7 +236,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.vmdebootstrap_worker_vendor, debian)
         with self.assertRaises(AttributeError):
             c.archive
-        self.assertEqual(c.qemu_image_size, '42G')
+        self.assertEqual(c.qemu_image_size, '10G')
         self.assertGreaterEqual(c.parallel, 1)
         self.assertIs(c.sbuild_indep_together, False)
         self.assertIs(c.sbuild_source_together, False)
@@ -342,7 +342,7 @@ class DefaultsTestCase(unittest.TestCase):
                     '--enable-dhcp'])
         with self.assertRaises(AttributeError):
             c.archive
-        self.assertEqual(c.qemu_image_size, '42G')
+        self.assertEqual(c.qemu_image_size, '10G')
         self.assertGreaterEqual(c.parallel, 1)
         self.assertIs(c.sbuild_indep_together, False)
         self.assertIs(c.sbuild_source_together, False)
@@ -406,7 +406,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.vmdebootstrap_worker_vendor, debian)
         with self.assertRaises(AttributeError):
             c.archive
-        self.assertEqual(c.qemu_image_size, '42G')
+        self.assertEqual(c.qemu_image_size, '10G')
         self.assertGreaterEqual(c.parallel, 1)
         self.assertIs(c.sbuild_indep_together, False)
         self.assertIs(c.sbuild_source_together, False)
@@ -542,7 +542,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(c.all_components, {'main', 'universe',
             'restricted', 'multiverse'})
         self.assertIs(c.vendor, ubuntu)
-        self.assertEqual(c.qemu_image_size, '42G')
+        self.assertEqual(c.qemu_image_size, '10G')
         self.assertGreaterEqual(c.parallel, 1)
         self.assertIs(c.sbuild_indep_together, False)
         self.assertIs(c.sbuild_source_together, False)
@@ -621,7 +621,7 @@ class DefaultsTestCase(unittest.TestCase):
 
         with self.assertRaises(AttributeError):
             c.archive
-        self.assertEqual(c.qemu_image_size, '42G')
+        self.assertEqual(c.qemu_image_size, '10G')
         self.assertGreaterEqual(c.parallel, 1)
         self.assertIs(c.sbuild_indep_together, False)
         self.assertIs(c.sbuild_source_together, False)
@@ -679,7 +679,7 @@ class DefaultsTestCase(unittest.TestCase):
 
         with self.assertRaises(AttributeError):
             c.archive
-        self.assertEqual(c.qemu_image_size, '42G')
+        self.assertEqual(c.qemu_image_size, '10G')
         self.assertGreaterEqual(c.parallel, 1)
         self.assertIs(c.sbuild_indep_together, False)
         self.assertIs(c.sbuild_source_together, False)

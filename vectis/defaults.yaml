@@ -7,7 +7,7 @@
 defaults:
     vendor: debian
     storage: null
-    qemu_image_size: 42G
+    qemu_image_size: 10G
     components: main
     extra_components: []
     mirrors:
