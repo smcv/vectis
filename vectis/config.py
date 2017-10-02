@@ -1,4 +1,5 @@
 # Copyright © 2015-2017 Simon McVittie
+# Copyright © 2017 Collabora Ltd.
 # SPDX-License-Identifier: GPL-2.0+
 # (see vectis/__init__.py)
 
@@ -225,9 +226,9 @@ class Suite(_ConfigLike):
 
         return self.vendor[name]
 
-    def __get(self, name):
+    def __get(self, name, *, inherit_from_vendor=True):
         if (name not in self._raw[-1]['defaults'] and
-                name not in ('apt_suite', 'archive', 'base')):
+                name not in ('apt_suite', 'apt_trusted', 'archive', 'base')):
             raise KeyError('{!r} does not configure {!r}'.format(self, name))
 
         for r in self._raw:
@@ -237,17 +238,18 @@ class Suite(_ConfigLike):
             if name in s:
                 return s[name]
 
-        for r in self._raw:
-            p = r.get('vendors', {}).get(str(self._vendor), {})
+        if inherit_from_vendor:
+            for r in self._raw:
+                p = r.get('vendors', {}).get(str(self._vendor), {})
 
-            if name in p:
-                return p[name]
+                if name in p:
+                    return p[name]
 
         return None
 
     @property
     def apt_suite(self):
-        suite = self.__get('apt_suite')
+        suite = self.__get('apt_suite', inherit_from_vendor=False)
 
         if suite is None:
             return str(self.suite)
@@ -256,6 +258,10 @@ class Suite(_ConfigLike):
             return suite.replace('*', str(self.base))
 
         return suite
+
+    @property
+    def apt_trusted(self):
+        return bool(self.__get('apt_trusted', inherit_from_vendor=False))
 
     @property
     def archive(self):

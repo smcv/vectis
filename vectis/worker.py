@@ -1,4 +1,5 @@
 # Copyright © 2016-2017 Simon McVittie
+# Copyright © 2017 Collabora Ltd.
 # SPDX-License-Identifier: GPL-2.0+
 # (see vectis/__init__.py)
 
@@ -103,8 +104,19 @@ class ContainerWorker(BaseWorker, metaclass=ABCMeta):
 
             uri = self.mirrors.lookup_suite(ancestor)
 
-            line = '{uri} {suite} {components}'.format(
+            extras = []
+
+            if ancestor.apt_trusted:
+                extras.append('trusted=yes')
+
+            if extras:
+                extras = '[' + ' '.join(extras) + '] '
+            else:
+                extras = ''
+
+            line = '{extras}{uri} {suite} {components}'.format(
                 components=' '.join(filtered_components),
+                extras=extras,
                 suite=ancestor.apt_suite,
                 uri=uri,
             )

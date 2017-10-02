@@ -1,4 +1,5 @@
 # Copyright © 2017 Simon McVittie
+# Copyright © 2017 Collabora Ltd.
 # SPDX-License-Identifier: GPL-2.0+
 # (see vectis/__init__.py)
 
@@ -82,16 +83,27 @@ class PiupartsWorker(FileProvider, ContainerWorker):
 
             uri = self.mirrors.lookup_suite(ancestor)
 
+            extras = []
+
+            if ancestor.apt_trusted:
+                extras.append('trusted=yes')
+
+            if extras:
+                extras = '[' + ' '.join(extras) + '] '
+            else:
+                extras = ''
+
             if ancestor is self.suite.hierarchy[-1]:
                 argv.append('-d')
                 argv.append(ancestor.apt_suite)
                 argv.append('--mirror')
-                argv.append('{} {}'.format(
-                    uri, ' '.join(filtered_components)))
+                argv.append('{}{} {}'.format(
+                    extras, uri, ' '.join(filtered_components)))
             else:
                 argv.append('--extra-repo')
-                argv.append('deb {} {} {}'.format(
-                    uri, ancestor.apt_suite, ' '.join(filtered_components)))
+                argv.append('deb {}{} {} {}'.format(
+                    extras, uri, ancestor.apt_suite,
+                    ' '.join(filtered_components)))
 
         for line in self.extra_repositories:
             argv.append('--extra-repo')
