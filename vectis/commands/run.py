@@ -31,6 +31,7 @@ def run(args):
     output_dir = args.output_dir
     output_parent = args.output_parent
     qemu_image = args.qemu_image
+    qemu_ram_size = args.qemu_ram_size
     shell_command = args._shell_command
     storage = args.storage
     suite = args.suite
@@ -56,9 +57,15 @@ def run(args):
             if mirror is None:
                 raise ArgumentError(
                     'No mirror configured for {}'.format(ancestor))
+    virt = ['qemu']
+
+    if qemu_ram_size is not None:
+        virt.append('--ram-size={}'.format(qemu_ram_size))
+
+    virt.append(image)
 
     with VirtWorker(
-            ['qemu', qemu_image],
+            virt,
             apt_update=apt_update,
             mirrors=mirrors,
             storage=storage,

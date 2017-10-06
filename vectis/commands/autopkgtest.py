@@ -47,6 +47,7 @@ def _autopkgtest(
         lxc_worker,
         mirrors,
         modes,
+        qemu_ram_size,
         schroot_worker,
         storage,
         suite,
@@ -103,6 +104,7 @@ def _autopkgtest(
                 lxc_worker=lxc_worker,
                 mirrors=mirrors,
                 modes=modes,
+                qemu_ram_size=qemu_ram_size,
                 schroot_worker=schroot_worker,
                 source_dsc=source_dsc,
                 source_package=source_package,
@@ -154,6 +156,7 @@ def run(args, really=True):
         worker=worker,
         mirrors=mirrors,
         modes=args.autopkgtest,
+        qemu_ram_size=args.qemu_ram_size,
         # use the misc worker instead of a specific schroot worker
         schroot_worker=None,
         storage=args.storage,

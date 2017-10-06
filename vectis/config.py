@@ -27,6 +27,8 @@ XDG_DATA_HOME = os.getenv(
 XDG_DATA_DIRS = os.getenv(
     'XDG_DATA_DIRS', os.path.expanduser('~/.local/share'))
 
+_1M = 1024 * 1024
+
 
 class Mirrors:
 
@@ -523,6 +525,26 @@ class Config(_ConfigLike):
             'storage', os.path.join(XDG_CACHE_HOME, 'vectis'))
 
     @property
+    def qemu_ram_size(self):
+        value = self['qemu_ram_size']
+
+        # TODO: Make this less crude
+        if value.endswith('G'):
+            return int(value[:-1]) * 1024 * 1024 * 1024
+        elif value.endswith('GiB'):
+            return int(value[:-3]) * 1024 * 1024 * 1024
+        elif value.endswith('M'):
+            return int(value[:-1]) * 1024 * 1024
+        elif value.endswith('MiB'):
+            return int(value[:-3]) * 1024 * 1024
+        elif value.endswith('K'):
+            return int(value[:-1]) * 1024
+        elif value.endswith('KiB'):
+            return int(value[:-3]) * 1024
+        else:
+            return int(value)
+
+    @property
     def output_dir(self):
         """
         The directory in which we will place the results, overriding
@@ -822,7 +844,12 @@ class Config(_ConfigLike):
         value = self['worker']
 
         if value is None:
-            value = ['qemu', self.worker_qemu_image]
+            value = ['qemu']
+
+            if self.qemu_ram_size is not None:
+                value.append('--ram-size={}'.format(self.qemu_ram_size // _1M))
+
+            value.append(self.worker_qemu_image)
 
         return value
 
@@ -831,7 +858,12 @@ class Config(_ConfigLike):
         value = self['lxc_worker']
 
         if value is None:
-            value = ['qemu', self.lxc_worker_qemu_image]
+            value = ['qemu']
+
+            if self.qemu_ram_size is not None:
+                value.append('--ram-size={}'.format(self.qemu_ram_size // _1M))
+
+            value.append(self.lxc_worker_qemu_image)
 
         return value
 
@@ -840,7 +872,12 @@ class Config(_ConfigLike):
         value = self['sbuild_worker']
 
         if value is None:
-            value = ['qemu', self.sbuild_worker_qemu_image]
+            value = ['qemu']
+
+            if self.qemu_ram_size is not None:
+                value.append('--ram-size={}'.format(self.qemu_ram_size // _1M))
+
+            value.append(self.sbuild_worker_qemu_image)
 
         return value
 
@@ -866,7 +903,12 @@ class Config(_ConfigLike):
         value = self['vmdebootstrap_worker']
 
         if value is None:
-            value = ['qemu', self.vmdebootstrap_worker_qemu_image]
+            value = ['qemu']
+
+            if self.qemu_ram_size is not None:
+                value.append('--ram-size={}'.format(self.qemu_ram_size // _1M))
+
+            value.append(self.vmdebootstrap_worker_qemu_image)
 
         return value
 

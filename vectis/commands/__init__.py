@@ -160,6 +160,10 @@ base.add_argument(
     help='Download the given URI or ARCHIVE from its '
          'canonical URI',
 )
+base.add_argument(
+    '--qemu-ram-size',
+    help='Use this much RAM for qemu virtual machines (e.g. 512M, 1G, 4G)',
+)
 
 parser = argparse.ArgumentParser(
     description='Do Debian-related things in a virtual machine.',

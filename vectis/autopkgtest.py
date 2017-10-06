@@ -33,6 +33,8 @@ from vectis.util import (
 
 logger = logging.getLogger(__name__)
 
+_1M = 1024 * 1024
+
 
 class AutopkgtestWorker(ContainerWorker, FileProvider):
 
@@ -230,6 +232,7 @@ def run_autopkgtest(
         lxc_24bit_subnet=None,
         lxc_worker=None,
         output_logs=None,
+        qemu_ram_size=None,
         schroot_worker=None,
         source_dsc=None,
         source_package=None):
@@ -269,7 +272,12 @@ def run_autopkgtest(
                     continue
 
                 output_on_worker = output_dir
-                virt = ['qemu', image]
+                virt = ['qemu']
+
+                if qemu_ram_size is not None:
+                    virt.append('--ram-size={}'.format(qemu_ram_size // _1M))
+
+                virt.append(image)
 
             elif test == 'schroot':
                 tarball = os.path.join(
