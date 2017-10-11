@@ -22,6 +22,9 @@ from debian.debian_support import (
     Version,
 )
 
+from vectis.apt import (
+    AptSource,
+)
 from vectis.error import (
     Error,
 )
@@ -104,26 +107,16 @@ class ContainerWorker(BaseWorker, metaclass=ABCMeta):
 
             uri = self.mirrors.lookup_suite(ancestor)
 
-            extras = []
-
-            if ancestor.apt_trusted:
-                extras.append('trusted=yes')
-
-            if extras:
-                extras = '[' + ' '.join(extras) + '] '
-            else:
-                extras = ''
-
-            line = '{extras}{uri} {suite} {components}'.format(
-                components=' '.join(filtered_components),
-                extras=extras,
-                suite=ancestor.apt_suite,
-                uri=uri,
-            )
-            logger.info('%r: %s => deb %s', self, ancestor, line)
-
-            writer.write('deb {}\n'.format(line))
-            writer.write('deb-src {}\n'.format(line))
+            for type in ('deb', 'deb-src'):
+                source = AptSource(
+                    components=filtered_components,
+                    suite=ancestor.apt_suite,
+                    type=type,
+                    trusted=ancestor.apt_trusted,
+                    uri=uri,
+                )
+                logger.info('%r: %s => %s', self, ancestor, source)
+                writer.write('{}\n'.format(source))
 
         for line in self.extra_repositories:
             writer.write('{}\n'.format(line))

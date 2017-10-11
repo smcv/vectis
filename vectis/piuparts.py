@@ -10,6 +10,9 @@ from contextlib import (
     ExitStack,
 )
 
+from vectis.apt import (
+    AptSource,
+)
 from vectis.worker import (
     ContainerWorker,
     FileProvider,
@@ -83,27 +86,27 @@ class PiupartsWorker(FileProvider, ContainerWorker):
 
             uri = self.mirrors.lookup_suite(ancestor)
 
-            extras = []
-
-            if ancestor.apt_trusted:
-                extras.append('trusted=yes')
-
-            if extras:
-                extras = '[' + ' '.join(extras) + '] '
-            else:
-                extras = ''
+            source = AptSource(
+                components=filtered_components,
+                suite=ancestor.apt_suite,
+                type='deb',
+                trusted=ancestor.apt_trusted,
+                uri=uri,
+            )
 
             if ancestor is self.suite.hierarchy[-1]:
+                logger.info(
+                        '%r: %s => -d %s --mirror %s',
+                        self, ancestor, source.suite,
+                        source.get_piuparts_mirror_option())
                 argv.append('-d')
-                argv.append(ancestor.apt_suite)
+                argv.append(source.suite)
                 argv.append('--mirror')
-                argv.append('{}{} {}'.format(
-                    extras, uri, ' '.join(filtered_components)))
+                argv.append(source.get_piuparts_mirror_option())
             else:
+                logger.info('%r: %s => %s', self, ancestor, source)
                 argv.append('--extra-repo')
-                argv.append('deb {}{} {} {}'.format(
-                    extras, uri, ancestor.apt_suite,
-                    ' '.join(filtered_components)))
+                argv.append(str(source))
 
         for line in self.extra_repositories:
             argv.append('--extra-repo')
