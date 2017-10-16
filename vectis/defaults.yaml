@@ -51,6 +51,12 @@ defaults:
     sbuild_worker_architecture: null
     sbuild_worker: null
 
+    piuparts_worker_qemu_image: null
+    piuparts_worker_suite: null
+    piuparts_worker_vendor: null
+    piuparts_worker_architecture: null
+    piuparts_worker: null
+
     vmdebootstrap_worker_suite: null
     vmdebootstrap_worker_qemu_image: null
     vmdebootstrap_worker_vendor: null
@@ -98,6 +104,8 @@ vendors:
         worker_vendor: debian
         apt_key_package: debian-archive-keyring
         apt_key: /usr/share/keyrings/debian-archive-keyring.gpg
+        # #860433, #877592
+        piuparts_worker_suite: stretch-backports
         uris:
             - http://deb.debian.org/debian
             - http://ftp.debian.org/debian

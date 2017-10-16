@@ -515,6 +515,17 @@ def run(args):
             suite=args.worker_suite,
         )
 
+    if (args.piuparts_worker == args.sbuild_worker and
+            args.piuparts_worker_suite == args.sbuild_worker_suite):
+        piuparts_worker = sbuild_worker
+    else:
+        piuparts_worker = VirtWorker(
+            args.piuparts_worker,
+            mirrors=mirrors,
+            storage=storage,
+            suite=args.piuparts_worker_suite,
+        )
+
     if (args.lxc_worker == args.sbuild_worker and
             args.lxc_worker_suite == args.sbuild_worker_suite):
         lxc_worker = sbuild_worker
@@ -550,7 +561,7 @@ def run(args):
             storage=storage,
             tarballs=args.piuparts_tarballs,
             vendor=vendor,
-            worker=misc_worker,
+            worker=piuparts_worker,
         )
 
     _summarize(buildables)

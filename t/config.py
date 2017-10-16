@@ -136,6 +136,8 @@ class DefaultsTestCase(unittest.TestCase):
 
         stable = c.get_suite(c.vendor, 'stable')
         self.assertEqual(c.sbuild_worker_suite, stable)
+        # #860433, #877592
+        self.assertEqual(str(c.piuparts_worker_suite), 'stretch-backports')
         self.assertEqual(c.default_suite, 'sid')
         self.assertEqual(c.components, {'main'})
         self.assertEqual(c.extra_components,
@@ -155,6 +157,8 @@ class DefaultsTestCase(unittest.TestCase):
         c.qemu_ram_size = '512M'
         c.sbuild_worker_suite = 'alchemist'
         c.sbuild_worker_vendor = 'steamos'
+        c.piuparts_worker_suite = 'scout'
+        c.piuparts_worker_vendor = 'steamrt'
         c.vmdebootstrap_worker_suite = 'xenial'
         c.vmdebootstrap_worker_vendor = 'ubuntu'
 
@@ -178,6 +182,13 @@ class DefaultsTestCase(unittest.TestCase):
                     '{}/m68k/debian/sarge/autopkgtest.qcow2'.format(
                     c.storage)])
 
+        self.assertEqual(c.piuparts_worker_qemu_image,
+                '{}/m68k/steamrt/scout/autopkgtest.qcow2'.format(
+        self.assertEqual(c.piuparts_worker,
+                ['qemu', '--ram-size=512',
+                    '{}/m68k/steamrt/scout/autopkgtest.qcow2'.format(
+                    c.storage)])
+                    c.storage))
         self.assertEqual(c.sbuild_worker_qemu_image,
                 '{}/m68k/steamos/alchemist/autopkgtest.qcow2'.format(
         self.assertEqual(c.sbuild_worker,
@@ -242,6 +253,8 @@ class DefaultsTestCase(unittest.TestCase):
         # Properties of the Config determined by the suite being Debian sid
         self.assertEqual(c.autopkgtest, ['lxc', 'qemu'])
         self.assertIs(c.worker_vendor, debian)
+        self.assertIs(c.lxc_worker_vendor, debian)
+        self.assertIs(c.piuparts_worker_vendor, debian)
         self.assertIs(c.sbuild_worker_vendor, debian)
         self.assertIs(c.vmdebootstrap_worker_vendor, debian)
         with self.assertRaises(AttributeError):
@@ -259,6 +272,9 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(c.output_parent, '..')
         self.assertEqual(c.architecture, 'mips')
         self.assertEqual(c.worker_architecture, 'mips')
+        self.assertEqual(c.lxc_worker_architecture, 'mips')
+        self.assertEqual(c.piuparts_worker_architecture, 'mips')
+        self.assertEqual(c.sbuild_worker_architecture, 'mips')
 
         with self.assertRaises(AttributeError):
             c.apt_suite
@@ -272,7 +288,14 @@ class DefaultsTestCase(unittest.TestCase):
         debian_info = distro_info.DebianDistroInfo()
         self.assertEqual(debian.default_worker_suite,
                 debian_info.stable())
+        self.assertIs(c.lxc_worker_suite,
+                c.get_suite(debian, debian_info.stable()))
+        # #860433, #877592
+        self.assertIs(c.piuparts_worker_suite,
+                c.get_suite(debian, 'stretch-backports'))
         self.assertIs(c.sbuild_worker_suite,
+                c.get_suite(debian, debian_info.stable()))
+        self.assertIs(c.vmdebootstrap_worker_suite,
                 c.get_suite(debian, debian_info.stable()))
         self.assertIs(c.worker_suite, c.get_suite(debian, 
             debian_info.stable()))

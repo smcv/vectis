@@ -597,7 +597,7 @@ p = subparsers.add_parser(
     help=help, description=help, argument_default=argparse.SUPPRESS,
     conflict_handler='resolve', parents=(base,),
 )
-add_worker_options(p)
+add_worker_options(p, context='piuparts', context_implicit=True)
 p.add_argument(
     '--suite', '-d',
     help='Distribution release suite to be tested [default: auto-detect '

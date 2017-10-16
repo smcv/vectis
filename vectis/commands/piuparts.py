@@ -77,10 +77,10 @@ def run(args):
             raise ArgumentError('--suite must be specified')
 
     worker = VirtWorker(
-        args.worker,
+        args.piuparts_worker,
         mirrors=args.get_mirrors(),
         storage=args.storage,
-        suite=args.worker_suite,
+        suite=args.piuparts_worker_suite,
     )
     failures = _piuparts(
         args._things,
