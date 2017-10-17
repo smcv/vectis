@@ -530,7 +530,7 @@ class Build:
 
         self.environ['DEB_BUILD_OPTIONS'] = ' '.join(deb_build_options)
 
-    def sbuild(self):
+    def sbuild(self, *, sbuild_options=()):
         self.worker.check_call([
             'install', '-d', '-m755', '-osbuild', '-gsbuild',
             '{}/out'.format(self.worker.scratch)])
@@ -553,9 +553,9 @@ class Build:
             suite=self.buildable.suite,
             worker=self.worker,
         ) as chroot:
-            self._sbuild(chroot)
+            self._sbuild(chroot, sbuild_options)
 
-    def _sbuild(self, chroot):
+    def _sbuild(self, chroot, sbuild_options=()):
         sbuild_version = self.worker.dpkg_version('sbuild')
 
         # Backwards compatibility goo for Debian jessie buildd backport:
@@ -667,6 +667,9 @@ class Build:
 
             for x in self.dpkg_source_options:
                 argv.append('--debbuildopt=--source-option={}'.format(x))
+
+        for x in sbuild_options:
+            argv.append(x)
 
         if self.buildable.dsc_name is not None:
             if 'source' in self.buildable.changes_produced:

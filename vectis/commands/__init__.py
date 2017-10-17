@@ -557,6 +557,11 @@ p.add_argument(
     metavar='DIR',
     help='Add DIR to search path for orig*.tar.*',
 )
+p.add_argument(
+    '--sbuild-option', dest='_sbuild_options', action='append',
+    default=[], metavar='OPTION',
+    help='Add OPTION to all sbuild command-lines',
+)
 
 help = 'Run autopkgtest tests'
 p = subparsers.add_parser(

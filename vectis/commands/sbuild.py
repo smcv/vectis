@@ -44,6 +44,7 @@ def _sbuild(
         mirrors,
         profiles,
         build_source,
+        sbuild_options=(),
         source_only,
         storage,
         vendor,
@@ -103,9 +104,10 @@ def _sbuild(
             # building one and (usually) throwing it away.
             # TODO: With jessie's sbuild, this doesn't work for
             # sources that only build Architecture: all binaries.
+            # TODO: This won't work if the sbuild_options are a binNMU.
             if build_source:
                 logger.info('Rebuilding source as requested')
-                new_build('source').sbuild()
+                new_build('source').sbuild(sbuild_options=sbuild_options)
             else:
                 logger.info(
                     'Rebuilding and discarding source to discover supported '
@@ -113,7 +115,7 @@ def _sbuild(
                 new_build(
                     'source',
                     output_dir=None,
-                ).sbuild()
+                ).sbuild(sbuild_options=sbuild_options)
 
         buildable.select_archs(
             worker_arch=worker.dpkg_architecture,
@@ -128,7 +130,7 @@ def _sbuild(
         logger.info('Builds required: %r', list(buildable.archs))
 
         for arch in buildable.archs:
-            new_build(arch).sbuild()
+            new_build(arch).sbuild(sbuild_options=sbuild_options)
 
         if buildable.sourceful_changes_name:
             base = '{}_source.changes'.format(buildable.product_prefix)
@@ -383,6 +385,7 @@ def run(args):
     output_dir = args.output_dir
     output_parent = args.output_parent
     mirrors = args.get_mirrors()
+    sbuild_options = list(args._sbuild_options)
     storage = args.storage
     vendor = args.vendor
 
@@ -497,6 +500,7 @@ def run(args):
             mirrors=mirrors,
             profiles=profiles,
             build_source=args._build_source,
+            sbuild_options=sbuild_options,
             source_only=args._source_only,
             storage=storage,
             source_together=args.sbuild_source_together,
