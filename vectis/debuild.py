@@ -53,6 +53,7 @@ class Buildable:
         self.buildable = buildable
 
         self._product_prefix = None
+        self._source_version = None
         self.arch_wildcards = set()
         self.archs = []
         self.autopkgtest_failures = []
@@ -76,7 +77,6 @@ class Buildable:
         self.sourceful_changes_name = None
         self.suite = None
         self.vendor = vendor
-        self._version = None
 
         if os.path.exists(self.buildable):
             if os.path.isdir(self.buildable):
@@ -84,7 +84,7 @@ class Buildable:
                 changelog = Changelog(open(changelog))
                 self.source_package = changelog.get_package()
                 self.nominal_suite = changelog.distributions
-                self._version = Version(changelog.version)
+                self._source_version = Version(changelog.version)
                 control = os.path.join(self.buildable, 'debian', 'control')
 
                 if len(changelog.distributions.split()) != 1:
@@ -146,24 +146,28 @@ class Buildable:
 
             self.source_package = source
             if version is not None:
-                self._version = Version(version)
+                self._source_version = Version(version)
 
         if self.dsc is not None:
             self.source_package = self.dsc['source']
-            self._version = Version(self.dsc['version'])
+            self._source_version = Version(self.dsc['version'])
             self.arch_wildcards = set(self.dsc['architecture'].split())
             self.binary_packages = [p.strip()
                                     for p in self.dsc['binary'].split(',')]
 
+        if self._source_version is not None:
+            self._binary_version = self._source_version
+            # TODO: Add binNMU suffix or whatever
+
         timestamp = time.strftime('%Y%m%dt%H%M%S', time.gmtime())
 
         if self.output_dir is None:
-            if self._version is None:
+            if self._binary_version is None:
                 dirname = '{}_{}'.format(self.source_package, timestamp)
             else:
                 dirname = '{}_{}_{}'.format(
                     self.source_package,
-                    self._version,
+                    self._binary_version,
                     timestamp)
 
             self.output_dir = os.path.join(output_parent, dirname)
@@ -181,10 +185,10 @@ class Buildable:
             # If we know the version, also create a symbolic link for the
             # latest build of each source/version pair:
             # hello_2.10-1 -> hello_2.10-1_20170319t102623
-            if self._version is not None:
+            if self._binary_version is not None:
                 versioned_symlink = os.path.join(
                     output_parent,
-                    '{}_{}'.format(self.source_package, self._version))
+                    '{}_{}'.format(self.source_package, self._binary_version))
 
                 with suppress(FileNotFoundError):
                     os.unlink(versioned_symlink)
@@ -228,7 +232,7 @@ class Buildable:
     @property
     def product_prefix(self):
         if self._product_prefix is None:
-            version_no_epoch = Version(self.version)
+            version_no_epoch = Version(self.binary_version)
             version_no_epoch.epoch = None
             self._product_prefix = '{}_{}'.format(
                 self.source_package, version_no_epoch)
@@ -236,12 +240,16 @@ class Buildable:
         return self._product_prefix
 
     @property
-    def version(self):
-        return self._version
+    def binary_version(self):
+        return self._binary_version
 
-    @version.setter
-    def version(self, v):
-        self._version = v
+    @property
+    def source_version(self):
+        return self._source_version
+
+    @source_version.setter
+    def source_version(self, v):
+        self._source_version = v
         self._product_prefix = None
 
     def copy_source_to(self, worker):
@@ -270,7 +278,7 @@ class Buildable:
             worker.check_call([
                 'chown', '-R', 'sbuild:sbuild',
                 '{}/in/'.format(worker.scratch)])
-            if self._version.debian_revision is not None:
+            if self._source_version.debian_revision is not None:
                 worker.check_call([
                     'install', '-d', '-m755', '-osbuild', '-gsbuild',
                     '{}/out'.format(worker.scratch)])
@@ -283,7 +291,7 @@ class Buildable:
                             self.buildable, orig_dir,
                             '{}_{}'.format(
                                 self.source_package,
-                                self._version.upstream_version)))
+                                self._source_version.upstream_version)))
 
                     for orig_pattern in (
                             orig_glob_prefix + '.orig.tar.*',
@@ -561,7 +569,7 @@ class Build:
         # Backwards compatibility goo for Debian jessie buildd backport:
         # it can't do "sbuild hello", only "sbuild hello_2.10-1".
         if (self.buildable.source_from_archive and
-                self.buildable.version is None and
+                self.buildable.source_version is None and
                 sbuild_version < Version('0.69.0')):
             lines = chroot.check_output(
                 [
@@ -574,10 +582,10 @@ class Build:
                     self.buildable.source_package,
                 ],
                 universal_newlines=True).strip().splitlines()
-            self.buildable.version = sorted(map(Version, lines))[-1]
+            self.buildable.source_version = sorted(map(Version, lines))[-1]
             self.buildable.buildable = '{}_{}'.format(
                 self.buildable.source_package,
-                self.buildable.version,
+                self.buildable.source_version,
             )
 
         argv = [
@@ -775,7 +783,7 @@ class Build:
 
                 self.buildable.dsc = Dsc(open(copied_back))
                 self.buildable.source_package = self.buildable.dsc['source']
-                self.buildable.version = Version(self.buildable.dsc['version'])
+                self.buildable.source_version = Version(self.buildable.dsc['version'])
                 self.buildable.arch_wildcards = set(
                     self.buildable.dsc['architecture'].split())
                 self.buildable.binary_packages = [
