@@ -62,7 +62,7 @@ def run(args):
     if qemu_ram_size is not None:
         virt.append('--ram-size={}'.format(qemu_ram_size))
 
-    virt.append(image)
+    virt.append(qemu_image)
 
     with VirtWorker(
             virt,
