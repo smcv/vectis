@@ -45,6 +45,7 @@ class Buildable:
             self,
             buildable,
             *,
+            binary_version_suffix='',
             link_builds=(),
             orig_dirs=('..',),
             output_dir=None,
@@ -58,6 +59,7 @@ class Buildable:
         self.archs = []
         self.autopkgtest_failures = []
         self.binary_packages = []
+        self.binary_version_suffix = binary_version_suffix
         self.changes_produced = {}
         self.dirname = None
         self.dsc = None
@@ -156,8 +158,8 @@ class Buildable:
                                     for p in self.dsc['binary'].split(',')]
 
         if self._source_version is not None:
-            self._binary_version = self._source_version
-            # TODO: Add binNMU suffix or whatever
+            self._binary_version = Version(
+                str(self._source_version) + self.binary_version_suffix)
 
         timestamp = time.strftime('%Y%m%dt%H%M%S', time.gmtime())
 
@@ -251,6 +253,8 @@ class Buildable:
     def source_version(self, v):
         self._source_version = v
         self._product_prefix = None
+        self._binary_version = Version(
+            str(self._source_version) + self.binary_version_suffix)
 
     def copy_source_to(self, worker):
         worker.check_call([
@@ -675,6 +679,10 @@ class Build:
 
             for x in self.dpkg_source_options:
                 argv.append('--debbuildopt=--source-option={}'.format(x))
+
+        if self.buildable.binary_version_suffix:
+            argv.append('--append-to-version={}'.format(
+                self.buildable.binary_version_suffix))
 
         for x in sbuild_options:
             argv.append(x)

@@ -461,6 +461,7 @@ def run(args):
     for a in (args._buildables or ['.']):
         buildable = Buildable(
             a,
+            binary_version_suffix=args._append_to_version,
             link_builds=link_builds,
             orig_dirs=orig_dirs,
             output_dir=output_dir,

@@ -562,6 +562,11 @@ p.add_argument(
     default=[], metavar='OPTION',
     help='Add OPTION to all sbuild command-lines',
 )
+p.add_argument(
+    '--append-to-version', dest='_append_to_version', default='',
+    metavar='SUFFIX',
+    help="Add SUFFIX to built binaries' versions",
+)
 
 help = 'Run autopkgtest tests'
 p = subparsers.add_parser(
