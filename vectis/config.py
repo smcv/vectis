@@ -364,7 +364,7 @@ class Config(_ConfigLike):
             except distro_info.DistroDataOutdated:
                 ubuntu_devel = ubuntu.stable()
 
-            d['vendors']['ubuntu']['default_suite'] = ubuntu.devel()
+            d['vendors']['ubuntu']['default_suite'] = ubuntu_devel
             d['vendors']['ubuntu']['default_worker_suite'] = (
                 ubuntu.lts() + '-backports')
             d['vendors']['ubuntu']['suites']['devel'] = {
