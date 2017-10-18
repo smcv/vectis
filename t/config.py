@@ -184,18 +184,18 @@ class DefaultsTestCase(unittest.TestCase):
 
         self.assertEqual(c.piuparts_worker_qemu_image,
                 '{}/m68k/steamrt/scout/autopkgtest.qcow2'.format(
+                    c.storage))
         self.assertEqual(c.piuparts_worker,
                 ['qemu', '--ram-size=512',
                     '{}/m68k/steamrt/scout/autopkgtest.qcow2'.format(
                     c.storage)])
-                    c.storage))
         self.assertEqual(c.sbuild_worker_qemu_image,
                 '{}/m68k/steamos/alchemist/autopkgtest.qcow2'.format(
+                    c.storage))
         self.assertEqual(c.sbuild_worker,
                 ['qemu', '--ram-size=512',
                     '{}/m68k/steamos/alchemist/autopkgtest.qcow2'.format(
                     c.storage)])
-                    c.storage))
         self.assertEqual(c.vmdebootstrap_worker_qemu_image,
                 '{}/m68k/ubuntu/xenial/autopkgtest.qcow2'.format(
                     c.storage))
