@@ -336,6 +336,8 @@ class Config(_ConfigLike):
         except subprocess.CalledProcessError:
             pass
 
+        d['vendors']['debian']['default_suite'] = 'sid'
+
         try:
             import distro_info
         except ImportError:
@@ -343,7 +345,6 @@ class Config(_ConfigLike):
         else:
             debian = distro_info.DebianDistroInfo()
             ubuntu = distro_info.UbuntuDistroInfo()
-            d['vendors']['debian']['default_suite'] = 'sid'
             d['vendors']['debian']['default_worker_suite'] = debian.stable()
             d['vendors']['debian']['suites']['stable'] = {
                 'alias_for': debian.stable(),
