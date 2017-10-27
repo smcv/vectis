@@ -140,6 +140,7 @@ vendors:
                 sbuild_resolver:
                     - "--build-dep-resolver=aptitude"
             "*-backports-sloppy":
+                base: '*-backports'
                 sbuild_resolver:
                     - "--build-dep-resolver=aptitude"
             # *-proposed-updates intentionally omitted because nobody is

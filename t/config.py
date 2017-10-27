@@ -495,6 +495,39 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(c.sbuild_resolver,
                 ['--build-dep-resolver=aptitude'])
 
+    def test_debian_backports_sloppy(self):
+        try:
+            import distro_info
+        except ImportError:
+            return
+
+        c = self.__config
+        c.vendor = 'debian'
+        c.suite = 'stable-backports-sloppy'
+
+        debian = c.get_vendor('debian')
+        self.assertIs(c.vendor, debian)
+        debian_info = distro_info.DebianDistroInfo()
+
+        sloppy = c.get_suite(debian, 'stable-backports-sloppy')
+        backports = c.get_suite(debian, 'stable-backports')
+        stable = c.get_suite(debian, 'stable')
+        self.assertIs(c.suite, sloppy)
+        self.assertEqual(str(sloppy),
+                debian_info.stable() + '-backports-sloppy')
+        self.assertEqual(sloppy.hierarchy[0], sloppy)
+        self.assertEqual(str(sloppy.hierarchy[1]), str(backports))
+        self.assertEqual(str(sloppy.hierarchy[2]), str(stable))
+        self.assertEqual(sloppy.sbuild_resolver,
+                ['--build-dep-resolver=aptitude'])
+        self.assertEqual(
+            c.get_mirrors().lookup_suite(sloppy),
+            'http://192.168.122.1:3142/debian')
+        self.assertEqual(sloppy.archive, 'debian')
+
+        self.assertEqual(c.sbuild_resolver,
+                ['--build-dep-resolver=aptitude'])
+
     def test_debian_stable_security(self):
         c = self.__config
         c.vendor = 'debian'

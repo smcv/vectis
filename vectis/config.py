@@ -1047,6 +1047,8 @@ class Config(_ConfigLike):
         if s is not None:
             return s
 
+        pattern = name
+
         if raw is None and '-' in name:
             base, pocket = name.split('-', 1)
             base = self.get_suite(vendor, base, create=False)
@@ -1060,26 +1062,30 @@ class Config(_ConfigLike):
                     if raw is not None:
                         name = '{}-{}'.format(base, pocket)
                         break
+                else:
+                    pattern = name
 
         if raw is None and not create:
             return None
 
-        if base is None:
-            for r in self._raw:
-                p = r.get('vendors', {}).get(str(vendor), {})
-                s = p.get('suites', {}).get(name, {})
+        for r in self._raw:
+            p = r.get('vendors', {}).get(str(vendor), {})
+            s = p.get('suites', {}).get(pattern, {})
 
-                if 'base' in s:
-                    b = s['base']
+            if 'base' in s:
+                b = s['base']
 
-                    if '/' in b:
-                        v, b = b.split('/', 1)
-                        base_vendor = self.get_vendor(v)
-                    else:
-                        base_vendor = vendor
+                if '/' in b:
+                    v, b = b.split('/', 1)
+                    base_vendor = self.get_vendor(v)
+                else:
+                    base_vendor = vendor
 
-                    base = self.get_suite(base_vendor, b)
-                    break
+                if '*' in b and base is not None:
+                    b = b.replace('*', str(base))
+
+                base = self.get_suite(base_vendor, b)
+                break
 
         s = Suite(name, vendor, self._raw, base=base, pattern=pattern)
         self._suites[(str(vendor), original_name)] = s
