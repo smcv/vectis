@@ -161,3 +161,9 @@ clean-local-pycache:
 	rm -fr vectis/__pycache__
 	rm -fr vectis/commands/__pycache__
 .PHONY: clean-local-pycache
+
+uninstall-local: uninstall-local-pycache
+uninstall-local-pycache:
+	rm -fr $(DESTDIR)$(pkgdatadir)/vectis/__pycache__
+	rm -fr $(DESTDIR)$(pkgdatadir)/vectis/commands/__pycache__
+.PHONY: uninstall-local-pycache
