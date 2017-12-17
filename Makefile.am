@@ -79,9 +79,6 @@ installed_test_metadir = ${datadir}/installed-tests/${PACKAGE_TARNAME}
 
 dist_test_scripts = \
 	t/config.py \
-	${NULL}
-
-dist_slow_test_scripts = \
 	t/debian/autopkgtest.t \
 	t/debian/bootstrap.t \
 	t/debian/new.t \
@@ -89,12 +86,18 @@ dist_slow_test_scripts = \
 	t/ubuntu/new.t \
 	${NULL}
 
+# Only run one of the slow tests at a time, otherwise we'll tend to
+# run out of memory to run all the necessary VMs
+t/debian/bootstrap.log: t/debian/autopkgtest.log
+t/debian/new.log: t/debian/bootstrap.log
+t/debian/sbuild_tarball.log: t/debian/new.log
+t/ubuntu/new.log: t/debian/sbuild_tarball.log
+
 dist_test_extra_scripts = \
 	t/__init__.py \
 	${NULL}
 
 nobase_dist_installed_test_SCRIPTS = \
-	${dist_slow_test_scripts} \
 	${dist_test_scripts} \
 	${dist_test_extra_scripts} \
 	${NULL}
@@ -104,7 +107,6 @@ dist_uninstalled_test_scripts = \
 	${NULL}
 
 nobase_installed_test_meta_DATA = \
-	${dist_slow_test_scripts:=.test} \
 	${dist_test_scripts:=.test} \
 	${NULL}
 
@@ -112,12 +114,6 @@ TESTS = \
 	${dist_test_scripts} \
 	${dist_uninstalled_test_scripts} \
 	${NULL}
-
-check-local:
-	$(MAKE) $(AM_MAKEFLAGS) -j1 \
-		check-TESTS \
-		TESTS='${dist_slow_test_scripts}' \
-		${NULL}
 
 installcheck-local:
 	PATH='${DESTDIR}${bindir}'"$${PATH:+":$$PATH"}"; \
