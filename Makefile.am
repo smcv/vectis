@@ -11,7 +11,6 @@ EXTRA_DIST = \
 	${nodist_bin_SCRIPTS:=.in} \
 	${top_srcdir}/.version \
 	.gitignore \
-	README.md \
 	autogen.sh \
 	build-aux/COPYING.GPL-3 \
 	build-aux/git-version-gen \
