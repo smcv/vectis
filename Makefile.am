@@ -1,8 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4
 
-CLEANFILES = \
-	${nodist_bin_SCRIPTS} \
-	${NULL}
+CLEANFILES =
 
 BUILT_SOURCES = \
 	${top_srcdir}/.version \
@@ -50,6 +48,7 @@ nobase_dist_pkgdata_SCRIPTS = \
 nodist_bin_SCRIPTS = \
 	scripts/vectis \
 	${NULL}
+CLEANFILES += ${nodist_bin_SCRIPTS}
 
 scripts/vectis: scripts/vectis.in Makefile
 	@${MKDIR_P} scripts
@@ -139,6 +138,7 @@ $(nobase_installed_test_meta_DATA): %.test: % Makefile
 		echo 'Output=TAP'; \
 		echo 'Exec=sh -c '"'"'$${VECTIS_DESTDIR}$(installed_testdir)/$*'"'"; \
 	) > $@.tmp && mv $@.tmp $@
+CLEANFILES += $(nobase_installed_test_meta_DATA)
 
 @GENERATE_CHANGELOG_RULES@
 
