@@ -20,6 +20,7 @@ EXTRA_DIST = \
 nobase_dist_pkgdata_DATA = \
 	vectis/__init__.py \
 	vectis/__main__.py \
+	vectis/apt.py \
 	vectis/autopkgtest.py \
 	vectis/commands/__init__.py \
 	vectis/commands/autopkgtest.py \
@@ -27,6 +28,7 @@ nobase_dist_pkgdata_DATA = \
 	vectis/commands/lxc_tarballs.py \
 	vectis/commands/minbase_tarball.py \
 	vectis/commands/new.py \
+	vectis/commands/piuparts.py \
 	vectis/commands/run.py \
 	vectis/commands/sbuild.py \
 	vectis/commands/sbuild_tarball.py \
@@ -36,6 +38,7 @@ nobase_dist_pkgdata_DATA = \
 	vectis/error.py \
 	vectis/keys/buildd.debian.org_archive_key_2017_2018.gpg \
 	vectis/lxc.py \
+	vectis/piuparts.py \
 	vectis/util.py \
 	vectis/worker.py \
 	${NULL}
