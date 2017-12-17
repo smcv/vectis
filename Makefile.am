@@ -35,6 +35,7 @@ nobase_dist_pkgdata_DATA = \
 	vectis/debuild.py \
 	vectis/defaults.yaml \
 	vectis/error.py \
+	vectis/keys/buildd.debian.org_archive_key_2017_2018.gpg \
 	vectis/lxc.py \
 	vectis/util.py \
 	vectis/worker.py \
