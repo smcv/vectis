@@ -652,6 +652,10 @@ def main():
         return
 
     try:
+        if args._subcommand == None:
+            parser.print_usage()
+            raise SystemExit(1)
+
         importlib.import_module(
             'vectis.commands.' + args._subcommand.replace('-', '_')).run(args)
     except KeyboardInterrupt:
