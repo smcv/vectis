@@ -897,6 +897,7 @@ class Config(_ConfigLike):
             if self.qemu_ram_size is not None:
                 value.append('--ram-size={}'.format(self.qemu_ram_size // _1M))
 
+            value.append('--cpus={}'.format(self.parallel))
             value.append(self.worker_qemu_image)
 
         return value
@@ -911,6 +912,7 @@ class Config(_ConfigLike):
             if self.qemu_ram_size is not None:
                 value.append('--ram-size={}'.format(self.qemu_ram_size // _1M))
 
+            value.append('--cpus={}'.format(self.parallel))
             value.append(self.lxc_worker_qemu_image)
 
         return value
@@ -925,6 +927,7 @@ class Config(_ConfigLike):
             if self.qemu_ram_size is not None:
                 value.append('--ram-size={}'.format(self.qemu_ram_size // _1M))
 
+            value.append('--cpus={}'.format(self.parallel))
             value.append(self.piuparts_worker_qemu_image)
 
         return value
@@ -939,6 +942,7 @@ class Config(_ConfigLike):
             if self.qemu_ram_size is not None:
                 value.append('--ram-size={}'.format(self.qemu_ram_size // _1M))
 
+            value.append('--cpus={}'.format(self.parallel))
             value.append(self.sbuild_worker_qemu_image)
 
         return value
@@ -970,6 +974,7 @@ class Config(_ConfigLike):
             if self.qemu_ram_size is not None:
                 value.append('--ram-size={}'.format(self.qemu_ram_size // _1M))
 
+            value.append('--cpus={}'.format(self.parallel))
             value.append(self.vmdebootstrap_worker_qemu_image)
 
         return value

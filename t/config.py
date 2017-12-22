@@ -155,6 +155,7 @@ class DefaultsTestCase(unittest.TestCase):
         c.suite = 'potato'
         c.worker_suite = 'sarge'
         c.qemu_ram_size = '512M'
+        c.parallel = 1
         c.sbuild_worker_suite = 'alchemist'
         c.sbuild_worker_vendor = 'steamos'
         c.piuparts_worker_suite = 'scout'
@@ -178,7 +179,7 @@ class DefaultsTestCase(unittest.TestCase):
                 '{}/m68k/debian/sarge/autopkgtest.qcow2'.format(
                     c.storage))
         self.assertEqual(c.worker,
-                ['qemu', '--ram-size=512',
+                ['qemu', '--ram-size=512', '--cpus=1',
                     '{}/m68k/debian/sarge/autopkgtest.qcow2'.format(
                     c.storage)])
 
@@ -186,21 +187,21 @@ class DefaultsTestCase(unittest.TestCase):
                 '{}/m68k/steamrt/precise/autopkgtest.qcow2'.format(
                     c.storage))
         self.assertEqual(c.piuparts_worker,
-                ['qemu', '--ram-size=512',
+                ['qemu', '--ram-size=512', '--cpus=1',
                     '{}/m68k/steamrt/precise/autopkgtest.qcow2'.format(
                     c.storage)])
         self.assertEqual(c.sbuild_worker_qemu_image,
                 '{}/m68k/steamos/alchemist/autopkgtest.qcow2'.format(
                     c.storage))
         self.assertEqual(c.sbuild_worker,
-                ['qemu', '--ram-size=512',
+                ['qemu', '--ram-size=512', '--cpus=1',
                     '{}/m68k/steamos/alchemist/autopkgtest.qcow2'.format(
                     c.storage)])
         self.assertEqual(c.vmdebootstrap_worker_qemu_image,
                 '{}/m68k/ubuntu/xenial/autopkgtest.qcow2'.format(
                     c.storage))
         self.assertEqual(c.vmdebootstrap_worker,
-                ['qemu', '--ram-size=512',
+                ['qemu', '--ram-size=512', '--cpus=1',
                     '{}/m68k/ubuntu/xenial/autopkgtest.qcow2'.format(
                     c.storage)])
 
