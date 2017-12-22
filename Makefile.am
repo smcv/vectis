@@ -23,6 +23,7 @@ EXTRA_DIST = \
 nobase_dist_pkgdata_DATA = \
 	vectis/__init__.py \
 	vectis/__main__.py \
+	vectis/apt.py \
 	vectis/autopkgtest.py \
 	vectis/commands/__init__.py \
 	vectis/commands/autopkgtest.py \
@@ -38,6 +39,7 @@ nobase_dist_pkgdata_DATA = \
 	vectis/defaults.yaml \
 	vectis/error.py \
 	vectis/lxc.py \
+	vectis/piuparts.py \
 	vectis/util.py \
 	vectis/worker.py \
 	${NULL}
