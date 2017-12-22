@@ -653,7 +653,7 @@ def main():
 
     try:
         if args._subcommand is None:
-            parser.print_usage()
+            parser.print_help()
             raise SystemExit(1)
 
         importlib.import_module(
