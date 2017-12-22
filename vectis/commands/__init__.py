@@ -652,7 +652,7 @@ def main():
         return
 
     try:
-        if args._subcommand == None:
+        if args._subcommand is None:
             parser.print_usage()
             raise SystemExit(1)
 
