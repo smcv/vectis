@@ -55,6 +55,7 @@ class Buildable:
 
         self._product_prefix = None
         self._source_version = None
+        self._binary_version = None
         self.arch_wildcards = set()
         self.archs = []
         self.autopkgtest_failures = []
