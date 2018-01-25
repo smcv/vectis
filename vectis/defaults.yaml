@@ -69,8 +69,7 @@ defaults:
         - qemu
     piuparts_tarballs:
         - minbase.tar.gz
-        # TODO: also minbase-merged-usr.tar.gz when #815084 is fixed in
-        # a version of piuparts we can use
+        - minbase-merged-usr.tar.gz
 
     parallel: null
     sbuild_indep_together: false
@@ -123,9 +122,13 @@ vendors:
                     - "--mbr"
                     - "--no-grub"
                     - "--enable-dhcp"
+                piuparts_tarballs:
+                    - minbase.tar.gz
             jessie:
                 kernel_package:
                     i386: linux-image-586
+                piuparts_tarballs:
+                    - minbase.tar.gz
             sid: {}
             unstable:
                 alias_for: sid
