@@ -571,8 +571,9 @@ class Build:
     def _sbuild(self, chroot, sbuild_options=()):
         sbuild_version = self.worker.dpkg_version('sbuild')
 
-        # Backwards compatibility goo for Debian jessie buildd backport:
-        # it can't do "sbuild hello", only "sbuild hello_2.10-1".
+        # Backwards compatibility for Debian jessie buildd backport
+        # and for Ubuntu xenial: it can't do "sbuild hello", only
+        # "sbuild hello_2.10-1".
         if (self.buildable.source_from_archive and
                 self.buildable.source_version is None and
                 sbuild_version < Version('0.69.0')):
@@ -632,6 +633,7 @@ class Build:
             argv.append('-A')
 
             # Backwards compatibility goo for Debian jessie buildd backport
+            # and for sbuild in Ubuntu xenial
             if sbuild_version < Version('0.69.0'):
                 argv.append('--arch-all-only')
             else:
