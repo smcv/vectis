@@ -260,12 +260,15 @@ def run_autopkgtest(
                     'autopkgtest_{}_{}'.format(test, architecture))
 
             if test == 'qemu':
+                test = 'qemu:autopkgtest.qcow2'
+
+            if test.startswith('qemu:'):
                 image = os.path.join(
                     storage,
                     architecture,
                     str(vendor),
                     str(suite.hierarchy[-1]),
-                    'autopkgtest.qcow2')
+                    test[len('qemu:'):])
 
                 if not image or not os.path.exists(image):
                     logger.info('Required image %s does not exist', image)

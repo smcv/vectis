@@ -66,7 +66,8 @@ defaults:
 
     autopkgtest:
         - schroot
-        - qemu
+        - qemu:autopkgtest.qcow2
+        - qemu:autopkgtest-merged-usr.qcow2
     piuparts_tarballs:
         - minbase.tar.gz
         - minbase-merged-usr.tar.gz
@@ -98,7 +99,8 @@ vendors:
     debian:
         autopkgtest:
             - lxc
-            - qemu
+            - qemu:autopkgtest.qcow2
+            - qemu:autopkgtest-merged-usr.qcow2
         extra_components: contrib non-free
         worker_vendor: debian
         apt_key_package: debian-archive-keyring
@@ -124,11 +126,17 @@ vendors:
                     - "--enable-dhcp"
                 piuparts_tarballs:
                     - minbase.tar.gz
+                autopkgtest:
+                    - lxc
+                    - qemu:autopkgtest.qcow2
             jessie:
                 kernel_package:
                     i386: linux-image-586
                 piuparts_tarballs:
                     - minbase.tar.gz
+                autopkgtest:
+                    - lxc
+                    - qemu:autopkgtest.qcow2
             sid: {}
             unstable:
                 alias_for: sid
