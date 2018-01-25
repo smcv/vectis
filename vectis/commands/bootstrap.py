@@ -33,9 +33,12 @@ def run(args):
     out = args.write_qemu_image
     qemu_image_size = args.qemu_image_size
     storage = args.storage
-    suite = args.suite
+    vendor = args.vendor
+    suite = args.get_suite(vendor, args.suite)
     uri = args._uri
     vmdebootstrap_options = args.vmdebootstrap_options
+    default_dir = os.path.join(
+        storage, architecture, str(vendor), str(suite))
 
     if uri is None:
         uri = mirrors.lookup_suite(suite)
@@ -47,8 +50,13 @@ def run(args):
     except:
         # non-dpkg host, guess a recent version
         version = Version('1.7')
+        debootstrap_version = Version('1.0.89')
     else:
         version = Version(version)
+        debootstrap_version = subprocess.check_output(
+            ['dpkg-query', '-W', '-f${Version}', 'debootstrap'],
+            universal_newlines=True).rstrip('\n')
+        debootstrap_version = Version(debootstrap_version)
 
     with TemporaryDirectory(prefix='vectis-bootstrap-') as scratch:
         argv = [
@@ -58,16 +66,19 @@ def run(args):
                 'vectis-command-wrapper'),
             '--',
         ]
-        argv.extend(
-            vmdebootstrap_argv(
-                version,
-                architecture=architecture,
-                kernel_package=kernel_package,
-                qemu_image_size=qemu_image_size,
-                suite=suite,
-                uri=uri,
-            ),
+        vmdb_argv, debootstrap_argv, default_name = vmdebootstrap_argv(
+            version,
+            architecture=architecture,
+            components=args.components,
+            debootstrap_version=debootstrap_version,
+            kernel_package=kernel_package,
+            qemu_image_size=qemu_image_size,
+            suite=suite,
+            uri=uri,
+            merged_usr=args._merged_usr,
         )
+        argv.extend(vmdb_argv)
+        argv.append('--debootstrapopts=' + ' '.join(debootstrap_argv))
         argv.extend(vmdebootstrap_options)
         argv.append(
             '--customize={}'.format(os.path.join(
@@ -82,6 +93,10 @@ def run(args):
             '{}/output.raw'.format(scratch),
             '{}/output.qcow2'.format(scratch),
         ])
+
+        if out is None:
+            out = os.path.join(default_dir, default_name)
+
         os.makedirs(os.path.dirname(out) or os.curdir, exist_ok=True)
         shutil.move('{}/output.qcow2'.format(scratch), out + '.new')
 

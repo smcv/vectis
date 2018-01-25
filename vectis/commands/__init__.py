@@ -201,6 +201,11 @@ p.add_argument(
     '--uri', dest='_uri', default=None,
     help='apt URI, e.g. http://mirror/debian [default: auto]',
 )
+p.add_argument(
+    '--merged-usr', '--usrmerge', dest='_merged_usr',
+    default=False, action='store_true',
+    help="carry out the /usr merge [default: don't]",
+)
 
 help = 'Create an autopkgtest virtual machine'
 p = subparsers.add_parser(
@@ -234,6 +239,11 @@ p.add_argument(
 p.add_argument(
     '--uri', dest='_uri', default=None,
     help='apt URI, e.g. http://mirror/debian [default: auto]',
+)
+p.add_argument(
+    '--merged-usr', '--usrmerge', dest='_merged_usr',
+    default=False, action='store_true',
+    help="carry out the /usr merge [default: don't]",
 )
 
 help = ('Run a script or command, which may write output to ./out/ or '

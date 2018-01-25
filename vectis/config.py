@@ -875,17 +875,7 @@ class Config(_ConfigLike):
 
     @property
     def write_qemu_image(self):
-        value = self['write_qemu_image']
-
-        if value is None:
-            value = self['qemu_image']
-
-        if '/' not in value:
-            return os.path.join(
-                self.storage, self.architecture,
-                str(self.vendor), str(self.suite.hierarchy[-1]), value)
-
-        return value
+        return self['write_qemu_image']
 
     @property
     def worker(self):

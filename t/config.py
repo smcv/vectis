@@ -103,9 +103,6 @@ class DefaultsTestCase(unittest.TestCase):
             self.assertEqual(c.qemu_image,
                     '{}/vectis/{}/debian/sid/autopkgtest.qcow2'.format(
                         XDG_CACHE_HOME, ARCHITECTURE))
-            self.assertEqual(c.write_qemu_image,
-                    '{}/vectis/{}/debian/sid/autopkgtest.qcow2'.format(
-                        XDG_CACHE_HOME, ARCHITECTURE))
             self.assertEqual(c.worker_architecture, ARCHITECTURE)
             self.assertEqual(c.worker,
                     ['qemu', c.worker_qemu_image])

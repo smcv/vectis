@@ -22,10 +22,14 @@ def vmdebootstrap_argv(
         version,
         *,
         architecture,
+        components,
+        debootstrap_version,
         kernel_package,
+        merged_usr,
         qemu_image_size,
         suite,
         uri):
+    default_name = 'autopkgtest.qcow2'
     argv = [
         'env',
         # We use apt-cacher-ng in non-proxy mode, to make it easier to
@@ -56,17 +60,34 @@ def vmdebootstrap_argv(
             argv.append('--no-kernel')
             argv.append('--package={}'.format(kernel_package))
 
-    return argv
+    debootstrap_args = []
+
+    debootstrap_args.append('components={}'.format(
+        ','.join(components)))
+
+    if debootstrap_version >= Version('1.0.86~'):
+        if merged_usr:
+            debootstrap_args.append('merged-usr')
+            default_name = 'autopkgtest-merged-usr.qcow2'
+        else:
+            # piuparts really doesn't like merged /usr
+            debootstrap_args.append('no-merged-usr')
+
+    return argv, debootstrap_args, default_name
 
 
 def new_ubuntu_cloud(
         *,
         architecture,
+        default_dir,
         out,
         qemu_image_size,
         suite,
         uri,
         vendor):
+    if out is None:
+        out = os.path.join(default_dir, 'autopkgtest.qcow2')
+
     out_dir = os.path.dirname(out) or os.curdir
     argv = ['autopkgtest-buildvm-ubuntu-cloud']
 
@@ -87,7 +108,7 @@ def new_ubuntu_cloud(
             os.unlink(image)
         raise
     else:
-        return image
+        return image, out
 
 
 def new(
@@ -96,7 +117,9 @@ def new(
         apt_key_package,
         architecture,
         components,
+        default_dir,
         kernel_package,
+        merged_usr,
         mirrors,
         out,
         qemu_image_size,
@@ -167,18 +190,20 @@ def new(
                 p])
 
         version = worker.dpkg_version('vmdebootstrap')
+        debootstrap_version = worker.dpkg_version('debootstrap')
 
-        argv = vmdebootstrap_argv(
+        argv, debootstrap_args, default_name = vmdebootstrap_argv(
             version,
             architecture=architecture,
+            components=components,
+            debootstrap_version=debootstrap_version,
             kernel_package=kernel_package,
             qemu_image_size=qemu_image_size,
             suite=suite,
             uri=uri,
+            merged_usr=merged_usr,
         )
         argv.extend(vmdebootstrap_options)
-
-        debootstrap_args = []
 
         if worker.call(['test', '-f', apt_key]) == 0:
             logger.info('Found apt key worker:{}'.format(apt_key))
@@ -193,9 +218,6 @@ def new(
         else:
             logger.warning('Apt key host:{} not found; leaving it out and '
                            'hoping for the best'.format(apt_key))
-
-        debootstrap_args.append('components={}'.format(
-            ','.join(components)))
 
         if debootstrap_args:
             argv.append('--debootstrapopts={}'.format(
@@ -221,10 +243,15 @@ def new(
             '{}/output.raw'.format(worker.scratch),
             '{}/output.qcow2'.format(worker.scratch),
         ])
+
+        if out is None:
+            out = os.path.join(default_dir, default_name)
+
+        os.makedirs(os.path.dirname(out) or os.curdir, exist_ok=True)
         worker.copy_to_host(
             '{}/output.qcow2'.format(worker.scratch), out + '.new')
 
-    return out + '.new'
+    return out + '.new', out
 
 
 def run(args):
@@ -243,35 +270,38 @@ def run(args):
     mirrors = args.get_mirrors()
     out = args.write_qemu_image
     qemu_image_size = args.qemu_image_size
-    storage=args.storage
-    suite = args.suite
+    storage = args.storage
     uri = args._uri
     vendor = args.vendor
+    suite = args.get_suite(vendor, args.suite)
     vmdebootstrap_options = args.vmdebootstrap_options
     vmdebootstrap_worker = args.vmdebootstrap_worker
     vmdebootstrap_worker_suite = args.vmdebootstrap_worker_suite
+    default_dir = os.path.join(
+        storage, architecture, str(vendor), str(suite))
 
     if uri is None:
         uri = mirrors.lookup_suite(suite)
 
-    os.makedirs(os.path.dirname(out) or os.curdir, exist_ok=True)
-
     if False:
-        created = new_ubuntu_cloud(
+        created, out = new_ubuntu_cloud(
             architecture=architecture,
+            default_dir=default_dir,
             out=out,
             qemu_image_size=qemu_image_size,
-            suite=str(args.get_suite(vendor, suite)),
+            suite=suite,
             uri=uri,
             vendor=vendor,
         )
     else:
-        created = new(
+        created, out = new(
             apt_key=apt_key,
             apt_key_package=apt_key_package,
             architecture=architecture,
             components=components,
+            default_dir=default_dir,
             kernel_package=kernel_package,
+            merged_usr=args._merged_usr,
             mirrors=mirrors,
             out=out,
             qemu_image_size=qemu_image_size,
