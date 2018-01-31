@@ -81,6 +81,5 @@ class AptSource:
         return '{}{} {} {}'.format(
             option_str,
             self.uri,
-            self.suite,
             ' '.join(self.components),
         )
