@@ -15,6 +15,8 @@ from vectis.worker import (
 
 logger = logging.getLogger(__name__)
 
+_1M = 1024 * 1024
+
 
 def run(args):
     if args.suite is None:
@@ -60,7 +62,7 @@ def run(args):
     virt = ['qemu']
 
     if qemu_ram_size is not None:
-        virt.append('--ram-size={}'.format(qemu_ram_size))
+        virt.append('--ram-size={}'.format(qemu_ram_size // _1M))
 
     virt.append(qemu_image)
 
