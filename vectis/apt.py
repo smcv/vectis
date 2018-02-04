@@ -78,7 +78,7 @@ class AptSource:
         if options:
             option_str = '[' + ' '.join(options) + '] '
 
-        return '{}{} {} {}'.format(
+        return '{}{} {}'.format(
             option_str,
             self.uri,
             ' '.join(self.components),
