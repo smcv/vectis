@@ -14,6 +14,18 @@ from vectis.error import Error
 
 import yaml
 
+try:
+    import typing
+except ImportError:
+    pass
+else:
+    from typing import (
+        Mapping,
+        Optional,
+        Sequence,
+        Set,
+    )
+
 
 class ConfigError(Error):
     pass
@@ -33,12 +45,14 @@ _1M = 1024 * 1024
 class Mirrors:
 
     def __init__(self, mapping):
+        # type: (Mapping[str, str]) -> None
         if mapping is None:
-            self._raw = {}
+            self._raw = {}      # type: Mapping[str, str]
         else:
             self._raw = mapping
 
     def _lookup_template(self, suite):
+        # type: (Suite,) -> Optional[str]
         for uri in suite.uris:
             value = self._raw.get(uri)
 
@@ -63,6 +77,7 @@ class Mirrors:
         return None
 
     def lookup_suite(self, suite):
+        # type: (Suite,) -> Optional[str]
         t = self._lookup_template(suite)
 
         if t is None:
@@ -79,6 +94,7 @@ class _ConfigLike:
         self._raw = None
 
     def _get_string_set(self, name):
+        # type: (str,) -> Set[str]
         value = self[name]
 
         if value is None:
@@ -89,18 +105,22 @@ class _ConfigLike:
             return set(value)
 
     def _get_int(self, name):
+        # type: (str,) -> int
         return int(self[name])
 
     @property
     def all_components(self):
+        # type: () -> Set[str]
         return self.components | self.extra_components
 
     @property
     def components(self):
+        # type: () -> Set[str]
         return self._get_string_set('components')
 
     @property
     def extra_components(self):
+        # type: () -> Set[str]
         return self._get_string_set('extra_components')
 
 
@@ -971,6 +991,7 @@ class Config(_ConfigLike):
 
     @property
     def vmdebootstrap_options(self):
+        # type: () -> Sequence[str]
         return self.suite['vmdebootstrap_options']
 
     @property

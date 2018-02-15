@@ -3,17 +3,31 @@
 # (see vectis/__init__.py)
 
 
+try:
+    import typing
+except ImportError:
+    pass
+else:
+    from typing import (
+        Optional,
+        Sequence,
+        Set,
+    )
+
+
 class AptSource:
 
     def __init__(
             self,
-            other=None,
+            other=None,                 # type: Optional[AptSource]
             *,
-            components=None,
-            suite=None,
-            trusted=None,
-            type=None,
-            uri=None):
+            components=None,            # type: Optional[Sequence[str]]
+            suite=None,                 # type: Optional[str]
+            trusted=None,               # type: Optional[bool]
+            type=None,                  # type: Optional[str]
+            uri=None,                   # type: Optional[str]
+    ):
+        # type: (...) -> None
         assert type in (None, 'deb', 'deb-src'), type
         assert not isinstance(components, str), components
         # TODO: If other is a str, parse it
@@ -44,13 +58,14 @@ class AptSource:
         assert isinstance(type, str)
         assert isinstance(uri, str)
 
-        self.components = set(components)
-        self.suite = suite
-        self.trusted = bool(trusted)
-        self.type = type
-        self.uri = uri
+        self.components = set(components)   # type: Set[str]
+        self.suite = suite                  # type: str
+        self.trusted = bool(trusted)        # type: bool
+        self.type = type                    # type: str
+        self.uri = uri                      # type: str
 
     def __str__(self):
+        # type: () -> str
         options = []
         option_str = ''
 
@@ -69,6 +84,7 @@ class AptSource:
         )
 
     def get_piuparts_mirror_option(self):
+        # type: () -> str
         options = []
         option_str = ''
 
