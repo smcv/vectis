@@ -85,6 +85,7 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
             built_binaries,
             output_dir=None,
             run_as=None,
+            source_dir=None,
             source_dsc=None,
             source_package=None):
         argv = self.argv[:]
@@ -109,6 +110,9 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
             argv.append('{}/{}'.format(d, f))
         elif source_package is not None:
             argv.append(source_package)
+        elif source_dir is not None:
+            argv.append(
+                self.worker.make_file_available(source_dir, owner=run_as))
         else:
             logger.warning('Nothing to test')
             return False
@@ -234,6 +238,7 @@ def run_autopkgtest(
         output_logs=None,
         qemu_ram_size=None,
         schroot_worker=None,
+        source_dir=None,
         source_dsc=None,
         source_package=None):
     failures = []
@@ -425,6 +430,7 @@ def run_autopkgtest(
                     built_binaries=built_binaries,
                     output_dir=output_on_worker,
                     run_as=run_as,
+                    source_dir=source_dir,
                     source_dsc=source_dsc,
                     source_package=source_package,
             ):

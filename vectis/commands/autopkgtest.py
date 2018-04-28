@@ -31,6 +31,12 @@ class Source:
             *,
             dsc=None):
         self.name = name
+
+        if os.path.isdir(name):
+            self.dir = name
+        else:
+            self.dir = None
+
         self.dsc = dsc
         self.failures = []
 
@@ -77,17 +83,23 @@ def _autopkgtest(
 
             elif thing.endswith('.deb'):
                 binaries.append(thing)
+
+            elif os.path.isdir(thing):
+                sources.append(Source(thing))
         else:
             sources.append(Source(thing))
 
     failures = set()
 
     for source in sources:
+        source_dir = None
         source_dsc = None
         source_package = None
 
         if source.dsc is not None:
             source_dsc = source.name
+        elif source.dir is not None:
+            source_dir = source.dir
         else:
             source_package = source.name
 
@@ -106,6 +118,7 @@ def _autopkgtest(
                 modes=modes,
                 qemu_ram_size=qemu_ram_size,
                 schroot_worker=schroot_worker,
+                source_dir=source_dir,
                 source_dsc=source_dsc,
                 source_package=source_package,
                 storage=storage,
