@@ -498,9 +498,16 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
                 'Cannot copy host:{!r} to guest: it does not '
                 'exist'.format(host_path))
 
-        self.virt_process.stdin.write('copydown {} {}\n'.format(
+        if os.path.isdir(host_path):
+            suffix = '/'
+        else:
+            suffix = ''
+
+        self.virt_process.stdin.write('copydown {}{} {}{}\n'.format(
             urllib.parse.quote(host_path),
+            suffix,
             urllib.parse.quote(guest_path),
+            suffix,
         ))
         self.virt_process.stdin.flush()
         line = self.virt_process.stdout.readline()
@@ -589,7 +596,7 @@ class VirtWorker(InteractiveWorker, ContainerWorker, FileProvider):
 
         if owner is not None:
             self.check_call([
-                'chown', owner, '{}/{}'.format(in_dir, unique),
+                'chown', '-R', owner, '{}/{}'.format(in_dir, unique),
                 in_guest,
             ])
 
