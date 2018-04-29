@@ -24,6 +24,7 @@ def vmdebootstrap_argv(
         architecture,
         components,
         debootstrap_version,
+        include=(),
         kernel_package,
         merged_usr,
         qemu_image_size,
@@ -59,6 +60,9 @@ def vmdebootstrap_argv(
         else:
             argv.append('--no-kernel')
             argv.append('--package={}'.format(kernel_package))
+
+    for package in include:
+        argv.append('--package={}'.format(package))
 
     debootstrap_args = []
 
@@ -118,6 +122,7 @@ def new(
         architecture,
         components,
         default_dir,
+        include=(),
         kernel_package,
         merged_usr,
         mirrors,
@@ -197,6 +202,7 @@ def new(
             architecture=architecture,
             components=components,
             debootstrap_version=debootstrap_version,
+            include=include,
             kernel_package=kernel_package,
             qemu_image_size=qemu_image_size,
             suite=suite,
@@ -267,6 +273,7 @@ def run(args):
     components = args.components
     keep = args._keep
     kernel_package = args.get_kernel_package(architecture)
+    include=args._include
     mirrors = args.get_mirrors()
     out = args.write_qemu_image
     qemu_image_size = args.qemu_image_size
@@ -301,6 +308,7 @@ def run(args):
             components=components,
             default_dir=default_dir,
             kernel_package=kernel_package,
+            include=include,
             merged_usr=args._merged_usr,
             mirrors=mirrors,
             out=out,

@@ -245,6 +245,11 @@ p.add_argument(
     default=False, action='store_true',
     help="carry out the /usr merge [default: don't]",
 )
+p.add_argument(
+    '--include', action='append', default=[],
+    dest='_include',
+    help='Add an extra package to the image (may be repeated)',
+)
 
 help = ('Run a script or command, which may write output to ./out/ or '
         'equivalently $VECTIS_OUT or $AUTOPKGTEST_ARTIFACTS, and may '
