@@ -26,8 +26,8 @@ def run(args):
     suite = args.suite
     uri = args._uri
     vendor = args.vendor
-    worker_argv = args.worker
-    worker_suite = args.worker_suite
+    worker_argv = args.lxc_worker
+    worker_suite = args.lxc_worker_suite
 
     apt_key_package = args.apt_key_package
     lxc_24bit_subnet = args.lxc_24bit_subnet
