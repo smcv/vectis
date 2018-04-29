@@ -51,6 +51,7 @@ def _autopkgtest(
         built_binaries,
         lxc_24bit_subnet,
         lxc_worker,
+        lxd_worker,
         mirrors,
         modes,
         qemu_ram_size,
@@ -114,6 +115,7 @@ def _autopkgtest(
                 extra_repositories=extra_repositories,
                 lxc_24bit_subnet=lxc_24bit_subnet,
                 lxc_worker=lxc_worker,
+                lxd_worker=lxd_worker,
                 mirrors=mirrors,
                 modes=modes,
                 qemu_ram_size=qemu_ram_size,
@@ -159,6 +161,17 @@ def run(args, really=True):
             suite=args.lxc_worker_suite,
         )
 
+    if (args.lxd_worker == args.worker and
+            args.lxd_worker_suite == args.worker_suite):
+        lxd_worker = worker
+    else:
+        lxd_worker = VirtWorker(
+            args.lxd_worker,
+            mirrors=mirrors,
+            storage=args.storage,
+            suite=args.lxd_worker_suite,
+        )
+
     failures = _autopkgtest(
         args._things,
         architecture=args.architecture,
@@ -166,6 +179,7 @@ def run(args, really=True):
         extra_repositories=args._extra_repository,
         lxc_24bit_subnet=args.lxc_24bit_subnet,
         lxc_worker=lxc_worker,
+        lxd_worker=lxd_worker,
         worker=worker,
         mirrors=mirrors,
         modes=args.autopkgtest,

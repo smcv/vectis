@@ -21,6 +21,7 @@ from debian.deb822 import (
 
 from vectis.lxc import (
     set_up_lxc_net,
+    set_up_lxd_net,
 )
 from vectis.worker import (
     ContainerWorker,
@@ -235,6 +236,7 @@ def run_autopkgtest(
         extra_repositories=(),
         lxc_24bit_subnet=None,
         lxc_worker=None,
+        lxd_worker=None,
         output_logs=None,
         qemu_ram_size=None,
         schroot_worker=None,
@@ -245,6 +247,9 @@ def run_autopkgtest(
 
     if lxc_worker is None:
         lxc_worker = worker
+
+    if lxd_worker is None:
+        lxd_worker = worker
 
     if schroot_worker is None:
         schroot_worker = worker
@@ -407,6 +412,54 @@ def run_autopkgtest(
 
                 output_on_worker = worker.new_directory()
                 virt = ['lxc', container]
+
+            elif test == 'lxd':
+                container = 'autopkgtest/{}/{}/{}'.format(
+                    vendor,
+                    suite.hierarchy[-1],
+                    architecture,
+                )
+                tarball = os.path.join(
+                    storage,
+                    architecture,
+                    str(vendor),
+                    str(suite.hierarchy[-1]),
+                    'lxd-autopkgtest.tar.gz')
+
+                if not os.path.exists(tarball):
+                    logger.info('Required tarball %s does not exist', tarball)
+                    continue
+
+                worker=stack.enter_context(lxd_worker)
+                worker.check_call([
+                    'env',
+                    'DEBIAN_FRONTEND=noninteractive',
+                    'apt-get',
+                    '-y',
+                    '-t', lxd_worker.suite.apt_suite,
+                    'install',
+
+                    'autopkgtest',
+                    'lxd',
+                    'lxd-client',
+                    'python3',
+                ])
+                worker.check_call([
+                    'lxd',
+                    'init',
+                    '--auto',
+                    '--debug',
+                    '--verbose',
+                ])
+                set_up_lxd_net(worker, lxc_24bit_subnet)
+                worker.check_call([
+                    'lxc', 'image', 'import',
+                    '--alias={}'.format(container),
+                    worker.make_file_available(tarball, cache=True),
+                ])
+
+                output_on_worker = worker.new_directory()
+                virt = ['lxd', container]
 
             else:
                 logger.warning('Unknown autopkgtest setup: {}'.format(test))

@@ -45,6 +45,12 @@ defaults:
     lxc_worker_architecture: null
     lxc_worker: null
 
+    lxd_worker_qemu_image: apparmor.qcow2
+    lxd_worker_suite: null
+    lxd_worker_vendor: ubuntu
+    lxd_worker_architecture: null
+    lxd_worker: null
+
     sbuild_worker_qemu_image: null
     sbuild_worker_suite: null
     sbuild_worker_vendor: null
