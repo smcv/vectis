@@ -41,3 +41,17 @@ def set_up_lxc_net(worker, subnet):
     worker.check_call(['systemctl', 'enable', 'lxc-net'])
     worker.check_call(['systemctl', 'stop', 'lxc-net'])
     worker.check_call(['systemctl', 'start', 'lxc-net'])
+
+
+def set_up_lxd_net(worker, subnet):
+    worker.check_call([
+        'lxc', 'network', 'create', 'lxdbr0',
+        'ipv4.address={subnet}.1/24'.format(subnet=subnet),
+        'ipv4.nat=true',
+        '--force-local',
+    ])
+    worker.check_call([
+        'lxc', 'network', 'attach-profile', 'lxdbr0',
+        'default', 'eth0',
+        '--force-local',
+    ])

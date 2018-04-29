@@ -385,6 +385,27 @@ p.add_argument(
     help='apt URI, e.g. http://mirror/debian-security [default: auto]',
 )
 
+help = 'Create LXD tarball'
+p = subparsers.add_parser(
+    'lxd-tarball',
+    help=help, description=help,
+    argument_default=argparse.SUPPRESS,
+    parents=(base,),
+)
+add_worker_options(p, context='lxd', context_implicit=True)
+p.add_argument(
+    '--suite',
+    help='Release suite [default: {}]'.format(args.lxd_worker_suite),
+)
+p.add_argument(
+    '--architecture', '--arch',
+    help='dpkg architecture [default: {}]'.format(args.architecture),
+)
+p.add_argument(
+    '--uri', dest='_uri', default=None,
+    help='apt URI, e.g. http://mirror/debian [default: auto]',
+)
+
 help = 'Build a Debian package with sbuild'
 p = subparsers.add_parser(
     'sbuild',
