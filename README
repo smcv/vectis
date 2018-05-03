@@ -119,6 +119,16 @@ Usage
     Create a lxc container that can be copied into a virtual machine and
     run. vectis uses this for autopkgtest.
 
+- `vectis lxd-tarball`
+
+    Create a lxd container that can be copied into a virtual machine and
+    run. vectis can use this for autopkgtest, but it requires a special
+    Ubuntu image with apparmor preinstalled (which vmdebootstrap doesn't
+    do by default):
+
+        vectis new --vendor=ubuntu --suite=bionic --include=apparmor \
+            --qemu-image=apparmor.qcow2
+
 - `vectis run`
 
     Run an executable or shell command in the virtual machine.
