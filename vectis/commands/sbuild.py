@@ -555,38 +555,54 @@ def run(args):
             suite=args.lxd_worker_suite,
         )
 
-    _autopkgtest(
-        buildables, default_architecture,
-        components=components,
-        extra_repositories=args._extra_repository,
-        lxc_24bit_subnet=args.lxc_24bit_subnet,
-        lxc_worker=lxc_worker,
-        lxd_worker=lxd_worker,
-        mirrors=mirrors,
-        modes=args.autopkgtest,
-        qemu_ram_size=args.qemu_ram_size,
-        schroot_worker=sbuild_worker,
-        storage=storage,
-        vendor=vendor,
-        worker=misc_worker,
-    )
+    interrupted = False
 
-    if args.piuparts_tarballs:
-        _piuparts(
+    try:
+        _autopkgtest(
             buildables, default_architecture,
             components=components,
             extra_repositories=args._extra_repository,
+            lxc_24bit_subnet=args.lxc_24bit_subnet,
+            lxc_worker=lxc_worker,
+            lxd_worker=lxd_worker,
             mirrors=mirrors,
+            modes=args.autopkgtest,
+            qemu_ram_size=args.qemu_ram_size,
+            schroot_worker=sbuild_worker,
             storage=storage,
-            tarballs=args.piuparts_tarballs,
             vendor=vendor,
-            worker=piuparts_worker,
+            worker=misc_worker,
         )
+    except KeyboardInterrupt:
+        buildable.autopkgtest_failures.append('interrupted')
+        interrupted = True
+
+    if args.piuparts_tarballs and not interrupted:
+        try:
+            _piuparts(
+                buildables, default_architecture,
+                components=components,
+                extra_repositories=args._extra_repository,
+                mirrors=mirrors,
+                storage=storage,
+                tarballs=args.piuparts_tarballs,
+                vendor=vendor,
+                worker=piuparts_worker,
+            )
+        except KeyboardInterrupt:
+            buildable.piuparts_failures.append('interrupted')
+            interrupted = True
 
     _summarize(buildables)
-    _lintian(buildables)
 
-    if args._reprepro_dir:
+    if not interrupted:
+        try:
+            _lintian(buildables)
+        except KeyboardInterrupt:
+            logger.warning('lintian interrupted')
+            interrupted = True
+
+    if args._reprepro_dir and not interrupted:
         _publish(buildables, args._reprepro_dir, args._reprepro_suite)
 
     # We print these separately, right at the end, so that if you built more
