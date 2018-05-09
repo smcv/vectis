@@ -647,20 +647,25 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(str(c.get_suite(ubuntu, 'devel')), ubuntu_devel)
         self.assertEqual(ubuntu.default_suite, ubuntu_devel)
         self.assertEqual(ubuntu.default_worker_suite,
-                ubuntu_info.lts() + '-backports')
+                ubuntu_info.lts())
         devel = c.get_suite(ubuntu, 'devel')
         self.assertEqual(devel.archive, 'ubuntu')
         self.assertEqual(
             c.get_mirrors().lookup_suite(devel),
             'http://mirror/ubuntu')
 
+        lts = c.get_suite(ubuntu, ubuntu_info.lts())
         backports = c.get_suite(ubuntu, ubuntu_info.lts() + '-backports')
-        self.assertEqual(c.worker_suite, backports)
-        self.assertEqual(c.sbuild_worker_suite, backports)
-        self.assertEqual(c.vmdebootstrap_worker_suite, backports)
+        self.assertEqual(c.worker_suite, lts)
+        self.assertEqual(c.sbuild_worker_suite, lts)
+        self.assertEqual(c.vmdebootstrap_worker_suite, lts)
         self.assertEqual(backports.archive, 'ubuntu')
         self.assertEqual(
             c.get_mirrors().lookup_suite(backports),
+            'http://mirror/ubuntu')
+        self.assertEqual(lts.archive, 'ubuntu')
+        self.assertEqual(
+            c.get_mirrors().lookup_suite(lts),
             'http://mirror/ubuntu')
 
     def test_ubuntu_xenial(self):
@@ -717,10 +722,11 @@ class DefaultsTestCase(unittest.TestCase):
             return
 
         ubuntu_info = distro_info.UbuntuDistroInfo()
+        lts = c.get_suite(ubuntu, ubuntu_info.lts())
         backports = c.get_suite(ubuntu, ubuntu_info.lts() + '-backports')
-        self.assertIs(c.worker_suite, backports)
-        self.assertIs(c.sbuild_worker_suite, backports)
-        self.assertIs(c.vmdebootstrap_worker_suite, backports)
+        self.assertIs(c.worker_suite, lts)
+        self.assertIs(c.sbuild_worker_suite, lts)
+        self.assertIs(c.vmdebootstrap_worker_suite, lts)
 
         try:
             ubuntu_devel = ubuntu_info.devel()
@@ -776,9 +782,10 @@ class DefaultsTestCase(unittest.TestCase):
 
         ubuntu_info = distro_info.UbuntuDistroInfo()
         backports = c.get_suite(ubuntu, ubuntu_info.lts() + '-backports')
-        self.assertIs(c.worker_suite, backports)
-        self.assertIs(c.sbuild_worker_suite, backports)
-        self.assertIs(c.vmdebootstrap_worker_suite, backports)
+        lts = c.get_suite(ubuntu, ubuntu_info.lts())
+        self.assertIs(c.worker_suite, lts)
+        self.assertIs(c.sbuild_worker_suite, lts)
+        self.assertIs(c.vmdebootstrap_worker_suite, lts)
 
     def test_unknown_vendor(self):
         c = self.__config
@@ -866,7 +873,7 @@ class DefaultsTestCase(unittest.TestCase):
         ubuntu_info = distro_info.UbuntuDistroInfo()
         self.assertIs(
             c.worker_suite,
-            c.get_suite(ubuntu, ubuntu_info.lts() + '-backports'))
+            c.get_suite(ubuntu, ubuntu_info.lts()))
 
     def tearDown(self):
         pass
