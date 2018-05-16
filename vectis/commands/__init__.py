@@ -329,6 +329,35 @@ p.add_argument(
     help='apt URI, e.g. http://mirror/debian [default: auto]',
 )
 
+help = 'Create a pbuilder base tarball'
+p = subparsers.add_parser(
+    'pbuilder-tarball',
+    help=help, description=help,
+    argument_default=argparse.SUPPRESS,
+    parents=(base,),
+)
+add_worker_options(p)
+p.add_argument(
+    '--suite',
+    help='Release suite [default: {}]'.format(args.default_suite),
+)
+p.add_argument(
+    '--architecture', '--arch',
+    help='dpkg architecture [default: {}]'.format(args.architecture),
+)
+p.add_argument(
+    '--test-package', dest='_test_package', default='hostname',
+    help='An architecture-dependent test package to build as a smoke-test',
+)
+p.add_argument(
+    '--keep', action='store_true', default=False, dest='_keep',
+    help='Keep the new tarball even if testing fails',
+)
+p.add_argument(
+    '--uri', dest='_uri', default=None,
+    help='apt URI, e.g. http://mirror/debian [default: auto]',
+)
+
 help = 'Create a minbase tarball suitable for piuparts'
 p = subparsers.add_parser(
     'minbase-tarball',
