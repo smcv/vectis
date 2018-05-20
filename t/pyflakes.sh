@@ -10,7 +10,7 @@ elif "${PYFLAKES}" vectis; then
     echo "ok 1 - pyflakes reported no issues"
 else
     echo "1..1"
-    echo "ok 1 # SKIP Ignoring pyflakes issues for now"
+    echo "not ok 1 # TODO pyflakes issues reported"
 fi
 
 # vim:set sw=4 sts=4 et:
