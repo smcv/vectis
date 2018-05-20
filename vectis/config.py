@@ -25,6 +25,11 @@ else:
         Sequence,
         Set,
     )
+    typing      # silence pyflakes
+    Mapping
+    Optional
+    Sequence
+    Set
 
 
 class ConfigError(Error):

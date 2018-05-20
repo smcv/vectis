@@ -13,6 +13,10 @@ else:
         Sequence,
         Set,
     )
+    typing      # silence pyflakes
+    Optional
+    Sequence
+    Set
 
 
 class AptSource:
