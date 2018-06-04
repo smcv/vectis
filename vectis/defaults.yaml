@@ -79,7 +79,7 @@ defaults:
         - minbase-merged-usr.tar.gz
 
     parallel: null
-    sbuild_indep_together: false
+    build_indep_together: false
     sbuild_source_together: false
     orig_dirs: [".."]
     output_dir: null

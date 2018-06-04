@@ -511,8 +511,8 @@ class Config(_ConfigLike):
         return self._get_int('parallel')
 
     @property
-    def sbuild_indep_together(self):
-        return self._get_bool('sbuild_indep_together')
+    def build_indep_together(self):
+        return self._get_bool('build_indep_together')
 
     @property
     def sbuild_source_together(self):

@@ -80,7 +80,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.vmdebootstrap_worker_vendor, debian)
         with self.assertRaises(AttributeError):
             c.archive
-        self.assertIs(c.sbuild_indep_together, False)
+        self.assertIs(c.build_indep_together, False)
         self.assertIs(c.sbuild_source_together, False)
         self.assertEqual(c.output_parent, '..')
         self.assertEqual(c.qemu_image_size, '10G')
@@ -265,7 +265,7 @@ class DefaultsTestCase(unittest.TestCase):
             c.archive
         self.assertEqual(c.qemu_image_size, '10G')
         self.assertGreaterEqual(c.parallel, 1)
-        self.assertIs(c.sbuild_indep_together, False)
+        self.assertIs(c.build_indep_together, False)
         self.assertIs(c.sbuild_source_together, False)
         self.assertEqual(c.sbuild_resolver, [])
         self.assertEqual(c.apt_key,
@@ -383,7 +383,7 @@ class DefaultsTestCase(unittest.TestCase):
             c.archive
         self.assertEqual(c.qemu_image_size, '10G')
         self.assertGreaterEqual(c.parallel, 1)
-        self.assertIs(c.sbuild_indep_together, False)
+        self.assertIs(c.build_indep_together, False)
         self.assertIs(c.sbuild_source_together, False)
         self.assertEqual(c.sbuild_resolver, [])
         self.assertEqual(c.apt_key,
@@ -451,7 +451,7 @@ class DefaultsTestCase(unittest.TestCase):
             c.archive
         self.assertEqual(c.qemu_image_size, '10G')
         self.assertGreaterEqual(c.parallel, 1)
-        self.assertIs(c.sbuild_indep_together, False)
+        self.assertIs(c.build_indep_together, False)
         self.assertIs(c.sbuild_source_together, False)
         self.assertEqual(c.sbuild_resolver, [])
         self.assertEqual(c.apt_key,
@@ -620,7 +620,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertIs(c.vendor, ubuntu)
         self.assertEqual(c.qemu_image_size, '10G')
         self.assertGreaterEqual(c.parallel, 1)
-        self.assertIs(c.sbuild_indep_together, False)
+        self.assertIs(c.build_indep_together, False)
         self.assertIs(c.sbuild_source_together, False)
         self.assertEqual(c.sbuild_resolver, [])
         self.assertEqual(c.apt_key,
@@ -704,7 +704,7 @@ class DefaultsTestCase(unittest.TestCase):
             c.archive
         self.assertEqual(c.qemu_image_size, '10G')
         self.assertGreaterEqual(c.parallel, 1)
-        self.assertIs(c.sbuild_indep_together, False)
+        self.assertIs(c.build_indep_together, False)
         self.assertIs(c.sbuild_source_together, False)
         self.assertEqual(c.sbuild_resolver, [])
         self.assertEqual(c.apt_key,
@@ -763,7 +763,7 @@ class DefaultsTestCase(unittest.TestCase):
             c.archive
         self.assertEqual(c.qemu_image_size, '10G')
         self.assertGreaterEqual(c.parallel, 1)
-        self.assertIs(c.sbuild_indep_together, False)
+        self.assertIs(c.build_indep_together, False)
         self.assertIs(c.sbuild_source_together, False)
         self.assertEqual(c.sbuild_resolver, [])
         self.assertEqual(c.apt_key,

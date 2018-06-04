@@ -183,7 +183,7 @@ def run(args):
         archs=args._archs,
         build_source=args._build_source,
         indep=args._indep,
-        indep_together=args.sbuild_indep_together,
+        indep_together=args.build_indep_together,
         source_only=args._source_only,
         source_together=args.sbuild_source_together,
     )

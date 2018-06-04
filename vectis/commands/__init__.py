@@ -504,13 +504,13 @@ p.add_argument(
          'host machine architecture if not installed)')
 p.add_argument(
     '--together', '--indep-together',
-    dest='sbuild_indep_together', action='store_true',
+    dest='build_indep_together', action='store_true',
     help='Build architecture-independent packages along with first '
          'architecture',
 )
 p.add_argument(
     '--apart', '--indep-apart',
-    dest='sbuild_indep_together', action='store_false',
+    dest='build_indep_together', action='store_false',
     help='Build architecture-independent packages separately',
 )
 p.add_argument(
