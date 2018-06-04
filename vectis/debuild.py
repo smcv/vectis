@@ -1,10 +1,11 @@
-# Copyright © 2016-2017 Simon McVittie
+# Copyright © 2016-2018 Simon McVittie
 # SPDX-License-Identifier: GPL-2.0+
 # (see vectis/__init__.py)
 
 import glob
 import logging
 import os
+import shutil
 import subprocess
 import time
 from collections import (
@@ -25,6 +26,9 @@ from debian.debian_support import (
     Version,
 )
 
+from vectis.autopkgtest import (
+    run_autopkgtest,
+)
 from vectis.config import (
     Suite,
 )
@@ -32,8 +36,16 @@ from vectis.error import (
     ArgumentError,
     CannotHappen,
 )
+from vectis.piuparts import (
+    Binary,
+    run_piuparts,
+)
+from vectis.util import (
+    AtomicWriter,
+)
 from vectis.worker import (
     SchrootWorker,
+    VirtWorker,
 )
 
 logger = logging.getLogger(__name__)
@@ -912,3 +924,375 @@ class Build:
                 os.symlink(copied_back, symlink)
 
             return copied_back
+
+
+class BuildGroup:
+    def __init__(
+            self,
+            *,
+            binary_version_suffix=None,
+            buildables=(),
+            components=(),
+            deb_build_options=(),
+            dpkg_buildpackage_options=(),
+            dpkg_source_options=(),
+            extra_repositories=(),
+            link_builds,
+            orig_dirs=(),
+            output_dir,
+            output_parent,
+            mirrors,
+            profiles=(),
+            sbuild_options=(),
+            storage,
+            suite=None,
+            vendor,
+            ):
+        self.components = components
+        self.deb_build_options = deb_build_options
+        self.dpkg_buildpackage_options = dpkg_buildpackage_options
+        self.dpkg_source_options = dpkg_source_options
+        self.extra_repositories = extra_repositories
+        self.link_builds = link_builds
+        self.orig_dirs = orig_dirs
+        self.output_dir = output_dir
+        self.output_parent = output_parent
+        self.mirrors = mirrors
+        self.profiles = profiles
+        self.sbuild_options = sbuild_options
+        self.storage = storage
+        self.suite = suite
+        self.vendor = vendor
+
+        self.buildables = []
+
+        for a in (buildables or ['.']):
+            buildable = Buildable(
+                a,
+                link_builds=link_builds,
+                orig_dirs=orig_dirs,
+                output_dir=output_dir,
+                output_parent=output_parent,
+                vendor=vendor)
+            self.buildables.append(buildable)
+
+        self.workers = []
+
+    def select_suites(self, factory):
+        for b in self.buildables:
+            b.select_suite(factory, self.suite)
+
+    def get_worker(self, argv, suite):
+        for triple in self.workers:
+            a, s, w = triple
+
+            if argv == a and suite == s:
+                return w
+        else:
+            w = VirtWorker(
+                argv,
+                mirrors=self.mirrors,
+                storage=self.storage,
+                suite=suite,
+            )
+            self.workers.append((argv, suite, w))
+            return w
+
+    def new_build(self, buildable, arch, worker, output_dir=None):
+        if output_dir is None:
+            output_dir = buildable.output_dir
+
+        return Build(
+            buildable,
+            arch,
+            worker,
+            components=self.components,
+            deb_build_options=self.deb_build_options,
+            dpkg_buildpackage_options=self.dpkg_buildpackage_options,
+            dpkg_source_options=self.dpkg_source_options,
+            extra_repositories=self.extra_repositories,
+            mirrors=self.mirrors,
+            output_dir=output_dir,
+            profiles=self.profiles,
+            storage=self.storage,
+        )
+
+    def sbuild(self,
+                worker,
+                *,
+                archs=(),
+                build_source=None,          # None = auto
+                indep=False,
+                indep_together=False,
+                source_only=False,
+                source_together=False,
+            ):
+        with worker:
+            self._sbuild(worker)
+
+    def _sbuild(self,
+                worker,
+                *,
+                archs=(),
+                build_source=None,          # None = auto
+                indep=False,
+                indep_together=False,
+                source_only=False,
+                source_together=False,
+            ):
+
+        logger.info('Installing sbuild')
+        worker.check_call([
+            'env',
+            'DEBIAN_FRONTEND=noninteractive',
+            'apt-get',
+            '-y',
+            '-t', worker.suite.apt_suite,
+            '--no-install-recommends',
+            'install',
+
+            'python3',
+            'sbuild',
+            'schroot',
+        ])
+        # Be like the real Debian build infrastructure: give sbuild a
+        # nonexistent home directory.
+        worker.check_call([
+            'usermod',
+            '-d', '/nonexistent',
+            'sbuild',
+        ])
+
+        for buildable in self.buildables:
+            logger.info('Processing: %s', buildable)
+
+            buildable.copy_source_to(worker)
+
+            if buildable.source_from_archive:
+                # We need to get some information from the .dsc, which we do by
+                # building one and (usually) throwing it away.
+                # TODO: With jessie's sbuild, this doesn't work for
+                # sources that only build Architecture: all binaries.
+                # TODO: This won't work if the sbuild_options are a binNMU.
+                if build_source:
+                    logger.info('Rebuilding source as requested')
+                    self.new_build(buildable, 'source', worker).sbuild(
+                        sbuild_options=self.sbuild_options)
+                else:
+                    logger.info(
+                        'Rebuilding and discarding source to discover supported '
+                        'architectures')
+                    self.new_build(
+                        buildable,
+                        'source',
+                        worker,
+                        output_dir=None,
+                    ).sbuild(sbuild_options=self.sbuild_options)
+
+            buildable.select_archs(
+                worker_arch=worker.dpkg_architecture,
+                archs=archs,
+                indep=indep,
+                indep_together=indep_together,
+                build_source=build_source,
+                source_only=source_only,
+                source_together=source_together,
+            )
+
+            logger.info('Builds required: %r', list(buildable.archs))
+
+            for arch in buildable.archs:
+                self.new_build(buildable, arch, worker).sbuild(
+                    sbuild_options=self.sbuild_options)
+
+            if buildable.sourceful_changes_name:
+                base = '{}_source.changes'.format(buildable.product_prefix)
+                c = os.path.join(buildable.output_dir, base)
+                c = os.path.abspath(c)
+                if 'source' not in buildable.changes_produced:
+                    with AtomicWriter(c) as writer:
+                        subprocess.check_call([
+                            'mergechanges',
+                            '--source',
+                            buildable.sourceful_changes_name,
+                            buildable.sourceful_changes_name,
+                        ], stdout=writer)
+
+                buildable.merged_changes['source'] = c
+
+            if ('all' in buildable.changes_produced and
+                    'source' in buildable.merged_changes):
+                base = '{}_source+all.changes'.format(buildable.product_prefix)
+                c = os.path.join(buildable.output_dir, base)
+                c = os.path.abspath(c)
+                buildable.merged_changes['source+all'] = c
+                with AtomicWriter(c) as writer:
+                    subprocess.check_call([
+                        'mergechanges',
+                        buildable.changes_produced['all'],
+                        buildable.merged_changes['source'],
+                    ], stdout=writer)
+
+            binary_group = 'binary'
+
+            binary_changes = []
+            for k, v in buildable.changes_produced.items():
+                if k != 'source':
+                    binary_changes.append(v)
+
+                    if v == buildable.sourceful_changes_name:
+                        binary_group = 'source+binary'
+
+            base = '{}_{}.changes'.format(
+                buildable.product_prefix, binary_group)
+            c = os.path.join(buildable.output_dir, base)
+            c = os.path.abspath(c)
+
+            if len(binary_changes) > 1:
+                with AtomicWriter(c) as writer:
+                    subprocess.check_call(
+                        ['mergechanges'] + binary_changes, stdout=writer)
+                buildable.merged_changes[binary_group] = c
+            elif len(binary_changes) == 1:
+                shutil.copy(binary_changes[0], c)
+                buildable.merged_changes[binary_group] = c
+            # else it was source-only: no binary changes
+
+            if ('source' in buildable.merged_changes and
+                    'binary' in buildable.merged_changes):
+                base = '{}_source+binary.changes'.format(buildable.product_prefix)
+                c = os.path.join(buildable.output_dir, base)
+                c = os.path.abspath(c)
+                buildable.merged_changes['source+binary'] = c
+
+                with AtomicWriter(c) as writer:
+                    subprocess.check_call([
+                        'mergechanges',
+                        buildable.merged_changes['source'],
+                        buildable.merged_changes['binary'],
+                    ], stdout=writer)
+
+            for ident, linkable in (
+                    list(buildable.merged_changes.items()) +
+                    list(buildable.changes_produced.items())):
+                base = os.path.basename(linkable)
+
+                for l in buildable.link_builds:
+                    symlink = os.path.join(l, base)
+
+                    with suppress(FileNotFoundError):
+                        os.unlink(symlink)
+
+                    os.symlink(linkable, symlink)
+
+    def autopkgtest(
+                self,
+                *,
+                default_architecture,
+                lxc_24bit_subnet,
+                lxc_worker,
+                lxd_worker,
+                modes=(),
+                qemu_ram_size,
+                schroot_worker,
+                worker,
+            ):
+        for buildable in self.buildables:
+            try:
+                source_dsc = None
+                source_package = None
+
+                if buildable.dsc_name is not None:
+                    source_dsc = buildable.dsc_name
+                    logger.info('Testing source changes file %s', source_dsc)
+                elif buildable.source_from_archive:
+                    source_package = buildable.source_package
+                    logger.info('Testing source package %s', source_package)
+                else:
+                    logger.warning(
+                        'Unable to run autopkgtest on %s', buildable.buildable)
+                    continue
+
+                if (buildable.dsc is not None and
+                        'testsuite' not in buildable.dsc):
+                    logger.info('No autopkgtests available')
+                    continue
+
+                test_architectures = []
+
+                for arch in buildable.archs:
+                    if arch != 'all' and arch != 'source':
+                        test_architectures.append(arch)
+
+                if 'all' in buildable.archs and not test_architectures:
+                    test_architectures.append(default_architecture)
+
+                logger.info('Testing on architectures: %r', test_architectures)
+
+                for architecture in test_architectures:
+                    buildable.autopkgtest_failures.extend(
+                        run_autopkgtest(
+                            architecture=architecture,
+                            binaries=buildable.get_debs(architecture),
+                            components=self.components,
+                            extra_repositories=self.extra_repositories,
+                            lxc_24bit_subnet=lxc_24bit_subnet,
+                            lxc_worker=lxc_worker,
+                            lxd_worker=lxd_worker,
+                            mirrors=self.mirrors,
+                            modes=modes,
+                            output_logs=buildable.output_dir,
+                            qemu_ram_size=qemu_ram_size,
+                            schroot_worker=schroot_worker,
+                            source_dsc=source_dsc,
+                            source_package=source_package,
+                            storage=self.storage,
+                            suite=buildable.suite,
+                            vendor=self.vendor,
+                            worker=worker,
+                        ),
+                    )
+            except KeyboardInterrupt:
+                buildable.autopkgtest_failures.append('interrupted')
+                raise
+
+    def piuparts(
+            self,
+            *,
+            default_architecture,
+            tarballs,
+            worker):
+        for buildable in self.buildables:
+            try:
+                test_architectures = []
+
+                for arch in buildable.archs:
+                    if arch != 'all' and arch != 'source':
+                        test_architectures.append(arch)
+
+                if 'all' in buildable.archs and not test_architectures:
+                    test_architectures.append(default_architecture)
+
+                logger.info(
+                    'Running piuparts on architectures: %r', test_architectures)
+
+                for architecture in test_architectures:
+                    buildable.piuparts_failures.extend(
+                        run_piuparts(
+                            architecture=architecture,
+                            binaries=(Binary(b, deb=b)
+                                for b in buildable.get_debs(architecture)),
+                            components=self.components,
+                            extra_repositories=self.extra_repositories,
+                            mirrors=self.mirrors,
+                            output_logs=buildable.output_dir,
+                            storage=self.storage,
+                            suite=buildable.suite,
+                            tarballs=tarballs,
+                            vendor=self.vendor,
+                            worker=worker,
+                        ),
+                    )
+            except KeyboardInterrupt:
+                buildable.piuparts_failures.append('interrupted')
+                raise
