@@ -229,58 +229,62 @@ def _autopkgtest(
         worker,
         extra_repositories=()):
     for buildable in buildables:
-        source_dsc = None
-        source_package = None
+        try:
+            source_dsc = None
+            source_package = None
 
-        if buildable.dsc_name is not None:
-            source_dsc = buildable.dsc_name
-            logger.info('Testing source changes file %s', source_dsc)
-        elif buildable.source_from_archive:
-            source_package = buildable.source_package
-            logger.info('Testing source package %s', source_package)
-        else:
-            logger.warning(
-                'Unable to run autopkgtest on %s', buildable.buildable)
-            continue
+            if buildable.dsc_name is not None:
+                source_dsc = buildable.dsc_name
+                logger.info('Testing source changes file %s', source_dsc)
+            elif buildable.source_from_archive:
+                source_package = buildable.source_package
+                logger.info('Testing source package %s', source_package)
+            else:
+                logger.warning(
+                    'Unable to run autopkgtest on %s', buildable.buildable)
+                continue
 
-        if buildable.dsc is not None and 'testsuite' not in buildable.dsc:
-            logger.info('No autopkgtests available')
-            continue
+            if buildable.dsc is not None and 'testsuite' not in buildable.dsc:
+                logger.info('No autopkgtests available')
+                continue
 
-        test_architectures = []
+            test_architectures = []
 
-        for arch in buildable.archs:
-            if arch != 'all' and arch != 'source':
-                test_architectures.append(arch)
+            for arch in buildable.archs:
+                if arch != 'all' and arch != 'source':
+                    test_architectures.append(arch)
 
-        if 'all' in buildable.archs and not test_architectures:
-            test_architectures.append(default_architecture)
+            if 'all' in buildable.archs and not test_architectures:
+                test_architectures.append(default_architecture)
 
-        logger.info('Testing on architectures: %r', test_architectures)
+            logger.info('Testing on architectures: %r', test_architectures)
 
-        for architecture in test_architectures:
-            buildable.autopkgtest_failures.extend(
-                run_autopkgtest(
-                    architecture=architecture,
-                    binaries=buildable.get_debs(architecture),
-                    components=components,
-                    extra_repositories=extra_repositories,
-                    lxc_24bit_subnet=lxc_24bit_subnet,
-                    lxc_worker=lxc_worker,
-                    lxd_worker=lxd_worker,
-                    mirrors=mirrors,
-                    modes=modes,
-                    output_logs=buildable.output_dir,
-                    qemu_ram_size=qemu_ram_size,
-                    schroot_worker=schroot_worker,
-                    source_dsc=source_dsc,
-                    source_package=source_package,
-                    storage=storage,
-                    suite=buildable.suite,
-                    vendor=vendor,
-                    worker=worker,
-                ),
-            )
+            for architecture in test_architectures:
+                buildable.autopkgtest_failures.extend(
+                    run_autopkgtest(
+                        architecture=architecture,
+                        binaries=buildable.get_debs(architecture),
+                        components=components,
+                        extra_repositories=extra_repositories,
+                        lxc_24bit_subnet=lxc_24bit_subnet,
+                        lxc_worker=lxc_worker,
+                        lxd_worker=lxd_worker,
+                        mirrors=mirrors,
+                        modes=modes,
+                        output_logs=buildable.output_dir,
+                        qemu_ram_size=qemu_ram_size,
+                        schroot_worker=schroot_worker,
+                        source_dsc=source_dsc,
+                        source_package=source_package,
+                        storage=storage,
+                        suite=buildable.suite,
+                        vendor=vendor,
+                        worker=worker,
+                    ),
+                )
+        except KeyboardInterrupt:
+            buildable.autopkgtest_failures.append('interrupted')
+            raise
 
 
 def _piuparts(
@@ -295,34 +299,39 @@ def _piuparts(
         worker,
         extra_repositories=()):
     for buildable in buildables:
-        test_architectures = []
+        try:
+            test_architectures = []
 
-        for arch in buildable.archs:
-            if arch != 'all' and arch != 'source':
-                test_architectures.append(arch)
+            for arch in buildable.archs:
+                if arch != 'all' and arch != 'source':
+                    test_architectures.append(arch)
 
-        if 'all' in buildable.archs and not test_architectures:
-            test_architectures.append(default_architecture)
+            if 'all' in buildable.archs and not test_architectures:
+                test_architectures.append(default_architecture)
 
-        logger.info('Running piuparts on architectures: %r', test_architectures)
+            logger.info(
+                'Running piuparts on architectures: %r', test_architectures)
 
-        for architecture in test_architectures:
-            buildable.piuparts_failures.extend(
-                run_piuparts(
-                    architecture=architecture,
-                    binaries=(Binary(b, deb=b)
-                        for b in buildable.get_debs(architecture)),
-                    components=components,
-                    extra_repositories=extra_repositories,
-                    mirrors=mirrors,
-                    output_logs=buildable.output_dir,
-                    storage=storage,
-                    suite=buildable.suite,
-                    tarballs=tarballs,
-                    vendor=vendor,
-                    worker=worker,
-                ),
-            )
+            for architecture in test_architectures:
+                buildable.piuparts_failures.extend(
+                    run_piuparts(
+                        architecture=architecture,
+                        binaries=(Binary(b, deb=b)
+                            for b in buildable.get_debs(architecture)),
+                        components=components,
+                        extra_repositories=extra_repositories,
+                        mirrors=mirrors,
+                        output_logs=buildable.output_dir,
+                        storage=storage,
+                        suite=buildable.suite,
+                        tarballs=tarballs,
+                        vendor=vendor,
+                        worker=worker,
+                    ),
+                )
+        except KeyboardInterrupt:
+            buildable.piuparts_failures.append('interrupted')
+            raise
 
 
 def _summarize(buildables):
@@ -574,7 +583,6 @@ def run(args):
             worker=misc_worker,
         )
     except KeyboardInterrupt:
-        buildable.autopkgtest_failures.append('interrupted')
         interrupted = True
 
     if args.piuparts_tarballs and not interrupted:
@@ -590,7 +598,6 @@ def run(args):
                 worker=piuparts_worker,
             )
         except KeyboardInterrupt:
-            buildable.piuparts_failures.append('interrupted')
             interrupted = True
 
     _summarize(buildables)
