@@ -516,6 +516,87 @@ class Buildable:
 
         raise ArgumentError('Unexpected filename')
 
+    def merge_changes(self):
+        if self.sourceful_changes_name:
+            base = '{}_source.changes'.format(self.product_prefix)
+            c = os.path.join(self.output_dir, base)
+            c = os.path.abspath(c)
+            if 'source' not in self.changes_produced:
+                with AtomicWriter(c) as writer:
+                    subprocess.check_call([
+                        'mergechanges',
+                        '--source',
+                        self.sourceful_changes_name,
+                        self.sourceful_changes_name,
+                    ], stdout=writer)
+
+            self.merged_changes['source'] = c
+
+        if ('all' in self.changes_produced and
+                'source' in self.merged_changes):
+            base = '{}_source+all.changes'.format(self.product_prefix)
+            c = os.path.join(self.output_dir, base)
+            c = os.path.abspath(c)
+            self.merged_changes['source+all'] = c
+            with AtomicWriter(c) as writer:
+                subprocess.check_call([
+                    'mergechanges',
+                    self.changes_produced['all'],
+                    self.merged_changes['source'],
+                ], stdout=writer)
+
+        binary_group = 'binary'
+
+        binary_changes = []
+        for k, v in self.changes_produced.items():
+            if k != 'source':
+                binary_changes.append(v)
+
+                if v == self.sourceful_changes_name:
+                    binary_group = 'source+binary'
+
+        base = '{}_{}.changes'.format(
+            self.product_prefix, binary_group)
+        c = os.path.join(self.output_dir, base)
+        c = os.path.abspath(c)
+
+        if len(binary_changes) > 1:
+            with AtomicWriter(c) as writer:
+                subprocess.check_call(
+                    ['mergechanges'] + binary_changes, stdout=writer)
+            self.merged_changes[binary_group] = c
+        elif len(binary_changes) == 1:
+            shutil.copy(binary_changes[0], c)
+            self.merged_changes[binary_group] = c
+        # else it was source-only: no binary changes
+
+        if ('source' in self.merged_changes and
+                'binary' in self.merged_changes):
+            base = '{}_source+binary.changes'.format(self.product_prefix)
+            c = os.path.join(self.output_dir, base)
+            c = os.path.abspath(c)
+            self.merged_changes['source+binary'] = c
+
+            with AtomicWriter(c) as writer:
+                subprocess.check_call([
+                    'mergechanges',
+                    self.merged_changes['source'],
+                    self.merged_changes['binary'],
+                ], stdout=writer)
+
+        for ident, linkable in (
+                list(self.merged_changes.items()) +
+                list(self.changes_produced.items())):
+            base = os.path.basename(linkable)
+
+            for l in self.link_builds:
+                symlink = os.path.join(l, base)
+
+                with suppress(FileNotFoundError):
+                    os.unlink(symlink)
+
+                os.symlink(linkable, symlink)
+
 
 class Build:
 
@@ -1105,85 +1186,7 @@ class BuildGroup:
                 self.new_build(buildable, arch, worker).sbuild(
                     sbuild_options=self.sbuild_options)
 
-            if buildable.sourceful_changes_name:
-                base = '{}_source.changes'.format(buildable.product_prefix)
-                c = os.path.join(buildable.output_dir, base)
-                c = os.path.abspath(c)
-                if 'source' not in buildable.changes_produced:
-                    with AtomicWriter(c) as writer:
-                        subprocess.check_call([
-                            'mergechanges',
-                            '--source',
-                            buildable.sourceful_changes_name,
-                            buildable.sourceful_changes_name,
-                        ], stdout=writer)
-
-                buildable.merged_changes['source'] = c
-
-            if ('all' in buildable.changes_produced and
-                    'source' in buildable.merged_changes):
-                base = '{}_source+all.changes'.format(buildable.product_prefix)
-                c = os.path.join(buildable.output_dir, base)
-                c = os.path.abspath(c)
-                buildable.merged_changes['source+all'] = c
-                with AtomicWriter(c) as writer:
-                    subprocess.check_call([
-                        'mergechanges',
-                        buildable.changes_produced['all'],
-                        buildable.merged_changes['source'],
-                    ], stdout=writer)
-
-            binary_group = 'binary'
-
-            binary_changes = []
-            for k, v in buildable.changes_produced.items():
-                if k != 'source':
-                    binary_changes.append(v)
-
-                    if v == buildable.sourceful_changes_name:
-                        binary_group = 'source+binary'
-
-            base = '{}_{}.changes'.format(
-                buildable.product_prefix, binary_group)
-            c = os.path.join(buildable.output_dir, base)
-            c = os.path.abspath(c)
-
-            if len(binary_changes) > 1:
-                with AtomicWriter(c) as writer:
-                    subprocess.check_call(
-                        ['mergechanges'] + binary_changes, stdout=writer)
-                buildable.merged_changes[binary_group] = c
-            elif len(binary_changes) == 1:
-                shutil.copy(binary_changes[0], c)
-                buildable.merged_changes[binary_group] = c
-            # else it was source-only: no binary changes
-
-            if ('source' in buildable.merged_changes and
-                    'binary' in buildable.merged_changes):
-                base = '{}_source+binary.changes'.format(buildable.product_prefix)
-                c = os.path.join(buildable.output_dir, base)
-                c = os.path.abspath(c)
-                buildable.merged_changes['source+binary'] = c
-
-                with AtomicWriter(c) as writer:
-                    subprocess.check_call([
-                        'mergechanges',
-                        buildable.merged_changes['source'],
-                        buildable.merged_changes['binary'],
-                    ], stdout=writer)
-
-            for ident, linkable in (
-                    list(buildable.merged_changes.items()) +
-                    list(buildable.changes_produced.items())):
-                base = os.path.basename(linkable)
-
-                for l in buildable.link_builds:
-                    symlink = os.path.join(l, base)
-
-                    with suppress(FileNotFoundError):
-                        os.unlink(symlink)
-
-                    os.symlink(linkable, symlink)
+            buildable.merge_changes()
 
     def autopkgtest(
                 self,
