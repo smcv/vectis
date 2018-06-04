@@ -617,6 +617,15 @@ class Config(_ConfigLike):
         return value
 
     @property
+    def pbuilder_worker_architecture(self):
+        value = self['pbuilder_worker_architecture']
+
+        if value is None:
+            value = self.worker_architecture
+
+        return value
+
+    @property
     def piuparts_worker_architecture(self):
         value = self['piuparts_worker_architecture']
 
@@ -724,6 +733,15 @@ class Config(_ConfigLike):
         return self.get_vendor(value)
 
     @property
+    def pbuilder_worker_vendor(self):
+        value = self['pbuilder_worker_vendor']
+
+        if value is None:
+            value = self['worker_vendor']
+
+        return self.get_vendor(value)
+
+    @property
     def piuparts_worker_vendor(self):
         value = self['piuparts_worker_vendor']
 
@@ -782,6 +800,18 @@ class Config(_ConfigLike):
             return None
 
         return self.get_suite(self.lxd_worker_vendor, value, True)
+
+    @property
+    def pbuilder_worker_suite(self):
+        value = self['pbuilder_worker_suite']
+
+        if value is None:
+            value = self.pbuilder_worker_vendor.default_worker_suite
+
+        if value is None:
+            return None
+
+        return self.get_suite(self.pbuilder_worker_vendor, value, True)
 
     @property
     def piuparts_worker_suite(self):
@@ -911,6 +941,23 @@ class Config(_ConfigLike):
         return value
 
     @property
+    def pbuilder_worker_qemu_image(self):
+        value = self['pbuilder_worker_qemu_image']
+
+        if value is None:
+            value = self.pbuilder_worker_vendor['qemu_image']
+
+        assert value is not None
+
+        if '/' not in value:
+            return os.path.join(
+                self.storage, self.pbuilder_worker_architecture,
+                str(self.pbuilder_worker_vendor),
+                str(self.pbuilder_worker_suite.hierarchy[-1]), value)
+
+        return value
+
+    @property
     def piuparts_worker_qemu_image(self):
         value = self['piuparts_worker_qemu_image']
 
@@ -990,6 +1037,21 @@ class Config(_ConfigLike):
 
             value.append('--cpus={}'.format(self.parallel))
             value.append(self.lxd_worker_qemu_image)
+
+        return value
+
+    @property
+    def pbuilder_worker(self):
+        value = self['pbuilder_worker']
+
+        if value is None:
+            value = ['qemu']
+
+            if self.qemu_ram_size is not None:
+                value.append('--ram-size={}'.format(self.qemu_ram_size // _1M))
+
+            value.append('--cpus={}'.format(self.parallel))
+            value.append(self.pbuilder_worker_qemu_image)
 
         return value
 

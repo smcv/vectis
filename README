@@ -133,6 +133,17 @@ Usage
 
     Run an executable or shell command in the virtual machine.
 
+- `vectis pbuilder-tarball`
+
+    Create a base tarball similar to `sbuild-tarball`, but using
+    `pbuilder create`.
+
+- `vectis pbuilder`
+
+    Build Debian packages from a `.dsc` file, similar to `vectis sbuild`
+    but using `pbuilder build`. Building a source directory or a package
+    downloaded via apt is not currently supported.
+
 Specifying mirrors
 ------------------
 

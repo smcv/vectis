@@ -633,6 +633,153 @@ p.add_argument(
     help="Add SUFFIX to built binaries' versions",
 )
 
+help = 'Build a Debian package with pbuilder'
+p = subparsers.add_parser(
+    'pbuilder',
+    help=help, description=help,
+    argument_default=argparse.SUPPRESS,
+    conflict_handler='resolve',
+    parents=(base,),
+)
+add_worker_options(p, context='pbuilder', context_implicit=True)
+p.add_argument(
+    '_buildables', metavar='DSC', nargs='+', default=[],
+    help='.dsc file',
+)
+p.add_argument(
+    '--suite', '--distribution', '-d',
+    help='Distribution release suite',
+)
+p.add_argument(
+    '--components', action=AppendCommaSeparated,
+    help='Distribution components',
+)
+add_output_options(p)
+p.add_argument(
+    '--versions-since', '-v', '--since-version',
+    dest='_versions_since', default=None,
+    help='Populate .changes file with versions since this',
+)
+p.add_argument(
+    '--parallel', '-J', type=int, dest='parallel',
+    help='Set desired parallelization level',
+)
+p.add_argument(
+    '--extra-repository', action='append', default=[],
+    dest='_extra_repository',
+    help='Add an apt source',
+)
+p.add_argument(
+    '--indep', '-i', action='store_true', dest='_indep', default=False,
+    help='Build architecture-independent packages (default: build all)',
+)
+p.add_argument(
+    '--architecture', '--arch', '-a', action='append', dest='_archs',
+    default=[],
+    help='Build architecture-dependent packages for this architecture '
+         '(default: architectures installed on host machine, or '
+         'host machine architecture if not installed)')
+p.add_argument(
+    '--reprepro-dir', dest='_reprepro_dir', default=None,
+    help='Inject built packages into this reprepro repository',
+)
+p.add_argument(
+    '--reprepro-suite', dest='_reprepro_suite', default=None,
+    help='Inject built packages into this reprepro suite (default: same as '
+         'package)',
+)
+p.add_argument(
+    '-u', dest='_u_ignored', choices=['c', 's'],
+    help='Ignored for compatibility with dgit: vectis never signs changes '
+         'files',
+)
+p.add_argument(
+    '--unsigned-changes', '--unsigned-source',
+    dest='_u_ignored', action='store_const', const=None,
+    help='Ignored for compatibility with dgit: vectis never signs changes '
+         'files',
+)
+p.add_argument(
+    '--tar-ignore', '-I', nargs='?', metavar='PATTERN',
+    dest='dpkg_source_tar_ignore', action='append', const=...,
+    help='Build with --dpkg-source-opt=--tar-ignore[=PATTERN]',
+)
+p.add_argument(
+    '--diff-ignore', '-i', nargs='?', metavar='PATTERN',
+    dest='dpkg_source_diff_ignore', const=...,
+    help='Build with --dpkg-source-opt=--diff-ignore[=PATTERN]',
+)
+p.add_argument(
+    '--extend-diff-ignore', metavar='PATTERN',
+    dest='dpkg_source_extend_diff_ignore', action='append',
+    help='Build with --dpkg-source-opt=--extend-diff-ignore=PATTERN',
+)
+p.add_argument(
+    '--autopkgtest', nargs='?', metavar='MODE[,MODE]',
+    action=_AutopkgtestAction, const=True,
+    help='Run autopkgtest [with the given modes] [default: {}]'.format(
+        ','.join(args.autopkgtest),
+    ),
+)
+p.add_argument(
+    '--no-autopkgtest', dest='autopkgtest', action='store_const',
+    const=(),
+    help='Do not run autopkgtest after building',
+)
+p.add_argument(
+    '--piuparts', dest='piuparts_tarballs', nargs='?',
+    metavar='TARBALL[,TARBALL]',
+    action=_AutopkgtestAction, const=True,
+    help='Run piuparts [with the given base tarballs] [default: {}]'.format(
+        ','.join(args.piuparts_tarballs),
+    ),
+)
+p.add_argument(
+    '--no-piuparts', dest='piuparts_tarballs', action='store_const',
+    const=(),
+    help='Do not run piuparts after building',
+)
+p.add_argument(
+    '--build-profiles', '-P', dest='_build_profiles',
+    default=None, metavar='PROFILE[,PROFILE...]',
+    help='Use comma-separated build profiles',
+)
+p.add_argument(
+    '--add-build-profile', dest='_add_build_profile',
+    action='append', default=[], metavar='PROFILE',
+    help='Use individually specified build profile',
+)
+p.add_argument(
+    '--add-deb-build-option', dest='_add_deb_build_option',
+    action='append', default=[], metavar='OPTION[=VALUE]',
+    help='Set something in DEB_BUILD_OPTIONS',
+)
+p.add_argument(
+    '--include-orig-source', '-s', dest='_include_orig_source',
+    choices=[
+        'yes', 'force', 'always', 'a',
+        'auto', 'maybe', 'i',
+        'no', 'never', 'd',
+    ],
+    default=None,
+    help='Always, maybe or never include orig.tar.* in changes file',
+)
+p.add_argument(
+    '--force-orig-source', dest='_include_orig_source',
+    action='store_const', const='yes',
+    help='Equivalent to --include-orig-source=yes',
+)
+p.add_argument(
+    '--orig-dir', dest='orig_dirs', action=_AssignList,
+    default=args.orig_dirs, metavar='DIR',
+    help='Replace search path for orig*.tar.* with only DIR',
+)
+p.add_argument(
+    '--add-orig-dir', dest='orig_dirs', action=_AppendForceList,
+    metavar='DIR',
+    help='Add DIR to search path for orig*.tar.*',
+)
+
 help = 'Run autopkgtest tests'
 p = subparsers.add_parser(
     'autopkgtest',

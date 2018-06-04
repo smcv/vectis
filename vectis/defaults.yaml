@@ -57,6 +57,12 @@ defaults:
     sbuild_worker_architecture: null
     sbuild_worker: null
 
+    pbuilder_worker_qemu_image: null
+    pbuilder_worker_suite: null
+    pbuilder_worker_vendor: null
+    pbuilder_worker_architecture: null
+    pbuilder_worker: null
+
     piuparts_worker_qemu_image: null
     piuparts_worker_suite: null
     piuparts_worker_vendor: null

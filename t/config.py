@@ -74,8 +74,10 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(str(c.vmdebootstrap_worker_vendor),
                 'debian')
         self.assertEqual(str(c.sbuild_worker_vendor), 'debian')
+        self.assertEqual(str(c.pbuilder_worker_vendor), 'debian')
         self.assertIs(c.vendor, debian)
         self.assertIs(c.worker_vendor, debian)
+        self.assertIs(c.pbuilder_worker_vendor, debian)
         self.assertIs(c.sbuild_worker_vendor, debian)
         self.assertIs(c.vmdebootstrap_worker_vendor, debian)
         with self.assertRaises(AttributeError):
@@ -109,6 +111,11 @@ class DefaultsTestCase(unittest.TestCase):
             self.assertEqual(c.worker_qemu_image,
                     '{}/vectis/{}/debian/sid/autopkgtest.qcow2'.format(
                         XDG_CACHE_HOME, ARCHITECTURE))
+            self.assertEqual(c.pbuilder_worker,
+                    ['qemu', c.pbuilder_worker_qemu_image])
+            self.assertEqual(c.pbuilder_worker_qemu_image,
+                    '{}/vectis/{}/debian/sid/autopkgtest.qcow2'.format(
+                        XDG_CACHE_HOME, ARCHITECTURE))
             self.assertEqual(c.sbuild_worker,
                     ['qemu', c.sbuild_worker_qemu_image])
             self.assertEqual(c.sbuild_worker_qemu_image,
@@ -135,6 +142,7 @@ class DefaultsTestCase(unittest.TestCase):
                         distro_info.DebianDistroInfo().stable())
 
         stable = c.get_suite(c.vendor, 'stable')
+        self.assertEqual(c.pbuilder_worker_suite, stable)
         self.assertEqual(c.sbuild_worker_suite, stable)
         # #860433, #877592
         self.assertEqual(str(c.piuparts_worker_suite), 'stretch-backports')
@@ -156,6 +164,8 @@ class DefaultsTestCase(unittest.TestCase):
         c.worker_suite = 'sarge'
         c.qemu_ram_size = '512M'
         c.parallel = 1
+        c.pbuilder_worker_suite = 'chromodoris'
+        c.pbuilder_worker_vendor = 'tanglu'
         c.sbuild_worker_suite = 'alchemist'
         c.sbuild_worker_vendor = 'steamos'
         c.piuparts_worker_suite = 'scout'
@@ -183,6 +193,13 @@ class DefaultsTestCase(unittest.TestCase):
                     '{}/m68k/debian/sarge/autopkgtest.qcow2'.format(
                     c.storage)])
 
+        self.assertEqual(c.pbuilder_worker_qemu_image,
+                '{}/m68k/tanglu/chromodoris/autopkgtest.qcow2'.format(
+                    c.storage))
+        self.assertEqual(c.pbuilder_worker,
+                ['qemu', '--ram-size=512', '--cpus=1',
+                    '{}/m68k/tanglu/chromodoris/autopkgtest.qcow2'.format(
+                    c.storage)])
         self.assertEqual(c.piuparts_worker_qemu_image,
                 '{}/m68k/steamrt/precise/autopkgtest.qcow2'.format(
                     c.storage))
@@ -258,6 +275,7 @@ class DefaultsTestCase(unittest.TestCase):
         ])
         self.assertIs(c.worker_vendor, debian)
         self.assertIs(c.lxc_worker_vendor, debian)
+        self.assertIs(c.pbuilder_worker_vendor, debian)
         self.assertIs(c.piuparts_worker_vendor, debian)
         self.assertIs(c.sbuild_worker_vendor, debian)
         self.assertIs(c.vmdebootstrap_worker_vendor, debian)
@@ -277,6 +295,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(c.architecture, 'mips')
         self.assertEqual(c.worker_architecture, 'mips')
         self.assertEqual(c.lxc_worker_architecture, 'mips')
+        self.assertEqual(c.pbuilder_worker_architecture, 'mips')
         self.assertEqual(c.piuparts_worker_architecture, 'mips')
         self.assertEqual(c.sbuild_worker_architecture, 'mips')
 
@@ -293,6 +312,8 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(debian.default_worker_suite,
                 debian_info.stable())
         self.assertIs(c.lxc_worker_suite,
+                c.get_suite(debian, debian_info.stable()))
+        self.assertIs(c.pbuilder_worker_suite,
                 c.get_suite(debian, debian_info.stable()))
         # #860433, #877592
         self.assertIs(c.piuparts_worker_suite,
@@ -372,6 +393,7 @@ class DefaultsTestCase(unittest.TestCase):
             'non-free'})
         self.assertIs(c.vendor, debian)
         self.assertIs(c.worker_vendor, debian)
+        self.assertIs(c.pbuilder_worker_vendor, debian)
         self.assertIs(c.sbuild_worker_vendor, debian)
         self.assertIs(c.vmdebootstrap_worker_vendor, debian)
         self.assertIs(c.vmdebootstrap_worker_suite,
@@ -402,6 +424,7 @@ class DefaultsTestCase(unittest.TestCase):
 
         stable = c.get_suite(debian, 'stable')
         self.assertIs(c.worker_suite, stable)
+        self.assertIs(c.pbuilder_worker_suite, stable)
         self.assertIs(c.sbuild_worker_suite, stable)
 
     def test_debian_buildd(self):
@@ -445,6 +468,7 @@ class DefaultsTestCase(unittest.TestCase):
             'non-free'})
         self.assertIs(c.vendor, debian)
         self.assertIs(c.worker_vendor, debian)
+        self.assertIs(c.pbuilder_worker_vendor, debian)
         self.assertIs(c.sbuild_worker_vendor, debian)
         self.assertIs(c.vmdebootstrap_worker_vendor, debian)
         with self.assertRaises(AttributeError):
@@ -471,6 +495,7 @@ class DefaultsTestCase(unittest.TestCase):
 
         stable = c.get_suite(debian, 'stable')
         self.assertIs(c.worker_suite, stable)
+        self.assertIs(c.pbuilder_worker_suite, stable)
         self.assertIs(c.sbuild_worker_suite, stable)
 
     def test_debian_backports(self):
@@ -607,6 +632,7 @@ class DefaultsTestCase(unittest.TestCase):
             'restricted', 'multiverse'})
         self.assertIs(c.vendor, ubuntu)
         self.assertIs(c.worker_vendor, ubuntu)
+        self.assertIs(c.pbuilder_worker_vendor, ubuntu)
         self.assertIs(c.sbuild_worker_vendor, ubuntu)
         self.assertIs(c.vmdebootstrap_worker_vendor, ubuntu)
         with self.assertRaises(AttributeError):
@@ -657,6 +683,7 @@ class DefaultsTestCase(unittest.TestCase):
         lts = c.get_suite(ubuntu, ubuntu_info.lts())
         backports = c.get_suite(ubuntu, ubuntu_info.lts() + '-backports')
         self.assertEqual(c.worker_suite, lts)
+        self.assertEqual(c.pbuilder_worker_suite, lts)
         self.assertEqual(c.sbuild_worker_suite, lts)
         self.assertEqual(c.vmdebootstrap_worker_suite, lts)
         self.assertEqual(backports.archive, 'ubuntu')
@@ -697,6 +724,7 @@ class DefaultsTestCase(unittest.TestCase):
             'multiverse', 'restricted'})
         self.assertIs(c.vendor, ubuntu)
         self.assertIs(c.worker_vendor, ubuntu)
+        self.assertIs(c.pbuilder_worker_vendor, ubuntu)
         self.assertIs(c.sbuild_worker_vendor, ubuntu)
         self.assertIs(c.vmdebootstrap_worker_vendor, ubuntu)
 
@@ -725,6 +753,7 @@ class DefaultsTestCase(unittest.TestCase):
         lts = c.get_suite(ubuntu, ubuntu_info.lts())
         backports = c.get_suite(ubuntu, ubuntu_info.lts() + '-backports')
         self.assertIs(c.worker_suite, lts)
+        self.assertIs(c.pbuilder_worker_suite, lts)
         self.assertIs(c.sbuild_worker_suite, lts)
         self.assertIs(c.vmdebootstrap_worker_suite, lts)
 
@@ -784,6 +813,7 @@ class DefaultsTestCase(unittest.TestCase):
         backports = c.get_suite(ubuntu, ubuntu_info.lts() + '-backports')
         lts = c.get_suite(ubuntu, ubuntu_info.lts())
         self.assertIs(c.worker_suite, lts)
+        self.assertIs(c.pbuilder_worker_suite, lts)
         self.assertIs(c.sbuild_worker_suite, lts)
         self.assertIs(c.vmdebootstrap_worker_suite, lts)
 
@@ -805,6 +835,7 @@ class DefaultsTestCase(unittest.TestCase):
         self.assertEqual(c.components, {'main'})
         self.assertEqual(c.vendor, steamos)
         self.assertIs(c.worker_vendor, debian)
+        self.assertIs(c.pbuilder_worker_vendor, debian)
         self.assertIs(c.sbuild_worker_vendor, debian)
         self.assertIs(c.vmdebootstrap_worker_vendor, debian)
         with self.assertRaises(AttributeError):
@@ -853,6 +884,7 @@ class DefaultsTestCase(unittest.TestCase):
         # TODO: not sure whether it's correct for these to be inherited
         # from Ubuntu due to the cross-vendor base suite?
         self.assertIs(c.worker_vendor, ubuntu)
+        self.assertIs(c.pbuilder_worker_vendor, ubuntu)
         self.assertIs(c.sbuild_worker_vendor, ubuntu)
         self.assertIs(c.vmdebootstrap_worker_vendor, ubuntu)
 

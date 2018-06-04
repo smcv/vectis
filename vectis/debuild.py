@@ -5,6 +5,7 @@
 import glob
 import logging
 import os
+import shlex
 import shutil
 import subprocess
 import time
@@ -26,6 +27,9 @@ from debian.debian_support import (
     Version,
 )
 
+from vectis.apt import (
+    AptSource,
+)
 from vectis.autopkgtest import (
     run_autopkgtest,
 )
@@ -44,11 +48,108 @@ from vectis.util import (
     AtomicWriter,
 )
 from vectis.worker import (
+    ContainerWorker,
     SchrootWorker,
     VirtWorker,
 )
 
 logger = logging.getLogger(__name__)
+
+
+class PbuilderWorker(ContainerWorker):
+
+    def __init__(
+            self,
+            *,
+            architecture,
+            mirrors,
+            suite,
+            worker,
+            chroot=None,
+            components=(),
+            extra_repositories=(),
+            storage=None,
+            tarball=None):
+        super().__init__(mirrors=mirrors, suite=suite)
+
+        if tarball is None:
+            assert storage is not None
+
+            tarball = os.path.join(
+                storage, architecture, str(suite.hierarchy[-1].vendor),
+                str(suite.hierarchy[-1]), 'pbuilder.tar.gz')
+
+        self.apt_related_argv = []
+        self.components = components
+        self.__dpkg_architecture = architecture
+        self.extra_repositories = extra_repositories
+        self.tarball = tarball
+        self.tarball_in_guest = None
+        self.worker = worker
+
+        # We currently assume that copy_to_guest() works
+        assert isinstance(self.worker, VirtWorker)
+
+    @property
+    def dpkg_architecture(self):
+        return self.__dpkg_architecture
+
+    def _open(self):
+        super()._open()
+        self.set_up_apt()
+
+    def set_up_apt(self):
+        self.tarball_in_guest = self.worker.make_file_available(
+            self.tarball, cache=True)
+
+        argv = []
+
+        for ancestor in self.suite.hierarchy:
+            if self.components:
+                filtered_components = (
+                    set(self.components) & set(ancestor.all_components))
+            else:
+                filtered_components = ancestor.components
+
+            uri = self.mirrors.lookup_suite(ancestor)
+
+            source = AptSource(
+                components=filtered_components,
+                suite=ancestor.apt_suite,
+                type='deb',
+                trusted=ancestor.apt_trusted,
+                uri=uri,
+            )
+
+            if ancestor is self.suite.hierarchy[-1]:
+                logger.info(
+                        '%r: %s => --distribution %s --mirror %s '
+                        '--components %r',
+                        self, ancestor, source.suite,
+                        source.uri, ' '.join(source.components))
+                argv.append('--distribution')
+                argv.append(source.suite)
+                argv.append('--mirror')
+                argv.append(source.uri)
+                argv.append('--components')
+                argv.append(' '.join(source.components))
+            else:
+                logger.info(
+                    '%r: %s => --othermirror %s', self, ancestor, source)
+                argv.append('--othermirror')
+                argv.append(str(source))
+
+        for line in self.extra_repositories:
+            argv.append('--othermirror')
+            argv.append(line)
+
+        self.apt_related_argv = argv
+        self.install_apt_keys()
+
+    def install_apt_key(self, apt_key):
+        self.apt_related_argv.append('--keyring')
+        self.apt_related_argv.append(
+            self.worker.make_file_available(apt_key))
 
 
 class Buildable:
@@ -966,6 +1067,180 @@ class Build:
                     # if necessary.
                     self.copy_back_product(f['name'], skip_if_exists=True)
 
+    def pbuilder(self, *, sbuild_options=()):
+        self.worker.check_call([
+            'install', '-d', '-m755',
+            '{}/out'.format(self.worker.scratch)])
+
+        logger.info('Building architecture: %s', self.arch)
+
+        if self.arch in ('all', 'source'):
+            logger.info('(on %s)', self.worker.dpkg_architecture)
+            use_arch = self.worker.dpkg_architecture
+        else:
+            use_arch = self.arch
+
+        with PbuilderWorker(
+            storage=self.storage,
+            architecture=use_arch,
+            components=self.components,
+            extra_repositories=self.extra_repositories,
+            mirrors=self.mirrors,
+            suite=self.buildable.suite,
+            worker=self.worker,
+        ) as worker:
+            self._pbuilder(worker)
+
+    def _pbuilder(self, worker):
+        argv = [
+            self.worker.command_wrapper,
+            '--chdir',
+            '{}/out'.format(self.worker.scratch),
+            '--',
+            'env',
+        ]
+
+        if self.buildable.binary_version_suffix:
+            raise ArgumentError(
+                'pbuilder does not support an arbitrary binary version '
+                'suffix')
+
+        for k, v in sorted(self.environ.items()):
+            argv.append('{}={}'.format(k, v))
+
+        argv.extend((
+            'pbuilder',
+            'build',
+        ))
+
+        argv.extend(worker.apt_related_argv)
+
+        if self.profiles:
+            argv.append('--profiles')
+            argv.append(','.join(self.profiles))
+
+        opts = []
+
+        for x in self.dpkg_buildpackage_options:
+            opts.append(shlex.quote(x))
+
+        argv.append('--debbuildopts')
+        argv.append(' '.join(opts))
+
+        # This must come after debbuildopts
+        if self.arch == 'all':
+            logger.info('Architecture: all')
+            argv.append('--binary-indep')
+        elif self.arch == self.buildable.indep_together_with:
+            logger.info('Architecture: %s + all', self.arch)
+            argv.append('--architecture')
+            argv.append(self.arch)
+        else:
+            logger.info('Architecture: %s only', self.arch)
+            argv.append('--binary-arch')
+            argv.append('--architecture')
+            argv.append(self.arch)
+
+        argv.append('--basetgz')
+        argv.append('{}'.format(worker.tarball_in_guest))
+        argv.append('--buildresult')
+        argv.append('{}/out'.format(self.worker.scratch))
+        argv.append('--aptcache')
+        argv.append('')
+        argv.append('--logfile')
+        argv.append('{}/out/{}_{}.build'.format(
+            self.worker.scratch,
+            self.buildable.product_prefix,
+            worker.dpkg_architecture,
+        ))
+
+        # TODO: --host-arch, --no-auto-cross?
+        # TODO: --http-proxy
+
+        argv.append('{}/in/{}'.format(
+            self.worker.scratch,
+            os.path.basename(self.buildable.dsc_name)))
+
+        logger.info('Running %r', argv)
+        try:
+            self.worker.check_call(argv)
+        finally:
+            product = '{}/out/{}_{}.build'.format(
+                self.worker.scratch, self.buildable.product_prefix,
+                worker.dpkg_architecture)
+            product = self.worker.check_output(
+                ['readlink', '-f', product],
+                universal_newlines=True).rstrip('\n')
+
+            if (self.worker.call(['test', '-e', product]) == 0 and
+                    self.output_dir is not None):
+                logger.info('Copying %s back to host as %s_%s.build...',
+                            product, self.buildable.product_prefix, self.arch)
+                copied_back = os.path.join(
+                    self.output_dir,
+                    '{}_{}_{}.build'.format(
+                        self.buildable.product_prefix, self.arch,
+                        time.strftime('%Y%m%dt%H%M%S', time.gmtime())))
+                self.worker.copy_to_host(product, copied_back)
+                self.buildable.logs[self.arch] = copied_back
+
+                symlink = os.path.join(
+                    self.output_dir,
+                    '{}_{}.build'.format(
+                        self.buildable.product_prefix, self.arch))
+                try:
+                    os.remove(symlink)
+                except FileNotFoundError:
+                    pass
+
+                os.symlink(os.path.abspath(copied_back), symlink)
+
+        if self.output_dir is None:
+            return
+
+        product_arch = None
+
+        for candidate in (self.arch, self.worker.dpkg_architecture):
+            product = '{}/out/{}_{}.changes'.format(
+                self.worker.scratch, self.buildable.product_prefix,
+                candidate)
+            if self.worker.call(['test', '-e', product]) == 0:
+                product_arch = candidate
+                break
+        else:
+            raise CannotHappen(
+                'pbuilder produced no .changes file from {!r}'.format(
+                    self.buildable))
+
+        copied_back = self.copy_back_product(
+            '{}_{}.changes'.format(
+                self.buildable.product_prefix,
+                product_arch),
+            '{}_{}.changes'.format(
+                self.buildable.product_prefix,
+                self.arch))
+
+        if copied_back is not None:
+            self.buildable.changes_produced[self.arch] = copied_back
+
+            changes_out = Changes(open(copied_back))
+            dsc = None
+
+            for f in changes_out['files']:
+                copied_back = self.copy_back_product(f['name'])
+
+                if copied_back is not None and f['name'].endswith('.dsc'):
+                    dsc = Dsc(open(copied_back))
+
+            if dsc is not None:
+                if self.buildable.dsc is None:
+                    self.buildable.dsc = dsc
+
+                for f in dsc['files']:
+                    # The orig.tar.* might not have come back. Copy that too,
+                    # if necessary.
+                    self.copy_back_product(f['name'], skip_if_exists=True)
+
     def copy_back_product(self, base, to_base=None, *, skip_if_exists=False):
         if to_base is None:
             to_base = base
@@ -1185,6 +1460,65 @@ class BuildGroup:
             for arch in buildable.archs:
                 self.new_build(buildable, arch, worker).sbuild(
                     sbuild_options=self.sbuild_options)
+
+            buildable.merge_changes()
+
+    def pbuilder(self,
+                worker,
+                *,
+                archs=(),
+                indep=False,
+                indep_together=False,
+            ):
+        with worker:
+            self._pbuilder(worker)
+
+    def _pbuilder(self,
+                worker,
+                *,
+                archs=(),
+                indep=False,
+                indep_together=True,
+            ):
+        for buildable in self.buildables:
+            if buildable.source_from_archive:
+                raise ArgumentError(
+                    'pbuilder can only build a .dsc file')
+
+        logger.info('Installing pbuilder')
+        worker.check_call([
+            'env',
+            'DEBIAN_FRONTEND=noninteractive',
+            'apt-get',
+            '-y',
+            '-t', worker.suite.apt_suite,
+            '--no-install-recommends',
+            'install',
+
+            'eatmydata',
+            'fakeroot',
+            'net-tools',
+            'pbuilder',
+            'python3',
+        ])
+
+        for buildable in self.buildables:
+            logger.info('Processing: %s', buildable)
+            buildable.copy_source_to(worker)
+            buildable.select_archs(
+                worker_arch=worker.dpkg_architecture,
+                archs=archs,
+                indep=indep,
+                indep_together=indep_together,
+                build_source=False,
+                source_only=False,
+                source_together=True,
+            )
+
+            logger.info('Builds required: %r', list(buildable.archs))
+
+            for arch in buildable.archs:
+                self.new_build(buildable, arch, worker).pbuilder()
 
             buildable.merge_changes()
 
