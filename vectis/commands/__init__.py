@@ -414,7 +414,7 @@ p.add_argument(
     help='apt URI, e.g. http://mirror/debian-security [default: auto]',
 )
 
-help = 'Create LXD tarball'
+help = 'Create LXD tarball (currently requires an Ubuntu worker)'
 p = subparsers.add_parser(
     'lxd-tarball',
     help=help, description=help,
