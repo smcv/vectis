@@ -105,6 +105,7 @@ nobase_dist_installed_test_SCRIPTS = \
 	${NULL}
 
 dist_uninstalled_test_scripts = \
+	t/mypy.sh \
 	t/pyflakes.sh \
 	${NULL}
 
