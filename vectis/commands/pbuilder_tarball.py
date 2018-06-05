@@ -186,7 +186,6 @@ def run(args):
                         worker.scratch,
                     ],
                     universal_newlines=True).strip().splitlines()
-                #assert len(lines) == 1
                 logger.info('%r', lines)
 
                 worker.check_call([
@@ -200,7 +199,7 @@ def run(args):
                     '--basetgz', '{}/output.tar.gz'.format(worker.scratch),
                     '{}.dsc'.format(test_package),
                 ])
-            except:
+            except Exception:
                 if keep:
                     worker.copy_to_host(
                         '{}/output.tar.gz'.format(worker.scratch),

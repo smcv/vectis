@@ -514,7 +514,8 @@ class Buildable:
                     [
                         'sh', '-c', '"$@" || :',
                         'sh',  # argv[0]
-                        'dpkg-query', '-W', r'--showformat=${binary:Package}\n',
+                        'dpkg-query', '-W',
+                        r'--showformat=${binary:Package}\n',
                     ] + list(self.binary_packages),
                     universal_newlines=True).splitlines():
                 if ':' in line:
@@ -958,8 +959,9 @@ class Build:
 
                 if (self.worker.call(['test', '-e', product]) == 0 and
                         self.output_dir is not None):
-                    logger.info('Copying %s back to host as %s_%s.build...',
-                                product, self.buildable.product_prefix, self.arch)
+                    logger.info(
+                        'Copying %s back to host as %s_%s.build...',
+                        product, self.buildable.product_prefix, self.arch)
                     copied_back = os.path.join(
                         self.output_dir,
                         '{}_{}_{}.build'.format(
@@ -996,8 +998,9 @@ class Build:
 
             dscs = dscs.splitlines()
             if len(dscs) != 1:
-                raise CannotHappen('sbuild --source produced more than one '
-                                   '.dsc file from {!r}'.format(self.buildable))
+                raise CannotHappen(
+                    'sbuild --source produced more than one '
+                    '.dsc file from {!r}'.format(self.buildable))
 
             product = dscs[0]
 
@@ -1008,7 +1011,8 @@ class Build:
 
                 self.buildable.dsc = Dsc(open(copied_back))
                 self.buildable.source_package = self.buildable.dsc['source']
-                self.buildable.source_version = Version(self.buildable.dsc['version'])
+                self.buildable.source_version = Version(
+                    self.buildable.dsc['version'])
                 self.buildable.arch_wildcards = set(
                     self.buildable.dsc['architecture'].split())
                 self.buildable.binary_packages = [
@@ -1393,28 +1397,30 @@ class BuildGroup:
             storage=self.storage,
         )
 
-    def sbuild(self,
-                worker,
-                *,
-                archs=(),
-                build_source=None,          # None = auto
-                indep=False,
-                indep_together=False,
-                source_only=False,
-                source_together=False,
+    def sbuild(
+            self,
+            worker,
+            *,
+            archs=(),
+            build_source=None,          # None = auto
+            indep=False,
+            indep_together=False,
+            source_only=False,
+            source_together=False,
             ):
         with worker:
             self._sbuild(worker)
 
-    def _sbuild(self,
-                worker,
-                *,
-                archs=(),
-                build_source=None,          # None = auto
-                indep=False,
-                indep_together=False,
-                source_only=False,
-                source_together=False,
+    def _sbuild(
+            self,
+            worker,
+            *,
+            archs=(),
+            build_source=None,          # None = auto
+            indep=False,
+            indep_together=False,
+            source_only=False,
+            source_together=False,
             ):
 
         logger.info('Installing sbuild')
@@ -1456,8 +1462,8 @@ class BuildGroup:
                         sbuild_options=self.sbuild_options)
                 else:
                     logger.info(
-                        'Rebuilding and discarding source to discover supported '
-                        'architectures')
+                        'Rebuilding and discarding source to discover '
+                        'supported architectures')
                     self.new_build(
                         buildable,
                         'source',
@@ -1483,22 +1489,24 @@ class BuildGroup:
 
             buildable.merge_changes()
 
-    def pbuilder(self,
-                worker,
-                *,
-                archs=(),
-                indep=False,
-                indep_together=False,
+    def pbuilder(
+            self,
+            worker,
+            *,
+            archs=(),
+            indep=False,
+            indep_together=False,
             ):
         with worker:
             self._pbuilder(worker)
 
-    def _pbuilder(self,
-                worker,
-                *,
-                archs=(),
-                indep=False,
-                indep_together=True,
+    def _pbuilder(
+            self,
+            worker,
+            *,
+            archs=(),
+            indep=False,
+            indep_together=True,
             ):
         for buildable in self.buildables:
             if buildable.source_from_archive:
@@ -1631,13 +1639,15 @@ class BuildGroup:
                     test_architectures.append(default_architecture)
 
                 logger.info(
-                    'Running piuparts on architectures: %r', test_architectures)
+                    'Running piuparts on architectures: %r',
+                    test_architectures)
 
                 for architecture in test_architectures:
                     buildable.piuparts_failures.extend(
                         run_piuparts(
                             architecture=architecture,
-                            binaries=(Binary(b, deb=b)
+                            binaries=(
+                                Binary(b, deb=b)
                                 for b in buildable.get_debs(architecture)),
                             components=self.components,
                             extra_repositories=self.extra_repositories,

@@ -107,7 +107,8 @@ class AutopkgtestWorker(ContainerWorker, FileProvider):
                     b, owner=run_as))
 
         if source_dsc is not None:
-            d, f = self.worker.make_dsc_file_available(source_dsc, owner=run_as)
+            d, f = self.worker.make_dsc_file_available(
+                    source_dsc, owner=run_as)
             argv.append('{}/{}'.format(d, f))
         elif source_package is not None:
             argv.append(source_package)
@@ -320,7 +321,8 @@ def run_autopkgtest(
                 ])
 
                 with TemporaryDirectory(prefix='vectis-sbuild-') as tmp:
-                    with AtomicWriter(os.path.join(tmp, 'sbuild.conf')) as writer:
+                    with AtomicWriter(os.path.join(
+                            tmp, 'sbuild.conf')) as writer:
                         writer.write(textwrap.dedent('''
                         [autopkgtest]
                         type=file
@@ -336,7 +338,7 @@ def run_autopkgtest(
                         ))
                     worker.copy_to_guest(
                         os.path.join(tmp, 'sbuild.conf'),
-                            '/etc/schroot/chroot.d/autopkgtest')
+                        '/etc/schroot/chroot.d/autopkgtest')
 
                 output_on_worker = worker.new_directory()
                 worker.check_call(['chown', worker.user, output_on_worker])
@@ -367,7 +369,7 @@ def run_autopkgtest(
                                 rootfs, meta)
                     continue
 
-                worker=stack.enter_context(lxc_worker)
+                worker = stack.enter_context(lxc_worker)
                 worker.check_call([
                     'env',
                     'DEBIAN_FRONTEND=noninteractive',
@@ -404,11 +406,11 @@ def run_autopkgtest(
                     'chroot',
                     '/var/lib/lxc/{}/rootfs'.format(container),
                     'sh', '-c',
-                        'if ! getent passwd user >/dev/null; then '
-                            'apt-get -y install adduser && '
-                            'adduser --disabled-password --shell=/bin/sh user '
-                                '</dev/null; '
-                        'fi'])
+                    'if ! getent passwd user >/dev/null; then '
+                    '    apt-get -y install adduser && '
+                    '    adduser --disabled-password --shell=/bin/sh user '
+                    '    </dev/null; '
+                    'fi'])
 
                 output_on_worker = worker.new_directory()
                 virt = ['lxc', container]
@@ -430,7 +432,7 @@ def run_autopkgtest(
                     logger.info('Required tarball %s does not exist', tarball)
                     continue
 
-                worker=stack.enter_context(lxd_worker)
+                worker = stack.enter_context(lxd_worker)
                 worker.check_call([
                     'env',
                     'DEBIAN_FRONTEND=noninteractive',

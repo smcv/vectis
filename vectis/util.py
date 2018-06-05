@@ -14,7 +14,7 @@ def AtomicWriter(fn, *a, **k):
     try:
         with open(fn + '.tmp', 'x', *a, **k) as f:
             yield f
-    except:
+    except Exception:
         try:
             os.unlink(fn + '.tmp')
         except Exception as e:

@@ -170,7 +170,7 @@ def run(args):
                     '--no-run-lintian',
                     buildable,
                 ])
-            except:
+            except Exception:
                 if keep:
                     worker.copy_to_host(
                         '{}/output.tar.gz'.format(worker.scratch),

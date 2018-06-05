@@ -36,6 +36,7 @@ else:
 class ConfigError(Error):
     pass
 
+
 HOME = os.path.expanduser('~')
 XDG_CACHE_HOME = os.getenv('XDG_CACHE_HOME', os.path.expanduser('~/.cache'))
 XDG_CONFIG_HOME = os.getenv('XDG_CONFIG_HOME', os.path.expanduser('~/.config'))
@@ -362,7 +363,7 @@ class Config(_ConfigLike):
         try:
             d['defaults']['architecture'] = subprocess.check_output(
                 ['dpkg', '--print-architecture'],
-                    universal_newlines=True).strip()
+                universal_newlines=True).strip()
         except subprocess.CalledProcessError:
             pass
 
@@ -858,7 +859,8 @@ class Config(_ConfigLike):
     def piuparts_tarballs(self):
         return self['piuparts_tarballs']
 
-    def get_piuparts_tarballs(self,
+    def get_piuparts_tarballs(
+            self,
             architecture=None,
             suite=None,
             vendor=None):

@@ -47,7 +47,7 @@ def run(args):
         version = subprocess.check_output(
             ['dpkg-query', '-W', '-f${Version}', 'vmdebootstrap'],
             universal_newlines=True).rstrip('\n')
-    except:
+    except subprocess.CalledProcessException:
         # non-dpkg host, guess a recent version
         version = Version('1.7')
         debootstrap_version = Version('1.0.89')
@@ -119,7 +119,7 @@ def run(args):
                     'sbuild',
                     'schroot',
                 ])
-        except:
+        except Exception:
             if not keep:
                 os.remove(out + '.new')
             raise

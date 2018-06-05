@@ -62,11 +62,11 @@ class AptSource:
         assert isinstance(type, str)
         assert isinstance(uri, str)
 
-        self.components = set(components or ()) # type: Set[str]
-        self.suite = suite                      # type: str
-        self.trusted = bool(trusted)            # type: bool
-        self.type = type                        # type: str
-        self.uri = uri                          # type: str
+        self.components = set(components or ())     # type: Set[str]
+        self.suite = suite                          # type: str
+        self.trusted = bool(trusted)                # type: bool
+        self.type = type                            # type: str
+        self.uri = uri                              # type: str
 
     def __str__(self):
         # type: () -> str

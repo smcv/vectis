@@ -120,6 +120,7 @@ def add_worker_options(p, context=None, context_implicit=False):
             getattr(args, dest_prefix + 'worker_suite')),
     )
 
+
 def add_output_options(p):
     p.add_argument(
         '--output-parent',
@@ -127,9 +128,10 @@ def add_output_options(p):
     )
     p.add_argument(
         '--output-dir',
-        help='Leave output in this directory, which must be empty or not exist '
-             '[default: create a new directory in OUTPUT_PARENT]',
+        help='Leave output in this directory, which must be empty or '
+             'not exist [default: create a new directory in OUTPUT_PARENT]',
     )
+
 
 args = Config()
 
@@ -194,7 +196,8 @@ p.add_argument(
     help='Release suite [default: {}]'.format(args.default_suite),
 )
 p.add_argument('--architecture', '--arch',
-               help='dpkg architecture [default: {}]'.format(args.architecture))
+               help='dpkg architecture [default: {}]'.format(
+                   args.architecture))
 p.add_argument('--keep', action='store_true', default=False, dest='_keep',
                help='Keep the new image even if testing fails')
 p.add_argument(
@@ -794,7 +797,8 @@ p.add_argument(
          'from input]',
 )
 p.add_argument(
-    '--extra-repository', action='append', default=[], dest='_extra_repository',
+    '--extra-repository', action='append', default=[],
+    dest='_extra_repository',
     help='Add an apt source',
 )
 p.add_argument(
@@ -826,7 +830,8 @@ p.add_argument(
          'from input]',
 )
 p.add_argument(
-    '--extra-repository', action='append', default=[], dest='_extra_repository',
+    '--extra-repository', action='append', default=[],
+    dest='_extra_repository',
     help='Add an apt source',
 )
 p.add_argument(

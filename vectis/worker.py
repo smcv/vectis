@@ -312,12 +312,18 @@ class SchrootWorker(ContainerWorker, InteractiveWorker):
                 echo "$0: Setting up ${CHROOT_ALIAS}" >&2
 
                 if [ -f /etc/schroot/sources.list.d/${CHROOT_ALIAS} ]; then
-                    echo "$0: Copying /etc/schroot/sources.list.d/${CHROOT_ALIAS} into ${CHROOT_PATH}" >&2
-                    cp /etc/schroot/sources.list.d/${CHROOT_ALIAS} ${CHROOT_PATH}/etc/apt/sources.list
+                    echo "$0: Copying" \
+                        "/etc/schroot/sources.list.d/${CHROOT_ALIAS}" \
+                        "into ${CHROOT_PATH}" >&2
+                    cp /etc/schroot/sources.list.d/${CHROOT_ALIAS} \
+                        ${CHROOT_PATH}/etc/apt/sources.list
                 fi
                 if [ -d /etc/schroot/apt-keys.d/${CHROOT_ALIAS} ]; then
-                    echo "$0: Copying /etc/schroot/apt-keys.d/${CHROOT_ALIAS}/ into ${CHROOT_PATH}" >&2
-                    cp /etc/schroot/apt-keys.d/${CHROOT_ALIAS}/* ${CHROOT_PATH}/etc/apt/trusted.gpg.d/
+                    echo "$0: Copying" \
+                        "/etc/schroot/apt-keys.d/${CHROOT_ALIAS}/" \
+                        "into ${CHROOT_PATH}" >&2
+                    cp /etc/schroot/apt-keys.d/${CHROOT_ALIAS}/* \
+                        ${CHROOT_PATH}/etc/apt/trusted.gpg.d/
                 fi
             fi
             '''))

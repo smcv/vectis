@@ -141,7 +141,7 @@ def run(args, really=True):
         else:
             raise ArgumentError('--suite must be specified')
 
-    mirrors=args.get_mirrors()
+    mirrors = args.get_mirrors()
 
     worker = VirtWorker(
         args.worker,

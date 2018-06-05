@@ -86,7 +86,8 @@ def run(args):
             chdir = temp
         elif chdir[0] != '/' and chdir != '.':
             raise ArgumentError(
-                "Argument to --chdir must be 'in', 'out', 'tmp', '.' or absolute")
+                "Argument to --chdir must be 'in', 'out', 'tmp', "
+                "'.' or absolute")
 
         wrapper = [
             'sh',

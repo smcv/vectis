@@ -107,7 +107,7 @@ def new_ubuntu_cloud(
 
     try:
         subprocess.check_call(argv)
-    except:
+    except Exception:
         if os.path.exists(image):
             os.unlink(image)
         raise
@@ -273,7 +273,7 @@ def run(args):
     components = args.components
     keep = args._keep
     kernel_package = args.get_kernel_package(architecture)
-    include=args._include
+    include = args._include
     mirrors = args.get_mirrors()
     out = args.write_qemu_image
     qemu_image_size = args.qemu_image_size
@@ -342,7 +342,7 @@ def run(args):
                 'sbuild',
                 'schroot',
             ])
-    except:
+    except Exception:
         if keep:
             if created != out + '.new':
                 os.rename(created, out + '.new')
