@@ -6,6 +6,7 @@
 import os
 import subprocess
 import sys
+from abc import abstractmethod, ABCMeta
 from contextlib import suppress
 from string import Template
 from weakref import WeakValueDictionary
@@ -50,9 +51,9 @@ _1M = 1024 * 1024
 class Mirrors:
 
     def __init__(self, mapping):
-        # type: (Mapping[str, str]) -> None
+        # type: (Mapping[Optional[str], str]) -> None
         if mapping is None:
-            self._raw = {}      # type: Mapping[str, str]
+            self._raw = {}      # type: Mapping[Optional[str], str]
         else:
             self._raw = mapping
 
@@ -93,7 +94,7 @@ class Mirrors:
         )
 
 
-class _ConfigLike:
+class _ConfigLike(metaclass=ABCMeta):
 
     def __init__(self):
         self._raw = None
@@ -127,6 +128,10 @@ class _ConfigLike:
     def extra_components(self):
         # type: () -> Set[str]
         return self._get_string_set('extra_components')
+
+    @abstractmethod
+    def __getitem__(self, name):
+        raise NotImplementedError
 
 
 class Vendor(_ConfigLike):

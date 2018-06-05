@@ -9,13 +9,13 @@ except ImportError:
     pass
 else:
     from typing import (
+        Iterable,
         Optional,
-        Sequence,
         Set,
     )
     typing      # silence pyflakes
+    Iterable
     Optional
-    Sequence
     Set
 
 
@@ -25,7 +25,7 @@ class AptSource:
             self,
             other=None,                 # type: Optional[AptSource]
             *,
-            components=None,            # type: Optional[Sequence[str]]
+            components=None,            # type: Optional[Iterable[str]]
             suite=None,                 # type: Optional[str]
             trusted=None,               # type: Optional[bool]
             type=None,                  # type: Optional[str]
@@ -37,10 +37,10 @@ class AptSource:
         # TODO: If other is a str, parse it
         assert other is None or isinstance(other, AptSource)
 
-        if components is None:
+        if components is None and other is not None:
             components = other.components
 
-        if suite is None:
+        if suite is None and other is not None:
             suite = other.suite
 
         if trusted is None:
@@ -55,18 +55,18 @@ class AptSource:
             else:
                 type = other.type
 
-        if uri is None:
+        if uri is None and other is not None:
             uri = other.uri
 
         assert isinstance(suite, str)
         assert isinstance(type, str)
         assert isinstance(uri, str)
 
-        self.components = set(components)   # type: Set[str]
-        self.suite = suite                  # type: str
-        self.trusted = bool(trusted)        # type: bool
-        self.type = type                    # type: str
-        self.uri = uri                      # type: str
+        self.components = set(components or ()) # type: Set[str]
+        self.suite = suite                      # type: str
+        self.trusted = bool(trusted)            # type: bool
+        self.type = type                        # type: str
+        self.uri = uri                          # type: str
 
     def __str__(self):
         # type: () -> str

@@ -15,6 +15,21 @@ from collections import (
 from contextlib import suppress
 from tempfile import TemporaryDirectory
 
+try:
+    import typing
+except ImportError:
+    pass
+else:
+    from typing import (
+        Optional,
+        Sequence,
+        Set,
+    )
+    typing      # silence pyflakes
+    Optional
+    Sequence
+    Set
+
 from debian.changelog import (
     Changelog,
 )
@@ -53,6 +68,9 @@ from vectis.worker import (
     VirtWorker,
 )
 
+import vectis.config
+vectis.config                           # noqa
+
 logger = logging.getLogger(__name__)
 
 
@@ -61,15 +79,17 @@ class PbuilderWorker(ContainerWorker):
     def __init__(
             self,
             *,
-            architecture,
-            mirrors,
-            suite,
-            worker,
-            chroot=None,
-            components=(),
-            extra_repositories=(),
-            storage=None,
-            tarball=None):
+            architecture,               # type: str
+            mirrors,                    # type: vectis.config.Mirrors
+            suite,                      # type: vectis.config.Suite
+            worker,                     # type: VirtWorker
+            chroot=None,                # type: Optional[str]
+            components=(),              # type: Sequence[str]
+            extra_repositories=(),      # type: Sequence[str]
+            storage=None,               # type: str
+            tarball=None,               # type: str
+            ):
+        # type: (...) -> None
         super().__init__(mirrors=mirrors, suite=suite)
 
         if tarball is None:
@@ -79,12 +99,12 @@ class PbuilderWorker(ContainerWorker):
                 storage, architecture, str(suite.hierarchy[-1].vendor),
                 str(suite.hierarchy[-1]), 'pbuilder.tar.gz')
 
-        self.apt_related_argv = []
+        self.apt_related_argv = []                      # type: Sequence[str]
         self.components = components
-        self.__dpkg_architecture = architecture
+        self.__dpkg_architecture = architecture         # type: str
         self.extra_repositories = extra_repositories
         self.tarball = tarball
-        self.tarball_in_guest = None
+        self.tarball_in_guest = None                    # type: Optional[str]
         self.worker = worker
 
         # We currently assume that copy_to_guest() works
