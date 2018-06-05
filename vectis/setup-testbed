@@ -70,7 +70,7 @@ EOF
 fi
 
 # serial console for upstart
-if [ -e "$root/etc/init/tty2.conf" -a ! -e "$root/etc/init/ttyS0.conf" ]; then
+if [ -e "$root/etc/init/tty2.conf" ] && ! [ -e "$root/etc/init/ttyS0.conf" ]; then
     sed 's/tty2/ttyS0/g; s! *exec.*$!exec /sbin/getty -L ttyS0 115200 vt102!' \
         "$root/etc/init/tty2.conf" > "$root/etc/init/ttyS0.conf"
 fi
@@ -117,7 +117,7 @@ fi
 # set up networking
 if [ -z "${AUTOPKGTEST_IS_SETUP_COMMAND:-}" ] && ! ls "$root"/etc/systemd/network/*.network >/dev/null 2>&1; then
     if ! grep -q 'source.*interfaces.d' "$root/etc/network/interfaces"; then
-        printf "\nsource-directory /etc/network/interfaces.d\n" >> "$root/etc/network/interfaces"
+        printf '\nsource-directory /etc/network/interfaces.d\n' >> "$root/etc/network/interfaces"
     fi
 
     IFACE=""
@@ -139,7 +139,7 @@ if [ -z "${AUTOPKGTEST_IS_SETUP_COMMAND:-}" ] && ! ls "$root"/etc/systemd/networ
     if [ -n "$IFACE" ] ; then
         mkdir -p "$root/etc/network/interfaces.d"
         if ! grep -h -r "^[[:space:]]*auto.*$IFACE" "$root/etc/network/interfaces" "$root/etc/network/interfaces.d" | grep -qv 'auto[[:space:]]*lo'; then
-            printf "auto $IFACE\niface $IFACE inet dhcp\n" >> "$root/etc/network/interfaces.d/$IFACE"
+            printf 'auto %s\niface %s inet dhcp\n' "$IFACE" "$IFACE" >> "$root/etc/network/interfaces.d/$IFACE"
         fi
     fi
 fi
