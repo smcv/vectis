@@ -457,6 +457,89 @@ class Buildable:
                                 '{}/out/{}'.format(worker.scratch, base),
                             ])
 
+    def get_source_from_archive(
+            self,
+            worker,                     # type: VirtWorker
+            chroot,                     # type: SchrootWorker
+            ):
+        # We fetch the source ourselves rather than letting sbuild do
+        # it, because for source rebuilds we need the orig.tar.* even
+        # if it's revision 2 or later, so that we can run lintian on
+        # the host system. If we let sbuild run lintian then it would
+        # be an outdated version.
+        worker.check_call([
+            'mkdir', '/var/lib/sbuild/build/{}'.format(self),
+        ])
+        worker.check_call([
+            'mkdir', '-p', '-m755', '{}/in'.format(worker.scratch)])
+
+        if self.source_version is None:
+            chroot.check_call([
+                'sh',
+                '-euc',
+                'cd /build/"$1"; shift; exec "$@"',
+                'sh',   # argv[0]
+                str(self),
+                'apt-get', '-o=APT::Get::Only-Source=true',
+                'source', self.source_package,
+            ])
+        else:
+            chroot.check_call([
+                'sh',
+                '-euc',
+                'cd /build/"$1"; shift; exec "$@"',
+                'sh',   # argv[0]
+                str(self),
+                'apt-get', '-o=APT::Get::Only-Source=true',
+                'source',
+                '{}={}'.format(
+                    self.source_package,
+                    self.source_version,
+                )
+            ])
+
+        dscs = worker.check_output([
+            'sh',
+            '-euc',
+            'exec ls /var/lib/sbuild/build/"$1"/*.dsc',
+            'sh',  # argv[0]
+            str(self),
+        ], universal_newlines=True)
+
+        dscs = dscs.splitlines()
+
+        if len(dscs) != 1:
+            raise CannotHappen(
+                'apt-get source produced more than one '
+                '.dsc file from {!r}'.format(self))
+
+        product = dscs[0]
+
+        with TemporaryDirectory(prefix='vectis-sbuild-') as tmp:
+            copied_back = os.path.join(
+                tmp, '{}.dsc'.format(self.buildable))
+            worker.copy_to_host(product, copied_back)
+
+            self.dsc = Dsc(open(copied_back))
+
+        self.source_package = self.dsc['source']
+        self.source_version = Version(
+            self.dsc['version'])
+        self.arch_wildcards = set(
+            self.dsc['architecture'].split())
+        self.binary_packages = [
+            p.strip() for p in self.dsc['binary'].split(',')]
+
+        worker.check_call([
+            'sh',
+            '-euc',
+            'cd /var/lib/sbuild/build/"$1"/; shift; exec mv -- "$@"',
+            'sh',
+            str(self),
+        ] + [f['name'] for f in self.dsc['files']] + [
+            worker.scratch + '/in/',
+        ])
+
     def select_archs(
             self,
             *,
@@ -786,29 +869,6 @@ class Build:
     def _sbuild(self, chroot, sbuild_options=()):
         sbuild_version = self.worker.dpkg_version('sbuild')
 
-        # Backwards compatibility for Debian jessie buildd backport
-        # and for Ubuntu xenial: it can't do "sbuild hello", only
-        # "sbuild hello_2.10-1".
-        if (self.buildable.source_from_archive and
-                self.buildable.source_version is None and
-                sbuild_version < Version('0.69.0')):
-            lines = chroot.check_output(
-                [
-                    'sh', '-c',
-                    'apt-get update >&2 && '
-                    '( apt-cache showsrc --only-source "$1" || '
-                    '  apt-cache showsrc "$1" ) | '
-                    'sed -ne "s/^Version: *//p"',
-                    'sh',  # argv[0]
-                    self.buildable.source_package,
-                ],
-                universal_newlines=True).strip().splitlines()
-            self.buildable.source_version = sorted(map(Version, lines))[-1]
-            self.buildable.buildable = '{}_{}'.format(
-                self.buildable.source_package,
-                self.buildable.source_version,
-            )
-
         argv = [
             self.worker.command_wrapper,
             '--chdir',
@@ -991,34 +1051,7 @@ class Build:
                         'sh',  # argv[0]
                         self.worker.scratch]))
 
-        if self.arch == 'source' and self.buildable.source_from_archive:
-            dscs = self.worker.check_output([
-                'sh', '-c', 'exec ls "$1"/out/*.dsc', 'sh',  # argv[0]
-                self.worker.scratch], universal_newlines=True)
-
-            dscs = dscs.splitlines()
-            if len(dscs) != 1:
-                raise CannotHappen(
-                    'sbuild --source produced more than one '
-                    '.dsc file from {!r}'.format(self.buildable))
-
-            product = dscs[0]
-
-            with TemporaryDirectory(prefix='vectis-sbuild-') as tmp:
-                copied_back = os.path.join(
-                    tmp, '{}.dsc'.format(self.buildable.buildable))
-                self.worker.copy_to_host(product, copied_back)
-
-                self.buildable.dsc = Dsc(open(copied_back))
-                self.buildable.source_package = self.buildable.dsc['source']
-                self.buildable.source_version = Version(
-                    self.buildable.dsc['version'])
-                self.buildable.arch_wildcards = set(
-                    self.buildable.dsc['architecture'].split())
-                self.buildable.binary_packages = [
-                    p.strip() for p in self.buildable.dsc['binary'].split(',')]
-
-        if self.arch == 'source' and self.output_dir is not None:
+        if self.arch == 'source':
             # Make sure the orig.tar.* are in the out directory, because
             # we will be building from the rebuilt source in future
             self.worker.check_call([
@@ -1026,9 +1059,6 @@ class Build:
                 'ln -nsf "$1"/in/*.orig.tar.* "$1"/out/',
                 'sh',  # argv[0]
                 self.worker.scratch])
-
-        if self.output_dir is None:
-            return
 
         product_arch = None
 
@@ -1397,6 +1427,24 @@ class BuildGroup:
             storage=self.storage,
         )
 
+    def get_source(self, buildable, worker):
+        use_arch = worker.dpkg_architecture
+
+        if buildable.source_from_archive:
+            with SchrootWorker(
+                storage=self.storage,
+                architecture=use_arch,
+                chroot='{}-{}-sbuild'.format(buildable.suite, use_arch),
+                components=self.components,
+                extra_repositories=self.extra_repositories,
+                mirrors=self.mirrors,
+                suite=buildable.suite,
+                worker=worker,
+            ) as chroot:
+                buildable.get_source_from_archive(worker, chroot)
+        else:
+            buildable.copy_source_to(worker)
+
     def sbuild(
             self,
             worker,
@@ -1447,30 +1495,7 @@ class BuildGroup:
 
         for buildable in self.buildables:
             logger.info('Processing: %s', buildable)
-
-            buildable.copy_source_to(worker)
-
-            if buildable.source_from_archive:
-                # We need to get some information from the .dsc, which we do by
-                # building one and (usually) throwing it away.
-                # TODO: With jessie's sbuild, this doesn't work for
-                # sources that only build Architecture: all binaries.
-                # TODO: This won't work if the sbuild_options are a binNMU.
-                if build_source:
-                    logger.info('Rebuilding source as requested')
-                    self.new_build(buildable, 'source', worker).sbuild(
-                        sbuild_options=self.sbuild_options)
-                else:
-                    logger.info(
-                        'Rebuilding and discarding source to discover '
-                        'supported architectures')
-                    self.new_build(
-                        buildable,
-                        'source',
-                        worker,
-                        output_dir=None,
-                    ).sbuild(sbuild_options=self.sbuild_options)
-
+            self.get_source(buildable, worker)
             buildable.select_archs(
                 worker_arch=worker.dpkg_architecture,
                 archs=archs,
@@ -1532,7 +1557,7 @@ class BuildGroup:
 
         for buildable in self.buildables:
             logger.info('Processing: %s', buildable)
-            buildable.copy_source_to(worker)
+            self.get_source(buildable, worker)
             buildable.select_archs(
                 worker_arch=worker.dpkg_architecture,
                 archs=archs,
