@@ -21,11 +21,17 @@ except ImportError:
     pass
 else:
     from typing import (
+        Iterable,
+        List,
+        Mapping,
         Optional,
         Sequence,
         Set,
     )
     typing      # silence pyflakes
+    Iterable
+    List
+    Mapping
     Optional
     Sequence
     Set
@@ -176,39 +182,42 @@ class Buildable:
 
     def __init__(
             self,
-            buildable,
+            buildable,                  # type: str
             *,
-            binary_version_suffix='',
-            link_builds=(),
-            orig_dirs=('..',),
-            output_dir=None,
-            output_parent,
-            vendor):
+            binary_version_suffix='',   # type: str
+            link_builds=(),             # type: Iterable[str]
+            orig_dirs=('..',),          # type: Iterable[str]
+            output_dir=None,            # type: Optional[str]
+            output_parent,              # type: str
+            vendor,                     # type: vectis.config.Vendor
+            ):
+        # type: (...) -> None
+
         self.buildable = buildable
 
         self._product_prefix = None
-        self._source_version = None
+        self._source_version = None     # type: Optional[Version]
         self._binary_version = None
-        self.arch_wildcards = set()
-        self.archs = []
-        self.autopkgtest_failures = []
-        self.binary_packages = []
+        self.arch_wildcards = set()     # type: Set[str]
+        self.archs = []                 # type: List[str]
+        self.autopkgtest_failures = []  # type: List[str]
+        self.binary_packages = []       # type: List[str]
         self.binary_version_suffix = binary_version_suffix
-        self.changes_produced = {}
+        self.changes_produced = {}      # type: Mapping[str, str]
         self.dirname = None
         self.dsc = None
         self.dsc_name = None
         self.indep = False
         self.indep_together_with = None
         self.link_builds = link_builds
-        self.logs = {}
-        self.merged_changes = OrderedDict()
+        self.logs = {}                  # type: Mapping[str, str]
+        self.merged_changes = OrderedDict()     # type: Mapping[str, str]
         self.nominal_suite = None
         self.orig_dirs = orig_dirs
         self.output_dir = output_dir
-        self.piuparts_failures = []
+        self.piuparts_failures = []     # type: List[str]
         self.source_from_archive = False
-        self.source_package = None
+        self.source_package = None      # type: Optional[str]
         self.source_together_with = None
         self.sourceful_changes_name = None
         self.suite = None
@@ -216,8 +225,8 @@ class Buildable:
 
         if os.path.exists(self.buildable):
             if os.path.isdir(self.buildable):
-                changelog = os.path.join(self.buildable, 'debian', 'changelog')
-                changelog = Changelog(open(changelog))
+                path = os.path.join(self.buildable, 'debian', 'changelog')
+                changelog = Changelog(open(path))
                 self.source_package = changelog.get_package()
                 self.nominal_suite = changelog.distributions
                 self._source_version = Version(changelog.version)
@@ -273,12 +282,12 @@ class Buildable:
                     '{!r}'.format(self.buildable))
         else:
             self.source_from_archive = True
+            version = None              # type: Optional[str]
 
             if '_' in self.buildable:
                 source, version = self.buildable.split('_', 1)
             else:
                 source = self.buildable
-                version = None
 
             self.source_package = source
             if version is not None:
@@ -295,6 +304,8 @@ class Buildable:
             self._binary_version = Version(
                 str(self._source_version) + self.binary_version_suffix)
 
+        assert self.source_package is not None
+
         timestamp = time.strftime('%Y%m%dt%H%M%S', time.gmtime())
 
         if self.output_dir is None:
@@ -310,6 +321,7 @@ class Buildable:
 
             # For convenience, create a symbolic link for the latest build of
             # each source package: hello_latest -> hello_2.10-1_20170319t102623
+
             unversioned_symlink = os.path.join(
                 output_parent, self.source_package + '_latest')
 
@@ -339,6 +351,8 @@ class Buildable:
         os.mkdir(self.output_dir)
 
         if self.dsc is not None:
+            assert self.dsc_name is not None
+
             abs_file = os.path.abspath(self.dsc_name)
             abs_dir, base = os.path.split(abs_file)
             os.symlink(abs_file, os.path.join(self.output_dir, base))
