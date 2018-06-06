@@ -1347,7 +1347,7 @@ class BuildGroup:
     def __init__(
         self,
         *,
-        binary_version_suffix=None,
+        binary_version_suffix='',
         buildables=(),
         components=(),
         deb_build_options=(),
@@ -1386,6 +1386,7 @@ class BuildGroup:
         for a in (buildables or ['.']):
             buildable = Buildable(
                 a,
+                binary_version_suffix=binary_version_suffix,
                 link_builds=link_builds,
                 orig_dirs=orig_dirs,
                 output_dir=output_dir,
