@@ -812,7 +812,6 @@ class Build:
             worker,
             *,
             mirrors,
-            output_dir,
             profiles,
             storage,
             deb_build_options=(),
@@ -830,7 +829,6 @@ class Build:
         self.extra_repositories = extra_repositories
         assert not isinstance(profiles, str), profiles
         self.mirrors = mirrors
-        self.output_dir = output_dir
         self.profiles = set(profiles)
         self.storage = storage
         self.worker = worker
@@ -1017,13 +1015,12 @@ class Build:
                     ['readlink', '-f', product],
                     universal_newlines=True).rstrip('\n')
 
-                if (self.worker.call(['test', '-e', product]) == 0 and
-                        self.output_dir is not None):
+                if self.worker.call(['test', '-e', product]) == 0:
                     logger.info(
                         'Copying %s back to host as %s_%s.build...',
                         product, self.buildable.product_prefix, self.arch)
                     copied_back = os.path.join(
-                        self.output_dir,
+                        self.buildable.output_dir,
                         '{}_{}_{}.build'.format(
                             self.buildable.product_prefix, self.arch,
                             time.strftime('%Y%m%dt%H%M%S', time.gmtime())))
@@ -1031,7 +1028,7 @@ class Build:
                     self.buildable.logs[self.arch] = copied_back
 
                     symlink = os.path.join(
-                        self.output_dir,
+                        self.buildable.output_dir,
                         '{}_{}.build'.format(
                             self.buildable.product_prefix, self.arch))
                     try:
@@ -1096,7 +1093,7 @@ class Build:
                         # expect to find exactly one .dsc file
                         assert self.buildable.dsc_name is None
                         self.buildable.dsc_name = os.path.join(
-                            self.output_dir, f['name'])
+                            self.buildable.output_dir, f['name'])
 
                 assert self.buildable.dsc_name is not None
                 # Save some space
@@ -1226,12 +1223,11 @@ class Build:
                 ['readlink', '-f', product],
                 universal_newlines=True).rstrip('\n')
 
-            if (self.worker.call(['test', '-e', product]) == 0 and
-                    self.output_dir is not None):
+            if self.worker.call(['test', '-e', product]) == 0:
                 logger.info('Copying %s back to host as %s_%s.build...',
                             product, self.buildable.product_prefix, self.arch)
                 copied_back = os.path.join(
-                    self.output_dir,
+                    self.buildable.output_dir,
                     '{}_{}_{}.build'.format(
                         self.buildable.product_prefix, self.arch,
                         time.strftime('%Y%m%dt%H%M%S', time.gmtime())))
@@ -1239,7 +1235,7 @@ class Build:
                 self.buildable.logs[self.arch] = copied_back
 
                 symlink = os.path.join(
-                    self.output_dir,
+                    self.buildable.output_dir,
                     '{}_{}.build'.format(
                         self.buildable.product_prefix, self.arch))
                 try:
@@ -1248,9 +1244,6 @@ class Build:
                     pass
 
                 os.symlink(os.path.abspath(copied_back), symlink)
-
-        if self.output_dir is None:
-            return
 
         product_arch = None
 
@@ -1306,7 +1299,7 @@ class Build:
             return None
         else:
             product = '{}/out/{}'.format(self.worker.scratch, base)
-            copied_back = os.path.join(self.output_dir, to_base)
+            copied_back = os.path.join(self.buildable.output_dir, to_base)
             copied_back = os.path.abspath(copied_back)
 
             if skip_if_exists and os.path.exists(copied_back):
@@ -1408,10 +1401,7 @@ class BuildGroup:
             self.workers.append((argv, suite, w))
             return w
 
-    def new_build(self, buildable, arch, worker, output_dir=None):
-        if output_dir is None:
-            output_dir = buildable.output_dir
-
+    def new_build(self, buildable, arch, worker):
         return Build(
             buildable,
             arch,
@@ -1422,7 +1412,6 @@ class BuildGroup:
             dpkg_source_options=self.dpkg_source_options,
             extra_repositories=self.extra_repositories,
             mirrors=self.mirrors,
-            output_dir=output_dir,
             profiles=self.profiles,
             storage=self.storage,
         )
