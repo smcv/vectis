@@ -83,18 +83,18 @@ logger = logging.getLogger(__name__)
 class PbuilderWorker(ContainerWorker):
 
     def __init__(
-            self,
-            *,
-            architecture,               # type: str
-            mirrors,                    # type: vectis.config.Mirrors
-            suite,                      # type: vectis.config.Suite
-            worker,                     # type: VirtWorker
-            chroot=None,                # type: Optional[str]
-            components=(),              # type: Sequence[str]
-            extra_repositories=(),      # type: Sequence[str]
-            storage=None,               # type: str
-            tarball=None,               # type: str
-            ):
+        self,
+        *,
+        architecture,               # type: str
+        mirrors,                    # type: vectis.config.Mirrors
+        suite,                      # type: vectis.config.Suite
+        worker,                     # type: VirtWorker
+        chroot=None,                # type: Optional[str]
+        components=(),              # type: Sequence[str]
+        extra_repositories=(),      # type: Sequence[str]
+        storage=None,               # type: str
+        tarball=None,               # type: str
+    ):
         # type: (...) -> None
         super().__init__(mirrors=mirrors, suite=suite)
 
@@ -149,10 +149,10 @@ class PbuilderWorker(ContainerWorker):
 
             if ancestor is self.suite.hierarchy[-1]:
                 logger.info(
-                        '%r: %s => --distribution %s --mirror %s '
-                        '--components %r',
-                        self, ancestor, source.suite,
-                        source.uri, ' '.join(source.components))
+                    '%r: %s => --distribution %s --mirror %s '
+                    '--components %r',
+                    self, ancestor, source.suite,
+                    source.uri, ' '.join(source.components))
                 argv.append('--distribution')
                 argv.append(source.suite)
                 argv.append('--mirror')
@@ -181,16 +181,16 @@ class PbuilderWorker(ContainerWorker):
 class Buildable:
 
     def __init__(
-            self,
-            buildable,                  # type: str
-            *,
-            binary_version_suffix='',   # type: str
-            link_builds=(),             # type: Iterable[str]
-            orig_dirs=('..',),          # type: Iterable[str]
-            output_dir=None,            # type: Optional[str]
-            output_parent,              # type: str
-            vendor,                     # type: vectis.config.Vendor
-            ):
+        self,
+        buildable,                  # type: str
+        *,
+        binary_version_suffix='',   # type: str
+        link_builds=(),             # type: Iterable[str]
+        orig_dirs=('..',),          # type: Iterable[str]
+        output_dir=None,            # type: Optional[str]
+        output_parent,              # type: str
+        vendor,                     # type: vectis.config.Vendor
+    ):
         # type: (...) -> None
 
         self.buildable = buildable
@@ -472,10 +472,10 @@ class Buildable:
                             ])
 
     def get_source_from_archive(
-            self,
-            worker,                     # type: VirtWorker
-            chroot,                     # type: SchrootWorker
-            ):
+        self,
+        worker,                     # type: VirtWorker
+        chroot,                     # type: SchrootWorker
+    ):
         # We fetch the source ourselves rather than letting sbuild do
         # it, because for source rebuilds we need the orig.tar.* even
         # if it's revision 2 or later, so that we can run lintian on
@@ -1345,26 +1345,26 @@ class Build:
 
 class BuildGroup:
     def __init__(
-            self,
-            *,
-            binary_version_suffix=None,
-            buildables=(),
-            components=(),
-            deb_build_options=(),
-            dpkg_buildpackage_options=(),
-            dpkg_source_options=(),
-            extra_repositories=(),
-            link_builds,
-            orig_dirs=(),
-            output_dir,
-            output_parent,
-            mirrors,
-            profiles=(),
-            sbuild_options=(),
-            storage,
-            suite=None,
-            vendor,
-            ):
+        self,
+        *,
+        binary_version_suffix=None,
+        buildables=(),
+        components=(),
+        deb_build_options=(),
+        dpkg_buildpackage_options=(),
+        dpkg_source_options=(),
+        extra_repositories=(),
+        link_builds,
+        orig_dirs=(),
+        output_dir,
+        output_parent,
+        mirrors,
+        profiles=(),
+        sbuild_options=(),
+        storage,
+        suite=None,
+        vendor,
+    ):
         self.components = components
         self.deb_build_options = deb_build_options
         self.dpkg_buildpackage_options = dpkg_buildpackage_options
@@ -1449,30 +1449,30 @@ class BuildGroup:
             buildable.copy_source_to(worker)
 
     def sbuild(
-            self,
-            worker,
-            *,
-            archs=(),
-            build_source=None,          # None = auto
-            indep=False,
-            indep_together=False,
-            source_only=False,
-            source_together=False,
-            ):
+        self,
+        worker,
+        *,
+        archs=(),
+        build_source=None,          # None = auto
+        indep=False,
+        indep_together=False,
+        source_only=False,
+        source_together=False,
+    ):
         with worker:
             self._sbuild(worker)
 
     def _sbuild(
-            self,
-            worker,
-            *,
-            archs=(),
-            build_source=None,          # None = auto
-            indep=False,
-            indep_together=False,
-            source_only=False,
-            source_together=False,
-            ):
+        self,
+        worker,
+        *,
+        archs=(),
+        build_source=None,          # None = auto
+        indep=False,
+        indep_together=False,
+        source_only=False,
+        source_together=False,
+    ):
 
         logger.info('Installing sbuild')
         worker.check_call([
@@ -1518,24 +1518,24 @@ class BuildGroup:
             buildable.merge_changes()
 
     def pbuilder(
-            self,
-            worker,
-            *,
-            archs=(),
-            indep=False,
-            indep_together=False,
-            ):
+        self,
+        worker,
+        *,
+        archs=(),
+        indep=False,
+        indep_together=False,
+    ):
         with worker:
             self._pbuilder(worker)
 
     def _pbuilder(
-            self,
-            worker,
-            *,
-            archs=(),
-            indep=False,
-            indep_together=True,
-            ):
+        self,
+        worker,
+        *,
+        archs=(),
+        indep=False,
+        indep_together=True,
+    ):
         for buildable in self.buildables:
             if buildable.source_from_archive:
                 raise ArgumentError(
@@ -1579,17 +1579,17 @@ class BuildGroup:
             buildable.merge_changes()
 
     def autopkgtest(
-                self,
-                *,
-                default_architecture,
-                lxc_24bit_subnet,
-                lxc_worker,
-                lxd_worker,
-                modes=(),
-                qemu_ram_size,
-                schroot_worker,
-                worker,
-            ):
+        self,
+        *,
+        default_architecture,
+        lxc_24bit_subnet,
+        lxc_worker,
+        lxd_worker,
+        modes=(),
+        qemu_ram_size,
+        schroot_worker,
+        worker,
+    ):
         for buildable in self.buildables:
             try:
                 source_dsc = None
