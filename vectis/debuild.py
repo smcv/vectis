@@ -27,6 +27,7 @@ else:
         Optional,
         Sequence,
         Set,
+        Tuple,
     )
     typing      # silence pyflakes
     Iterable
@@ -35,6 +36,7 @@ else:
     Optional
     Sequence
     Set
+    Tuple
 
 from debian.changelog import (
     Changelog,
@@ -1347,24 +1349,26 @@ class BuildGroup:
     def __init__(
         self,
         *,
-        binary_version_suffix='',
-        buildables=(),
-        components=(),
-        deb_build_options=(),
-        dpkg_buildpackage_options=(),
-        dpkg_source_options=(),
-        extra_repositories=(),
-        link_builds,
-        orig_dirs=(),
-        output_dir,
-        output_parent,
-        mirrors,
-        profiles=(),
-        sbuild_options=(),
-        storage,
-        suite=None,
-        vendor,
+        binary_version_suffix='',       # type: str
+        buildables=(),                  # type: Iterable[str]
+        components=(),                  # type: Iterable[str]
+        deb_build_options=(),           # type: Iterable[str]
+        dpkg_buildpackage_options=(),   # type: Iterable[str]
+        dpkg_source_options=(),         # type: Iterable[str]
+        extra_repositories=(),          # type: Iterable[str]
+        link_builds,                    # type: Iterable[str]
+        orig_dirs=(),                   # type: Iterable[str]
+        output_dir,                     # type: Optional[str]
+        output_parent,                  # type: str
+        mirrors,                        # type: vectis.config.Mirrors
+        profiles=(),                    # type: Iterable[str]
+        sbuild_options=(),              # type: Iterable[str]
+        storage,                        # type: str
+        suite=None,                     # type: Optional[str]
+        vendor,                         # type: vectis.config.Vendor
     ):
+        # type: (...) -> None
+
         self.components = components
         self.deb_build_options = deb_build_options
         self.dpkg_buildpackage_options = dpkg_buildpackage_options
@@ -1381,7 +1385,7 @@ class BuildGroup:
         self.suite = suite
         self.vendor = vendor
 
-        self.buildables = []
+        self.buildables = []            # type: List[Buildable]
 
         for a in (buildables or ['.']):
             buildable = Buildable(
@@ -1394,13 +1398,17 @@ class BuildGroup:
                 vendor=vendor)
             self.buildables.append(buildable)
 
-        self.workers = []
+        self.workers = []   # type: List[Tuple[List[str], str, VirtWorker]]
 
     def select_suites(self, factory):
         for b in self.buildables:
             b.select_suite(factory, self.suite)
 
-    def get_worker(self, argv, suite):
+    def get_worker(
+        self,
+        argv,                           # type: List[str]
+        suite,                          # type: str
+    ):
         for triple in self.workers:
             a, s, w = triple
 
@@ -1416,7 +1424,12 @@ class BuildGroup:
             self.workers.append((argv, suite, w))
             return w
 
-    def new_build(self, buildable, arch, worker):
+    def new_build(
+        self,
+        buildable: Buildable,
+        arch: str,
+        worker: VirtWorker,
+    ):
         return Build(
             buildable,
             arch,
@@ -1431,7 +1444,11 @@ class BuildGroup:
             storage=self.storage,
         )
 
-    def get_source(self, buildable, worker):
+    def get_source(
+        self,
+        buildable: Buildable,
+        worker: VirtWorker,
+    ):
         use_arch = worker.dpkg_architecture
 
         if buildable.source_from_archive:
@@ -1451,10 +1468,10 @@ class BuildGroup:
 
     def sbuild(
         self,
-        worker,
+        worker,                     # type: VirtWorker
         *,
-        archs=(),
-        build_source=None,          # None = auto
+        archs=(),                   # type: Iterable[str]
+        build_source=None,          # type: Optional[bool]  # None -> auto
         indep=False,
         indep_together=False,
         source_only=False,
@@ -1465,10 +1482,10 @@ class BuildGroup:
 
     def _sbuild(
         self,
-        worker,
+        worker,                     # type: VirtWorker
         *,
-        archs=(),
-        build_source=None,          # None = auto
+        archs=(),                   # type: Iterable[str]
+        build_source=None,          # type: Optional[bool]  # None -> auto
         indep=False,
         indep_together=False,
         source_only=False,
@@ -1520,9 +1537,9 @@ class BuildGroup:
 
     def pbuilder(
         self,
-        worker,
+        worker,                         # type: VirtWorker
         *,
-        archs=(),
+        archs=(),                       # type: Iterable[str]
         indep=False,
         indep_together=False,
     ):
@@ -1531,9 +1548,9 @@ class BuildGroup:
 
     def _pbuilder(
         self,
-        worker,
+        worker,                         # type: VirtWorker
         *,
-        archs=(),
+        archs=(),                       # type: Iterable[str]
         indep=False,
         indep_together=True,
     ):
@@ -1582,14 +1599,14 @@ class BuildGroup:
     def autopkgtest(
         self,
         *,
-        default_architecture,
-        lxc_24bit_subnet,
-        lxc_worker,
-        lxd_worker,
-        modes=(),
-        qemu_ram_size,
-        schroot_worker,
-        worker,
+        default_architecture,           # type: str
+        lxc_24bit_subnet,               # type: str
+        lxc_worker,                     # type: List[str]
+        lxd_worker,                     # type: List[str]
+        modes=(),                       # type: Iterable[str]
+        qemu_ram_size,                  # type: int
+        schroot_worker,                 # type: List[str]
+        worker,                         # type: List[str]
     ):
         for buildable in self.buildables:
             try:
@@ -1651,11 +1668,12 @@ class BuildGroup:
                 raise
 
     def piuparts(
-            self,
-            *,
-            default_architecture,
-            tarballs,
-            worker):
+        self,
+        *,
+        default_architecture,           # type: str
+        tarballs,                       # type: Iterable[str]
+        worker,                         # type: VirtWorker
+    ):
         for buildable in self.buildables:
             try:
                 test_architectures = []
